@@ -1,0 +1,326 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { useAppStore } from '@/lib/store'
+import type { PlanType } from '@/lib/types'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  DollarSign,
+  TrendingUp,
+  ArrowUpRight,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+
+function formatCurrency(amount: number) {
+  return `$${amount.toFixed(2)}`
+}
+
+const PLAN_COLORS: Record<string, string> = {
+  Starter: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  Silver: 'bg-gray-400/20 text-gray-300 border-gray-400/30',
+  Gold: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  Platinum: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+}
+
+interface DepositModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function DepositModal({ open, onOpenChange }: DepositModalProps) {
+  const { user } = useAppStore()
+  const { toast } = useToast()
+  const [plans, setPlans] = useState<PlanType[]>([])
+  const [loadingPlans, setLoadingPlans] = useState(true)
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('')
+  const [amount, setAmount] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId)
+  const parsedAmount = parseFloat(amount) || 0
+
+  const fetchPlans = useCallback(async () => {
+    try {
+      setLoadingPlans(true)
+      const res = await fetch('/api/plans')
+      if (res.ok) {
+        const json = await res.json()
+        setPlans(json)
+      }
+    } catch (err) {
+      console.error('Failed to fetch plans:', err)
+    } finally {
+      setLoadingPlans(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (open) {
+      fetchPlans()
+      setSuccess(false)
+      setSelectedPlanId('')
+      setAmount('')
+    }
+  }, [open, fetchPlans])
+
+  const validationError = (() => {
+    if (!selectedPlan) return null
+    if (parsedAmount <= 0) return null
+    if (parsedAmount < selectedPlan.minDeposit)
+      return `Minimum deposit is ${formatCurrency(selectedPlan.minDeposit)}`
+    if (parsedAmount > selectedPlan.maxDeposit)
+      return `Maximum deposit is ${formatCurrency(selectedPlan.maxDeposit)}`
+    return null
+  })()
+
+  const estimatedDailyEarning = selectedPlan
+    ? (parsedAmount * selectedPlan.dailyEarningPercent) / 100
+    : 0
+
+  const handleSubmit = async () => {
+    if (!user?.id || !selectedPlanId || parsedAmount <= 0) return
+
+    try {
+      setSubmitting(true)
+      const res = await fetch('/api/deposits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          planId: selectedPlanId,
+          amount: parsedAmount,
+        }),
+      })
+
+      if (res.ok) {
+        setSuccess(true)
+        toast({
+          title: 'Deposit Successful!',
+          description: `You've deposited ${formatCurrency(parsedAmount)} into the ${selectedPlan?.name} plan.`,
+        })
+      } else {
+        const json = await res.json()
+        toast({
+          title: 'Deposit Failed',
+          description: json.error || 'Something went wrong',
+          variant: 'destructive',
+        })
+      }
+    } catch (err) {
+      toast({
+        title: 'Network error',
+        description: 'Please try again later',
+        variant: 'destructive',
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <DollarSign className="size-5 text-primary" />
+            New Deposit
+          </DialogTitle>
+          <DialogDescription>
+            Choose a plan and make a deposit to start earning
+          </DialogDescription>
+        </DialogHeader>
+
+        {success ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <div className="rounded-full bg-emerald-500/20 p-3">
+              <CheckCircle2 className="size-8 text-emerald-400" />
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-lg">Deposit Successful!</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Your deposit is now active and earning.
+              </p>
+            </div>
+            <Button onClick={() => onOpenChange(false)} className="mt-2">
+              Done
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Plan Selection */}
+            <div className="space-y-2">
+              <Label>Select Plan</Label>
+              {loadingPlans ? (
+                <Skeleton className="h-9 w-full rounded-md" />
+              ) : (
+                <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose a plan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {plans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] ${PLAN_COLORS[plan.name] || ''}`}
+                          >
+                            {plan.name}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {plan.dailyEarningPercent}%/day
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Plan Details */}
+            {selectedPlan && (
+              <div className="rounded-lg bg-muted/50 border border-border/50 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge
+                    variant="outline"
+                    className={PLAN_COLORS[selectedPlan.name] || ''}
+                  >
+                    {selectedPlan.name}
+                  </Badge>
+                  <div className="flex items-center gap-1 text-emerald-400 text-sm font-medium">
+                    <TrendingUp className="size-3.5" />
+                    {selectedPlan.dailyEarningPercent}% daily
+                  </div>
+                </div>
+                <Separator />
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Entry Fee</p>
+                    <p className="font-medium">{formatCurrency(selectedPlan.entryFee)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Max Earning</p>
+                    <p className="font-medium">{formatCurrency(selectedPlan.maxEarningLimit)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Min Deposit</p>
+                    <p className="font-medium">{formatCurrency(selectedPlan.minDeposit)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Max Deposit</p>
+                    <p className="font-medium">{formatCurrency(selectedPlan.maxDeposit)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Amount Input */}
+            <div className="space-y-2">
+              <Label htmlFor="deposit-amount">Amount (USDC)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  id="deposit-amount"
+                  type="number"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="pl-9"
+                  min="0"
+                  step="0.01"
+                  disabled={!selectedPlanId}
+                />
+              </div>
+              {selectedPlan && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs"
+                    onClick={() => setAmount(selectedPlan.minDeposit.toString())}
+                  >
+                    Min: {formatCurrency(selectedPlan.minDeposit)}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs"
+                    onClick={() => setAmount(selectedPlan.maxDeposit.toString())}
+                  >
+                    Max: {formatCurrency(selectedPlan.maxDeposit)}
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Validation Error */}
+            {validationError && (
+              <div className="flex items-center gap-2 text-rose-400 text-xs">
+                <AlertCircle className="size-3.5" />
+                {validationError}
+              </div>
+            )}
+
+            {/* Estimated Earnings */}
+            {selectedPlan && parsedAmount > 0 && !validationError && (
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Est. Daily Earning</span>
+                  <span className="font-medium text-emerald-400 flex items-center gap-1">
+                    <ArrowUpRight className="size-3.5" />
+                    +{formatCurrency(estimatedDailyEarning)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <Button
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={
+                submitting ||
+                !selectedPlanId ||
+                parsedAmount <= 0 ||
+                !!validationError
+              }
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Confirm Deposit'
+              )}
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}

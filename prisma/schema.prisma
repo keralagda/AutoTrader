@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String
+  walletAddress String?
+  role          String    @default("user") // "user" or "admin"
+  referralCode  String    @unique
+  referredById  String?
+  referredBy    User?     @relation("Referrals", fields: [referredById], references: [id])
+  referrals     User[]    @relation("Referrals")
+  balance       Float     @default(0)
+  totalEarnings Float     @default(0)
+  totalDeposited Float    @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  deposits      Deposit[]
+  earnings      Earning[]
+  withdrawals   Withdrawal[]
+  leaderboardEntries LeaderboardEntry[]
+  userChallenges UserChallenge[]
+}
+
+model Plan {
+  id                  String   @id @default(cuid())
+  name                String
+  entryFee            Float
+  minDeposit          Float
+  maxDeposit          Float
+  dailyEarningPercent Float
+  maxEarningLimit     Float
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  deposits Deposit[]
+}
+
+model Deposit {
+  id        String   @id @default(cuid())
+  userId    String
+  planId    String
+  amount    Float
+  status    String   @default("active") // "active", "completed", "cancelled"
+  earnedSoFar Float  @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  plan     Plan     @relation(fields: [planId], references: [id])
+  earnings Earning[]
+  profitDistributions ProfitDistribution[]
+}
+
+model Earning {
+  id        String   @id @default(cuid())
+  userId    String
+  depositId String?
+  amount    Float
+  type      String   // "referral", "profit_share", "bonus", "daily"
+  level     Int?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  deposit Deposit? @relation(fields: [depositId], references: [id])
+}
+
+model Withdrawal {
+  id            String   @id @default(cuid())
+  userId        String
+  amount        Float
+  walletAddress String
+  status        String   @default("pending") // "pending", "approved", "rejected", "completed"
+  txHash        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ProfitDistribution {
+  id         String   @id @default(cuid())
+  depositId  String
+  amount     Float
+  riskMode   String   // "safe", "medium", "risk"
+  dayOfWeek  String   // "monday", "tuesday", etc.
+  createdAt  DateTime @default(now())
+
+  deposit Deposit @relation(fields: [depositId], references: [id])
+}
+
+model LeaderboardEntry {
+  id           String   @id @default(cuid())
+  userId       String
+  totalEarnings Float
+  rank         Int
+  period       String   // "daily", "weekly", "monthly", "all_time"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  reward      Float
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(false) // hidden by default
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userChallenges UserChallenge[]
+}
+
+model UserChallenge {
+  id          String  @id @default(cuid())
+  userId      String
+  challengeId String
+  progress    Float   @default(0)
+  completed   Boolean @default(false)
+  claimed     Boolean @default(false)
+
+  user      User      @relation(fields: [userId], references: [id])
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}

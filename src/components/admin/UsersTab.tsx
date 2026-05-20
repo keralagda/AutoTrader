@@ -1,0 +1,483 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { toast } from '@/hooks/use-toast'
+import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight } from 'lucide-react'
+
+interface UserRecord {
+  id: string
+  name: string
+  email: string
+  referralCode: string
+  balance: number
+  totalEarnings: number
+  totalDeposited: number
+  isActive: boolean
+  createdAt: string
+  referredById: string | null
+  _count: {
+    deposits: number
+    referrals: number
+    withdrawals: number
+  }
+}
+
+interface UserDeposit {
+  id: string
+  amount: number
+  status: string
+  earnedSoFar: number
+  createdAt: string
+  plan?: { name: string }
+}
+
+interface UserEarning {
+  id: string
+  amount: number
+  type: string
+  level?: number | null
+  createdAt: string
+}
+
+interface UserDetail extends UserRecord {
+  deposits: UserDeposit[]
+  earnings: UserEarning[]
+  referredBy: { id: string; name: string; email: string } | null
+  referrals: { id: string; name: string; email: string }[]
+}
+
+export function UsersTab() {
+  const [users, setUsers] = useState<UserRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [balanceAdjustUserId, setBalanceAdjustUserId] = useState<string | null>(null)
+  const [balanceAdjustAmount, setBalanceAdjustAmount] = useState('')
+  const [balanceAdjustLoading, setBalanceAdjustLoading] = useState(false)
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/users')
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setUsers(data)
+    } catch {
+      toast({ title: 'Error', description: 'Failed to load users', variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchUsers() }, [fetchUsers])
+
+  const handleToggleActive = async (user: UserRecord) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, isActive: !user.isActive }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'User Updated', description: `${user.name} is now ${user.isActive ? 'inactive' : 'active'}` })
+      fetchUsers()
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update user', variant: 'destructive' })
+    }
+  }
+
+  const handleAdjustBalance = async () => {
+    if (!balanceAdjustUserId || !balanceAdjustAmount) return
+    setBalanceAdjustLoading(true)
+    try {
+      const user = users.find(u => u.id === balanceAdjustUserId)
+      if (!user) return
+      const newBalance = user.balance + parseFloat(balanceAdjustAmount)
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: balanceAdjustUserId, balance: newBalance }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Balance Updated', description: `Balance adjusted by ${balanceAdjustAmount} USDC` })
+      setBalanceAdjustUserId(null)
+      setBalanceAdjustAmount('')
+      fetchUsers()
+    } catch {
+      toast({ title: 'Error', description: 'Failed to adjust balance', variant: 'destructive' })
+    } finally {
+      setBalanceAdjustLoading(false)
+    }
+  }
+
+  const handleViewDetails = async (user: UserRecord) => {
+    setDetailLoading(true)
+    setShowDetailModal(true)
+    try {
+      // Fetch user deposits
+      const depositsRes = await fetch(`/api/deposits?userId=${user.id}`)
+      const deposits = depositsRes.ok ? await depositsRes.json() : []
+
+      // Fetch user earnings (API returns { earnings: [...], summary: {...} })
+      const earningsRes = await fetch(`/api/earnings?userId=${user.id}`)
+      const earningsData = earningsRes.ok ? await earningsRes.json() : { earnings: [] }
+      const earnings = earningsData.earnings || []
+
+      // Find referrer
+      let referredBy = null
+      if (user.referredById) {
+        const referrer = users.find(u => u.id === user.referredById)
+        if (referrer) {
+          referredBy = { id: referrer.id, name: referrer.name, email: referrer.email }
+        }
+      }
+
+      // Find referrals
+      const referrals = users
+        .filter(u => u.referredById === user.id)
+        .map(u => ({ id: u.id, name: u.name, email: u.email }))
+
+      setSelectedUser({
+        ...user,
+        deposits,
+        earnings,
+        referredBy,
+        referrals,
+      })
+    } catch {
+      toast({ title: 'Error', description: 'Failed to load user details', variant: 'destructive' })
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  const filteredUsers = users.filter(u => {
+    const matchSearch =
+      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.referralCode.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchStatus = statusFilter === 'all' || (statusFilter === 'active' ? u.isActive : !u.isActive)
+    return matchSearch && matchStatus
+  })
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">User Management</h2>
+        <p className="text-sm text-muted-foreground mt-1">Manage and monitor platform users</p>
+      </div>
+
+      {/* Filters */}
+      <Card className="bg-card/50 border-border/50">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, email, or referral code..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="bg-muted/50 border-border/50 pl-9"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(['all', 'active', 'inactive'] as const).map(status => (
+                <Button
+                  key={status}
+                  variant={statusFilter === status ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setStatusFilter(status)}
+                  className={statusFilter === status ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Users Table */}
+      <Card className="bg-card/50 border-border/50">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-6 space-y-3">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-12 bg-muted/30 rounded animate-pulse" />
+              ))}
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">No users found</p>
+          ) : (
+            <div className="max-h-[600px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50 hover:bg-transparent">
+                    <TableHead className="text-muted-foreground">Name</TableHead>
+                    <TableHead className="text-muted-foreground">Email</TableHead>
+                    <TableHead className="text-muted-foreground">Balance</TableHead>
+                    <TableHead className="text-muted-foreground">Earnings</TableHead>
+                    <TableHead className="text-muted-foreground">Deposits</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map(user => (
+                    <TableRow key={user.id} className="border-border/30 hover:bg-muted/30">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-bold shrink-0">
+                            {user.name[0]}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.referralCode}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
+                      <TableCell className="text-sm text-foreground font-medium">${user.balance.toFixed(2)}</TableCell>
+                      <TableCell className="text-sm text-emerald-400">${user.totalEarnings.toFixed(2)}</TableCell>
+                      <TableCell className="text-sm text-foreground">${user.totalDeposited.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={user.isActive
+                            ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                            : 'border-rose-500/30 text-rose-400 bg-rose-500/10'
+                          }
+                        >
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleViewDetails(user)}
+                            className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleToggleActive(user)}
+                            className={user.isActive ? 'text-rose-400 hover:text-rose-300' : 'text-emerald-400 hover:text-emerald-300'}
+                            title={user.isActive ? 'Deactivate' : 'Activate'}
+                          >
+                            {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setBalanceAdjustUserId(user.id)}
+                            className="text-amber-400 hover:text-amber-300 h-8 w-8 p-0"
+                            title="Adjust Balance"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Balance Adjust Dialog */}
+      <Dialog open={!!balanceAdjustUserId} onOpenChange={() => { setBalanceAdjustUserId(null); setBalanceAdjustAmount('') }}>
+        <DialogContent className="bg-card border-border/50">
+          <DialogHeader>
+            <DialogTitle>Adjust Balance</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Amount (positive to add, negative to subtract)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  type="number"
+                  value={balanceAdjustAmount}
+                  onChange={e => setBalanceAdjustAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="bg-muted/50 border-border/50 pl-7"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => { setBalanceAdjustUserId(null); setBalanceAdjustAmount('') }}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAdjustBalance}
+                disabled={balanceAdjustLoading || !balanceAdjustAmount}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {balanceAdjustLoading ? 'Adjusting...' : 'Adjust'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Detail Modal */}
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="bg-card border-border/50 max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+          </DialogHeader>
+          {detailLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-16 bg-muted/30 rounded animate-pulse" />
+              ))}
+            </div>
+          ) : selectedUser ? (
+            <div className="space-y-6">
+              {/* User Info */}
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg font-bold shrink-0">
+                  {selectedUser.name[0]}
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-foreground">{selectedUser.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={selectedUser.isActive
+                        ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                        : 'border-rose-500/30 text-rose-400 bg-rose-500/10'
+                      }
+                    >
+                      {selectedUser.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">Ref: {selectedUser.referralCode}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Balance</p>
+                  <p className="text-lg font-bold text-foreground">${selectedUser.balance.toFixed(2)}</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Earnings</p>
+                  <p className="text-lg font-bold text-emerald-400">${selectedUser.totalEarnings.toFixed(2)}</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Deposited</p>
+                  <p className="text-lg font-bold text-foreground">${selectedUser.totalDeposited.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Referral Tree */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <UsersIcon className="h-4 w-4 text-emerald-400" />
+                  Referral Tree
+                </h4>
+                <div className="space-y-2">
+                  {selectedUser.referredBy ? (
+                    <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                      <ChevronRight className="h-4 w-4 text-muted-foreground rotate-180" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Referred by</p>
+                        <p className="text-sm font-medium text-foreground">{selectedUser.referredBy.name} ({selectedUser.referredBy.email})</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground p-2">No referrer (direct signup)</p>
+                  )}
+                  {selectedUser.referrals.length > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Referred users ({selectedUser.referrals.length})</p>
+                      {selectedUser.referrals.map(ref => (
+                        <div key={ref.id} className="flex items-center gap-2 p-2 bg-muted/20 rounded-lg mb-1">
+                          <ChevronRight className="h-4 w-4 text-emerald-400" />
+                          <p className="text-sm text-foreground">{ref.name} ({ref.email})</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Deposit History */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3">Deposit History</h4>
+                {selectedUser.deposits.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No deposits</p>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {selectedUser.deposits.map((dep: UserDeposit) => (
+                      <div key={dep.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                        <div>
+                          <p className="text-sm text-foreground">{dep.plan?.name || 'Plan'} — ${dep.amount.toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(dep.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={
+                            dep.status === 'active'
+                              ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                              : dep.status === 'completed'
+                              ? 'border-amber-500/30 text-amber-400 bg-amber-500/10'
+                              : 'border-rose-500/30 text-rose-400 bg-rose-500/10'
+                          }
+                        >
+                          {dep.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Earnings History */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3">Earnings History</h4>
+                {selectedUser.earnings.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No earnings</p>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {selectedUser.earnings.slice(0, 20).map((earn: UserEarning) => (
+                      <div key={earn.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                        <div>
+                          <p className="text-sm text-foreground">
+                            {earn.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {earn.level ? ` (Level ${earn.level})` : ''}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{new Date(earn.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <span className="text-sm font-medium text-emerald-400">+${earn.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
