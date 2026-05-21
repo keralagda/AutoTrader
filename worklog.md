@@ -209,3 +209,24 @@ Stage Summary:
 - Challenge progress tracking, reward claiming, and USDC distribution to trading wallet
 - Full admin management for creating/editing/toggling/deleting challenges and badges
 - All lint passes, seed completes successfully, API returns correct data
+
+---
+Task ID: 10
+Agent: Main
+Task: Fix site rendering issues
+
+Work Log:
+- Diagnosed AnimatedPercent bug in PlansSection: component used `useInView({ once: true })` which triggered animation with value=0 during loading state, then prevented re-animation when actual values arrived from async fetch
+- Fixed PlansSection AnimatedPercent: now tracks previous value with useRef and re-animates from previous value to new value when value prop changes, ensuring correct percentages display after data loads
+- Fixed DistributionSection AnimatedPercent: replaced instant `isInView ? value : 0` display with smooth counter animation using requestAnimationFrame and eased progress, matching the same animation pattern as PlansSection
+- Verified all rendering with browser automation: Landing page shows correct plan percentages (6%, 8%, 10%, 15%), distribution percentages (50%, 30%, 15%, 5%, 80%, 15%, 5%), and stats counters
+- Verified user dashboard Challenges tab renders correctly with XP bar, daily check-in, challenge cards, and badges
+- Verified admin Challenges & Badges tab renders correctly with 14 challenges and 15 badges
+- Tested daily check-in flow: clicking "Check In Now" successfully awards 50 XP, updates streak, and changes button to "Checked In ✓"
+- All lint passes
+
+Stage Summary:
+- Fixed AnimatedPercent animation bug where async-loaded values showed as 0% instead of actual percentages
+- PlansSection now correctly animates to actual daily earning percentages after API fetch
+- DistributionSection now has smooth counter animation instead of instant jump
+- Full site verified working with browser automation: landing page, user dashboard, admin dashboard all render correctly

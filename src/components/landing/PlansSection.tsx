@@ -59,10 +59,13 @@ function AnimatedPercent({ value }: { value: number }) {
   const [count, setCount] = useState(0)
   const ref = useRef<HTMLSpanElement>(null)
   const isInView = useInView(ref, { once: true })
+  const prevValue = useRef(0)
 
   useEffect(() => {
-    if (!isInView) return
-    let start = 0
+    if (!isInView || value === 0) return
+
+    // If value changed (e.g. after async load), always animate to new value
+    const startVal = prevValue.current
     const duration = 1500
     const startTime = performance.now()
 
@@ -70,11 +73,12 @@ function AnimatedPercent({ value }: { value: number }) {
       const elapsed = now - startTime
       const progress = Math.min(elapsed / duration, 1)
       const eased = 1 - Math.pow(1 - progress, 3)
-      setCount(Number((eased * value).toFixed(1)))
+      setCount(Number((startVal + eased * (value - startVal)).toFixed(1)))
       if (progress < 1) {
         requestAnimationFrame(animate)
       } else {
         setCount(value)
+        prevValue.current = value
       }
     }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
 import {
   PieChart,
@@ -14,15 +14,35 @@ import { Wallet, TrendingUp, Gift, Building2, Users, Award } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PLATFORM_DISTRIBUTION, SUBSCRIPTION_DISTRIBUTION } from '@/lib/types'
 
-// Animated percentage
+// Animated percentage with smooth counter
 function AnimatedPercent({ value }: { value: number }) {
   const ref = useRef<HTMLSpanElement>(null)
   const isInView = useInView(ref, { once: true })
-  const display = isInView ? value : 0
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    if (!isInView) return
+    const duration = 1200
+    const startTime = performance.now()
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setCount(Math.round(eased * value))
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        setCount(value)
+      }
+    }
+
+    requestAnimationFrame(animate)
+  }, [isInView, value])
 
   return (
     <span ref={ref} className="tabular-nums font-bold text-2xl">
-      {display}%
+      {count}%
     </span>
   )
 }
