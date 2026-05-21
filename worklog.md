@@ -175,3 +175,37 @@ Stage Summary:
 - Advanced field-based Plan Builder with auto-generated plain English descriptions, stacking options, distribution bars, validation
 - Payment gateway management for Crypto (USDC Polygon, BTC, ETH) and Indian (UPI, Bank Transfer, Razorpay)
 - All lint passes, dev server running cleanly
+
+---
+Task ID: 9
+Agent: Main
+Task: Add comprehensive challenge features and gamification system
+
+Work Log:
+- Updated Prisma schema with 5 new gamification models: UserStats, Badge, UserBadge, DailyCheckIn, and enhanced Challenge/UserChallenge models
+- Challenge model now has: category (daily/weekly/milestone/special/streak/referral/deposit), challengeType (target/streak/action), targetValue, xpReward, badgeIcon, difficulty, colorTheme, streakBased, requireStreakDays, bonusMultiplier, isRecurring, recurrencePeriod
+- UserChallenge model now has: startedAt, completedAt, streakCount, lastProgressAt
+- UserStats model tracks: xp, level, currentStreak, longestStreak, lastCheckIn, totalCheckIns, challengesCompleted, challengesClaimed, totalXpEarned, totalUsdcRewards
+- Badge model has: name, description, icon, category, rarity (common/uncommon/rare/epic/legendary), xpRequired, condition (plain English), colorTheme
+- UserBadge model tracks earned badges
+- DailyCheckIn model tracks daily check-ins with xpEarned, bonusEarned, streakDay
+- Updated types.ts with all gamification type definitions, constants, and 14 default challenges + 15 default badges
+- Created /api/challenges - Enhanced with join, update_progress, claim actions; auto-joins on progress update; awards XP on completion; handles USDC rewards via trading balance
+- Created /api/gamification - GET returns full gamification profile (stats, checkIn state, challenge counts, badge inventory with rarity counts); POST handles daily check-in with streak calculation, XP awarding, USDC bonus (every 7th day), and automatic streak badge unlocking
+- Created /api/admin/challenges - Full CRUD for both challenges and badges; GET returns with participant counts; POST creates; PUT updates; DELETE with cascade; toggle active/inactive
+- Updated /api/seed to create 14 default challenges and 15 default badges on first seed
+- Completely rebuilt ChallengesTab with: XP Level header with animated level badge and progress bar, daily check-in card with streak dots and USDC bonus indicator, category filter buttons, challenge cards with progress bars/difficulty stars/bonus multipliers/recurrence badges, claim reward buttons, 3-tab layout (Challenges/Badges/Rankings), badge showcase with earned/locked sections and rarity summary, badge detail modal, gamification stats summary, streak milestones
+- Created AdminChallengesTab with: stats overview cards, challenge/badge management with search, inline toggle active, edit/delete with confirmation, full challenge creation form (Basic Info, Target & Rewards, Streak & Recurrence, Appearance), full badge creation form (name, description, icon, category, rarity, XP threshold, plain English condition)
+- Updated UserSidebar: removed "Coming Soon" badge, renamed to "Challenges & Rewards"
+- Updated UserDashboard: removed "Coming Soon" badge from header
+- Updated AdminSidebar: added "Challenges & Badges" tab with Target icon
+- Updated AdminDashboard: added AdminChallengesTab render case
+
+Stage Summary:
+- Complete gamification system with XP, levels (1 XP per level = 1000 XP), daily check-ins, streaks, badges, and challenge categories
+- 14 default challenges across 7 categories (daily, weekly, milestone, streak, referral, deposit, special)
+- 15 default badges across 5 rarities (common, uncommon, rare, epic, legendary) with auto-unlock from XP thresholds
+- Daily check-in with streak tracking, XP bonuses (50 base + 10/streak day), and USDC bonus every 7th day
+- Challenge progress tracking, reward claiming, and USDC distribution to trading wallet
+- Full admin management for creating/editing/toggling/deleting challenges and badges
+- All lint passes, seed completes successfully, API returns correct data

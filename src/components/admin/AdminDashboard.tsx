@@ -9,6 +9,7 @@ import { UsersTab } from './UsersTab'
 import { WithdrawalsTab } from './WithdrawalsTab'
 import { SettingsTab } from './SettingsTab'
 import { PaymentGatewaysTab } from './PaymentGatewaysTab'
+import { AdminChallengesTab } from './AdminChallengesTab'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -66,6 +67,7 @@ export function AdminDashboard() {
     switch (adminTab) {
       case 'plans': return <PlansTab />
       case 'profits': return <ProfitsTab />
+      case 'challenges': return <AdminChallengesTab />
       case 'users': return <UsersTab />
       case 'withdrawals': return <WithdrawalsTab />
       case 'payments': return <PaymentGatewaysTab />

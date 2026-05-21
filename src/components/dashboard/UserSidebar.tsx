@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
   { id: 'earnings', label: 'My Earnings', icon: TrendingUp },
   { id: 'withdraw', label: 'Withdraw Funds', icon: Wallet },
   { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-  { id: 'challenges', label: 'Challenges', icon: Target, badge: 'Coming Soon' },
+  { id: 'challenges', label: 'Challenges & Rewards', icon: Target },
 ]
 
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {

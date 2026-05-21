@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore, type AdminTab } from '@/lib/store'
-import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard } from 'lucide-react'
+import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 const navItems: { tab: AdminTab; label: string; icon: React.ElementType }[] = [
   { tab: 'plans', label: 'Plan Builder', icon: Settings },
   { tab: 'profits', label: 'Add Profits', icon: TrendingUp },
+  { tab: 'challenges', label: 'Challenges & Badges', icon: Target },
   { tab: 'users', label: 'Users', icon: Users },
   { tab: 'withdrawals', label: 'Withdrawals', icon: Wallet },
   { tab: 'payments', label: 'Payments', icon: CreditCard },

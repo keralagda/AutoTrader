@@ -32,6 +32,9 @@ model User {
   leaderboardEntries  LeaderboardEntry[]
   userChallenges      UserChallenge[]
   payments            Payment[]
+  userStats           UserStats?
+  userBadges          UserBadge[]
+  dailyCheckIns       DailyCheckIn[]
 }
 
 model Plan {
@@ -148,29 +151,102 @@ model LeaderboardEntry {
 }
 
 model Challenge {
-  id          String   @id @default(cuid())
-  title       String
-  description String
-  reward      Float
-  startDate   DateTime
-  endDate     DateTime
-  isActive    Boolean  @default(false) // hidden by default
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  category        String   @default("milestone") // "daily", "weekly", "milestone", "special", "streak", "referral", "deposit"
+  challengeType   String   @default("target")     // "target" (reach a number), "streak" (consecutive days), "action" (do something once)
+  targetValue     Float    @default(1)            // The goal number (e.g. deposit $500, refer 3 friends, 7-day streak)
+  reward          Float    @default(0)            // USDC reward amount
+  xpReward        Int      @default(0)            // XP points awarded
+  badgeIcon       String   @default("🎯")         // Emoji icon for the challenge
+  difficulty      String   @default("easy")       // "easy", "medium", "hard", "elite"
+  colorTheme      String   @default("emerald")    // Color theme: "emerald", "amber", "cyan", "rose", "violet"
+  streakBased     Boolean  @default(false)         // Is this a streak-based challenge?
+  requireStreakDays Int    @default(0)             // How many consecutive days needed for streak challenges
+  bonusMultiplier Float    @default(1)             // Reward multiplier (e.g. 2x for special events)
+  isRecurring     Boolean  @default(false)         // Does this challenge reset periodically?
+  recurrencePeriod String  @default("none")        // "none", "daily", "weekly", "monthly"
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   userChallenges UserChallenge[]
 }
 
 model UserChallenge {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   challengeId String
-  progress    Float   @default(0)
-  completed   Boolean @default(false)
-  claimed     Boolean @default(false)
+  progress    Float    @default(0)
+  completed   Boolean  @default(false)
+  claimed     Boolean  @default(false)
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  streakCount Int      @default(0)    // Current streak for streak-based challenges
+  lastProgressAt DateTime?            // When was progress last updated (for streak tracking)
 
   user      User      @relation(fields: [userId], references: [id])
   challenge Challenge @relation(fields: [challengeId], references: [id])
+}
+
+model UserStats {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  xp              Int     @default(0)
+  level           Int     @default(1)
+  currentStreak   Int     @default(0)     // Current daily check-in streak
+  longestStreak   Int     @default(0)     // Longest daily check-in streak ever
+  lastCheckIn     DateTime?               // Last daily check-in date
+  totalCheckIns   Int     @default(0)     // Total number of check-ins
+  challengesCompleted Int @default(0)     // Total challenges completed
+  challengesClaimed Int   @default(0)     // Total rewards claimed
+  totalXpEarned   Int     @default(0)     // Total XP ever earned
+  totalUsdcRewards Float  @default(0)     // Total USDC from challenge rewards
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Badge {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  icon        String            // Emoji icon
+  category    String   @default("achievement") // "achievement", "milestone", "streak", "social", "special"
+  rarity      String   @default("common")      // "common", "uncommon", "rare", "epic", "legendary"
+  xpRequired  Int      @default(0)             // XP needed to auto-unlock (0 = challenge-only)
+  condition   String            // Plain English condition to earn this badge
+  colorTheme  String   @default("emerald")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  userBadges UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id])
+  badge Badge  @relation(fields: [badgeId], references: [id])
+}
+
+model DailyCheckIn {
+  id        String   @id @default(cuid())
+  userId    String
+  checkDate DateTime // The date of check-in (date only, no time)
+  xpEarned  Int      @default(0)
+  bonusEarned Float  @default(0)  // USDC bonus if applicable
+  streakDay Int      @default(1)  // Which day of the streak this was
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Setting {

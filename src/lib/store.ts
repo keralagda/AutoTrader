@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export type AppView = 'landing' | 'dashboard' | 'admin'
 export type DashboardTab = 'earnings' | 'withdraw' | 'leaderboard' | 'challenges' | 'wallets'
-export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments'
+export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges'
 
 interface AppState {
   // Navigation

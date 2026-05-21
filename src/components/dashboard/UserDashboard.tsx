@@ -118,11 +118,6 @@ export function UserDashboard() {
             <div className="flex items-center gap-3 pl-10 md:pl-0">
               <TabIcon className="size-5 text-primary" />
               <h1 className="text-lg font-semibold">{currentTab.title}</h1>
-              {dashboardTab === 'challenges' && (
-                <Badge className="text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
-                  Coming Soon
-                </Badge>
-              )}
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">

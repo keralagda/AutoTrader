@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { DEFAULT_PLANS } from '@/lib/types'
+import { DEFAULT_PLANS, DEFAULT_CHALLENGES, DEFAULT_BADGES } from '@/lib/types'
 
 export async function POST() {
   try {
@@ -57,6 +57,22 @@ export async function POST() {
       ]
       for (const s of defaultSettings) {
         await db.setting.create({ data: s })
+      }
+    }
+
+    // Create default challenges if none exist
+    const existingChallenges = await db.challenge.count()
+    if (existingChallenges === 0) {
+      for (const challenge of DEFAULT_CHALLENGES) {
+        await db.challenge.create({ data: challenge })
+      }
+    }
+
+    // Create default badges if none exist
+    const existingBadges = await db.badge.count()
+    if (existingBadges === 0) {
+      for (const badge of DEFAULT_BADGES) {
+        await db.badge.create({ data: badge })
       }
     }
 

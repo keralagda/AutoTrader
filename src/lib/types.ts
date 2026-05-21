@@ -79,10 +79,82 @@ export interface ChallengeType {
   id: string
   title: string
   description: string
+  category: ChallengeCategory
+  challengeType: ChallengeTypeKind
+  targetValue: number
   reward: number
+  xpReward: number
+  badgeIcon: string
+  difficulty: ChallengeDifficulty
+  colorTheme: ChallengeColorTheme
+  streakBased: boolean
+  requireStreakDays: number
+  bonusMultiplier: number
+  isRecurring: boolean
+  recurrencePeriod: RecurrencePeriod
   startDate: string
-  endDate: string
+  endDate?: string | null
   isActive: boolean
+  sortOrder: number
+}
+
+export interface UserChallengeType {
+  id: string
+  userId: string
+  challengeId: string
+  progress: number
+  completed: boolean
+  claimed: boolean
+  startedAt: string
+  completedAt?: string | null
+  streakCount: number
+  lastProgressAt?: string | null
+  challenge?: ChallengeType
+}
+
+export interface UserStatsType {
+  id: string
+  userId: string
+  xp: number
+  level: number
+  currentStreak: number
+  longestStreak: number
+  lastCheckIn?: string | null
+  totalCheckIns: number
+  challengesCompleted: number
+  challengesClaimed: number
+  totalXpEarned: number
+  totalUsdcRewards: number
+}
+
+export interface BadgeType {
+  id: string
+  name: string
+  description: string
+  icon: string
+  category: BadgeCategory
+  rarity: BadgeRarity
+  xpRequired: number
+  condition: string
+  colorTheme: string
+  isActive: boolean
+}
+
+export interface UserBadgeType {
+  id: string
+  userId: string
+  badgeId: string
+  earnedAt: string
+  badge?: BadgeType
+}
+
+export interface DailyCheckInType {
+  id: string
+  userId: string
+  checkDate: string
+  xpEarned: number
+  bonusEarned: number
+  streakDay: number
 }
 
 export interface ReferralLevelType {
@@ -128,6 +200,67 @@ export interface PaymentType {
   gatewayRef?: string
   planId?: string
   createdAt: string
+}
+
+// ─── Gamification Enums & Constants ────────────────────────────────
+
+export type ChallengeCategory = 'daily' | 'weekly' | 'milestone' | 'special' | 'streak' | 'referral' | 'deposit'
+export type ChallengeTypeKind = 'target' | 'streak' | 'action'
+export type ChallengeDifficulty = 'easy' | 'medium' | 'hard' | 'elite'
+export type ChallengeColorTheme = 'emerald' | 'amber' | 'cyan' | 'rose' | 'violet'
+export type RecurrencePeriod = 'none' | 'daily' | 'weekly' | 'monthly'
+export type BadgeCategory = 'achievement' | 'milestone' | 'streak' | 'social' | 'special'
+export type BadgeRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+
+// Challenge Category Labels
+export const CHALLENGE_CATEGORY_LABELS: Record<ChallengeCategory, { label: string; icon: string; color: string }> = {
+  daily: { label: 'Daily', icon: '📅', color: 'emerald' },
+  weekly: { label: 'Weekly', icon: '📆', color: 'cyan' },
+  milestone: { label: 'Milestone', icon: '🏆', color: 'amber' },
+  special: { label: 'Special Event', icon: '⭐', color: 'rose' },
+  streak: { label: 'Streak', icon: '🔥', color: 'violet' },
+  referral: { label: 'Referral', icon: '👥', color: 'cyan' },
+  deposit: { label: 'Deposit', icon: '💰', color: 'emerald' },
+}
+
+// Difficulty Labels
+export const DIFFICULTY_LABELS: Record<ChallengeDifficulty, { label: string; color: string; stars: number }> = {
+  easy: { label: 'Easy', color: 'text-emerald-400', stars: 1 },
+  medium: { label: 'Medium', color: 'text-amber-400', stars: 2 },
+  hard: { label: 'Hard', color: 'text-rose-400', stars: 3 },
+  elite: { label: 'Elite', color: 'text-violet-400', stars: 4 },
+}
+
+// Badge Rarity Labels
+export const BADGE_RARITY_LABELS: Record<BadgeRarity, { label: string; color: string; bgClass: string; borderClass: string }> = {
+  common: { label: 'Common', color: 'text-gray-400', bgClass: 'bg-gray-500/20', borderClass: 'border-gray-500/30' },
+  uncommon: { label: 'Uncommon', color: 'text-emerald-400', bgClass: 'bg-emerald-500/20', borderClass: 'border-emerald-500/30' },
+  rare: { label: 'Rare', color: 'text-cyan-400', bgClass: 'bg-cyan-500/20', borderClass: 'border-cyan-500/30' },
+  epic: { label: 'Epic', color: 'text-violet-400', bgClass: 'bg-violet-500/20', borderClass: 'border-violet-500/30' },
+  legendary: { label: 'Legendary', color: 'text-amber-400', bgClass: 'bg-amber-500/20', borderClass: 'border-amber-500/30' },
+}
+
+// XP Level System
+export const XP_PER_LEVEL = 1000 // XP needed per level
+export const XP_CHECKIN_BASE = 50 // Base XP for daily check-in
+export const XP_CHECKIN_STREAK_BONUS = 10 // Extra XP per streak day
+export const CHECKIN_USDC_BONUS_STREAK = 7 // Get USDC bonus every N streak days
+export const CHECKIN_USC_BONUS_AMOUNT = 5 // USDC bonus amount
+
+export function xpForLevel(level: number): number {
+  return level * XP_PER_LEVEL
+}
+
+export function levelFromXp(xp: number): number {
+  return Math.floor(xp / XP_PER_LEVEL) + 1
+}
+
+export function xpProgressInLevel(xp: number): { current: number; needed: number; percent: number } {
+  const level = levelFromXp(xp)
+  const currentLevelXp = (level - 1) * XP_PER_LEVEL
+  const current = xp - currentLevelXp
+  const needed = XP_PER_LEVEL
+  return { current, needed, percent: Math.min((current / needed) * 100, 100) }
 }
 
 // Referral distribution percentages
@@ -246,6 +379,422 @@ export const DEFAULT_PLANS = [
     withdrawalRule: '30-day lock-in. Early exit penalty of 15% on earned. VIP withdrawal processing.',
     stackingRule: 'Up to 5 stacks. Each stack adds +3% daily bonus. Max potential: 27% daily on Stack 5.',
     sortOrder: 4,
+  },
+]
+
+// Default Challenges for seed
+export const DEFAULT_CHALLENGES = [
+  // Daily Challenges
+  {
+    title: 'Daily Check-In',
+    description: 'Check in every day to earn XP and keep your streak alive. Consecutive days earn bonus XP!',
+    category: 'daily',
+    challengeType: 'action',
+    targetValue: 1,
+    reward: 0,
+    xpReward: 50,
+    badgeIcon: '📅',
+    difficulty: 'easy',
+    colorTheme: 'emerald',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: true,
+    recurrencePeriod: 'daily',
+    sortOrder: 1,
+  },
+  {
+    title: 'Daily Depositor',
+    description: 'Make at least one deposit today to earn bonus XP and move up the leaderboard.',
+    category: 'daily',
+    challengeType: 'target',
+    targetValue: 1,
+    reward: 2,
+    xpReward: 75,
+    badgeIcon: '💰',
+    difficulty: 'easy',
+    colorTheme: 'emerald',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: true,
+    recurrencePeriod: 'daily',
+    sortOrder: 2,
+  },
+  // Weekly Challenges
+  {
+    title: 'Weekly Warrior',
+    description: 'Complete 5 daily check-ins this week to earn a substantial XP bonus and USDC reward.',
+    category: 'weekly',
+    challengeType: 'target',
+    targetValue: 5,
+    reward: 10,
+    xpReward: 300,
+    badgeIcon: '⚔️',
+    difficulty: 'medium',
+    colorTheme: 'cyan',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: true,
+    recurrencePeriod: 'weekly',
+    sortOrder: 3,
+  },
+  {
+    title: 'Weekly Deposit Goal',
+    description: 'Deposit a total of $500 or more this week to unlock this challenge reward.',
+    category: 'weekly',
+    challengeType: 'target',
+    targetValue: 500,
+    reward: 25,
+    xpReward: 500,
+    badgeIcon: '🎯',
+    difficulty: 'medium',
+    colorTheme: 'cyan',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: true,
+    recurrencePeriod: 'weekly',
+    sortOrder: 4,
+  },
+  // Streak Challenges
+  {
+    title: '7-Day Streak',
+    description: 'Check in for 7 consecutive days to earn a streak bonus! Missing a day resets your progress.',
+    category: 'streak',
+    challengeType: 'streak',
+    targetValue: 7,
+    reward: 15,
+    xpReward: 500,
+    badgeIcon: '🔥',
+    difficulty: 'medium',
+    colorTheme: 'violet',
+    streakBased: true,
+    requireStreakDays: 7,
+    bonusMultiplier: 1,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 5,
+  },
+  {
+    title: '30-Day Legend',
+    description: 'Maintain a 30-day check-in streak to achieve legendary status and earn a massive reward.',
+    category: 'streak',
+    challengeType: 'streak',
+    targetValue: 30,
+    reward: 100,
+    xpReward: 3000,
+    badgeIcon: '🌟',
+    difficulty: 'elite',
+    colorTheme: 'violet',
+    streakBased: true,
+    requireStreakDays: 30,
+    bonusMultiplier: 2,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 6,
+  },
+  // Milestone Challenges
+  {
+    title: 'First Deposit',
+    description: 'Make your very first deposit on Auto Trade to kickstart your earning journey!',
+    category: 'milestone',
+    challengeType: 'action',
+    targetValue: 1,
+    reward: 10,
+    xpReward: 200,
+    badgeIcon: '🎉',
+    difficulty: 'easy',
+    colorTheme: 'amber',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 7,
+  },
+  {
+    title: 'Earn $100',
+    description: 'Accumulate $100 in total earnings across all your plans.',
+    category: 'milestone',
+    challengeType: 'target',
+    targetValue: 100,
+    reward: 20,
+    xpReward: 500,
+    badgeIcon: '💯',
+    difficulty: 'medium',
+    colorTheme: 'amber',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 8,
+  },
+  {
+    title: 'Earn $1,000',
+    description: 'Reach $1,000 in total earnings. A true trader milestone!',
+    category: 'milestone',
+    challengeType: 'target',
+    targetValue: 1000,
+    reward: 75,
+    xpReward: 1500,
+    badgeIcon: '🏆',
+    difficulty: 'hard',
+    colorTheme: 'amber',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 9,
+  },
+  {
+    title: 'Earn $10,000',
+    description: 'Accumulate $10,000 in total earnings. You are among the elite traders on the platform.',
+    category: 'milestone',
+    challengeType: 'target',
+    targetValue: 10000,
+    reward: 500,
+    xpReward: 5000,
+    badgeIcon: '👑',
+    difficulty: 'elite',
+    colorTheme: 'amber',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 2,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 10,
+  },
+  // Referral Challenges
+  {
+    title: 'Refer 3 Friends',
+    description: 'Invite 3 friends to join Auto Trade using your referral code and earn a bonus.',
+    category: 'referral',
+    challengeType: 'target',
+    targetValue: 3,
+    reward: 25,
+    xpReward: 400,
+    badgeIcon: '👥',
+    difficulty: 'medium',
+    colorTheme: 'cyan',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 11,
+  },
+  {
+    title: 'Refer 10 Friends',
+    description: 'Build your network! Refer 10 friends to become a Referral Champion.',
+    category: 'referral',
+    challengeType: 'target',
+    targetValue: 10,
+    reward: 100,
+    xpReward: 1500,
+    badgeIcon: '🤝',
+    difficulty: 'hard',
+    colorTheme: 'cyan',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1.5,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 12,
+  },
+  // Deposit Challenges
+  {
+    title: 'Power Depositor',
+    description: 'Make a single deposit of $1,000 or more in any plan to unlock Power Depositor status.',
+    category: 'deposit',
+    challengeType: 'target',
+    targetValue: 1000,
+    reward: 30,
+    xpReward: 600,
+    badgeIcon: '💎',
+    difficulty: 'hard',
+    colorTheme: 'emerald',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 1,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 13,
+  },
+  {
+    title: 'Whale Deposit',
+    description: 'Deposit $10,000 or more in a single transaction. True whales earn true rewards.',
+    category: 'deposit',
+    challengeType: 'target',
+    targetValue: 10000,
+    reward: 200,
+    xpReward: 2000,
+    badgeIcon: '🐋',
+    difficulty: 'elite',
+    colorTheme: 'emerald',
+    streakBased: false,
+    requireStreakDays: 0,
+    bonusMultiplier: 2,
+    isRecurring: false,
+    recurrencePeriod: 'none',
+    sortOrder: 14,
+  },
+]
+
+// Default Badges for seed
+export const DEFAULT_BADGES = [
+  {
+    name: 'First Steps',
+    description: 'Made your first deposit on Auto Trade',
+    icon: '👶',
+    category: 'achievement',
+    rarity: 'common',
+    xpRequired: 0,
+    condition: 'Make your first deposit',
+    colorTheme: 'emerald',
+  },
+  {
+    name: 'Rising Star',
+    description: 'Reached Level 5 on Auto Trade',
+    icon: '⭐',
+    category: 'achievement',
+    rarity: 'uncommon',
+    xpRequired: 4000,
+    condition: 'Reach Level 5 (earn 4,000 XP)',
+    colorTheme: 'amber',
+  },
+  {
+    name: 'Streak Starter',
+    description: 'Maintained a 7-day check-in streak',
+    icon: '🔥',
+    category: 'streak',
+    rarity: 'uncommon',
+    xpRequired: 0,
+    condition: 'Check in for 7 consecutive days',
+    colorTheme: 'violet',
+  },
+  {
+    name: 'Streak Master',
+    description: 'Maintained a 30-day check-in streak',
+    icon: '🌟',
+    category: 'streak',
+    rarity: 'epic',
+    xpRequired: 0,
+    condition: 'Check in for 30 consecutive days',
+    colorTheme: 'violet',
+  },
+  {
+    name: 'Network Builder',
+    description: 'Referred 3 friends to Auto Trade',
+    icon: '👥',
+    category: 'social',
+    rarity: 'uncommon',
+    xpRequired: 0,
+    condition: 'Refer 3 friends using your referral code',
+    colorTheme: 'cyan',
+  },
+  {
+    name: 'Social Butterfly',
+    description: 'Referred 10 friends to Auto Trade',
+    icon: '🦋',
+    category: 'social',
+    rarity: 'rare',
+    xpRequired: 0,
+    condition: 'Refer 10 friends using your referral code',
+    colorTheme: 'cyan',
+  },
+  {
+    name: 'Century Club',
+    description: 'Earned $100 in total earnings',
+    icon: '💯',
+    category: 'milestone',
+    rarity: 'uncommon',
+    xpRequired: 0,
+    condition: 'Accumulate $100 in total earnings',
+    colorTheme: 'amber',
+  },
+  {
+    name: 'Thousandaire',
+    description: 'Earned $1,000 in total earnings',
+    icon: '🏆',
+    category: 'milestone',
+    rarity: 'rare',
+    xpRequired: 0,
+    condition: 'Accumulate $1,000 in total earnings',
+    colorTheme: 'amber',
+  },
+  {
+    name: 'Crypto Whale',
+    description: 'Deposited $10,000 or more in a single transaction',
+    icon: '🐋',
+    category: 'milestone',
+    rarity: 'epic',
+    xpRequired: 0,
+    condition: 'Make a single deposit of $10,000+',
+    colorTheme: 'emerald',
+  },
+  {
+    name: 'Veteran Trader',
+    description: 'Reached Level 10 on Auto Trade',
+    icon: '🎖️',
+    category: 'achievement',
+    rarity: 'rare',
+    xpRequired: 9000,
+    condition: 'Reach Level 10 (earn 9,000 XP)',
+    colorTheme: 'amber',
+  },
+  {
+    name: 'Elite Trader',
+    description: 'Reached Level 25 on Auto Trade',
+    icon: '👑',
+    category: 'achievement',
+    rarity: 'epic',
+    xpRequired: 24000,
+    condition: 'Reach Level 25 (earn 24,000 XP)',
+    colorTheme: 'amber',
+  },
+  {
+    name: 'Legendary',
+    description: 'Reached Level 50 on Auto Trade. A true legend!',
+    icon: '🐉',
+    category: 'achievement',
+    rarity: 'legendary',
+    xpRequired: 49000,
+    condition: 'Reach Level 50 (earn 49,000 XP)',
+    colorTheme: 'amber',
+  },
+  {
+    name: 'Challenge Champion',
+    description: 'Completed 10 challenges',
+    icon: '🥇',
+    category: 'achievement',
+    rarity: 'rare',
+    xpRequired: 0,
+    condition: 'Complete 10 challenges',
+    colorTheme: 'emerald',
+  },
+  {
+    name: 'Challenge Legend',
+    description: 'Completed 50 challenges',
+    icon: '🏅',
+    category: 'achievement',
+    rarity: 'legendary',
+    xpRequired: 0,
+    condition: 'Complete 50 challenges',
+    colorTheme: 'emerald',
+  },
+  {
+    name: 'Early Adopter',
+    description: 'Joined Auto Trade during the launch period',
+    icon: '🚀',
+    category: 'special',
+    rarity: 'uncommon',
+    xpRequired: 0,
+    condition: 'Register during the platform launch period',
+    colorTheme: 'rose',
   },
 ]
 
