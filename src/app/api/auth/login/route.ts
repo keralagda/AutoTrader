@@ -6,17 +6,13 @@ export async function POST(request: Request) {
     const { email, password } = await request.json()
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+      return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
     }
 
     const user = await db.user.findUnique({ where: { email } })
 
     if (!user || user.password !== password) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
-    }
-
-    if (!user.isActive) {
-      return NextResponse.json({ error: 'Account is deactivated' }, { status: 403 })
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
     return NextResponse.json({
@@ -26,7 +22,8 @@ export async function POST(request: Request) {
       role: user.role,
       referralCode: user.referralCode,
       walletAddress: user.walletAddress,
-      balance: user.balance,
+      tradingBalance: user.tradingBalance,
+      withdrawalBalance: user.withdrawalBalance,
       totalEarnings: user.totalEarnings,
       totalDeposited: user.totalDeposited,
     })

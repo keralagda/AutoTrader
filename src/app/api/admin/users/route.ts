@@ -10,7 +10,8 @@ export async function GET() {
         name: true,
         email: true,
         referralCode: true,
-        balance: true,
+        tradingBalance: true,
+        withdrawalBalance: true,
         totalEarnings: true,
         totalDeposited: true,
         isActive: true,
@@ -36,11 +37,17 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { userId, ...data } = await request.json()
+    const { userId, isActive, tradingBalance, withdrawalBalance, name } = await request.json()
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
+
+    const data: any = {}
+    if (isActive !== undefined) data.isActive = isActive
+    if (tradingBalance !== undefined) data.tradingBalance = tradingBalance
+    if (withdrawalBalance !== undefined) data.withdrawalBalance = withdrawalBalance
+    if (name !== undefined) data.name = name
 
     const user = await db.user.update({
       where: { id: userId },

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Gem, Shield, Crown, Rocket, TrendingUp } from 'lucide-react'
+import { Gem, Shield, Crown, Rocket, TrendingUp, Layers, Lock, Zap } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -104,32 +104,13 @@ export default function PlansSection() {
           if (Array.isArray(data) && data.length > 0) {
             setPlans(data)
           } else {
-            // Fallback to default plans
-            setPlans(
-              DEFAULT_PLANS.map((p, i) => ({
-                ...p,
-                id: `default-${i}`,
-                isActive: true,
-              }))
-            )
+            setPlans(DEFAULT_PLANS.map((p, i) => ({ ...p, id: `default-${i}`, isActive: true })))
           }
         } else {
-          setPlans(
-            DEFAULT_PLANS.map((p, i) => ({
-              ...p,
-              id: `default-${i}`,
-              isActive: true,
-            }))
-          )
+          setPlans(DEFAULT_PLANS.map((p, i) => ({ ...p, id: `default-${i}`, isActive: true })))
         }
       } catch {
-        setPlans(
-          DEFAULT_PLANS.map((p, i) => ({
-            ...p,
-            id: `default-${i}`,
-            isActive: true,
-          }))
-        )
+        setPlans(DEFAULT_PLANS.map((p, i) => ({ ...p, id: `default-${i}`, isActive: true })))
       } finally {
         setLoading(false)
       }
@@ -199,7 +180,7 @@ export default function PlansSection() {
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                       <Badge className="bg-amber-500 text-white border-0 px-4 py-1 text-xs font-bold">
-                        ⭐ Most Popular
+                        Most Popular
                       </Badge>
                     </div>
                   )}
@@ -218,12 +199,16 @@ export default function PlansSection() {
                       <CardTitle className={`text-xl font-bold ${accent.text}`}>
                         {plan.name}
                       </CardTitle>
-                      <Badge
-                        variant="outline"
-                        className={`${accent.border} ${accent.text} mx-auto mt-1`}
-                      >
-                        ${plan.entryFee} Entry
-                      </Badge>
+                      <div className="flex items-center justify-center gap-2 mt-1">
+                        <Badge variant="outline" className={`${accent.border} ${accent.text}`}>
+                          ${plan.entryFee} Entry
+                        </Badge>
+                        {plan.stackingEnabled && (
+                          <Badge variant="outline" className="border-violet-500/30 text-violet-400">
+                            <Layers className="size-3 mr-1" /> Stackable
+                          </Badge>
+                        )}
+                      </div>
                     </CardHeader>
 
                     <CardContent className="space-y-4">
@@ -250,6 +235,26 @@ export default function PlansSection() {
                             ${plan.maxEarningLimit.toLocaleString()}
                           </span>
                         </div>
+
+                        {/* Stacking Info */}
+                        {plan.stackingEnabled && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Stack Bonus</span>
+                            <span className="font-semibold text-violet-400 flex items-center gap-1">
+                              <Zap className="size-3" />+{plan.stackingBonusPercent}%/stack
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Lock Period */}
+                        {plan.lockPeriodDays > 0 && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Lock Period</span>
+                            <span className="font-semibold flex items-center gap-1">
+                              <Lock className="size-3 text-amber-400" />{plan.lockPeriodDays} days
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <Button

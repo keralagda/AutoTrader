@@ -23,7 +23,8 @@ export async function GET(request: Request) {
       role: user.role,
       referralCode: user.referralCode,
       walletAddress: user.walletAddress,
-      balance: user.balance,
+      tradingBalance: user.tradingBalance,
+      withdrawalBalance: user.withdrawalBalance,
       totalEarnings: user.totalEarnings,
       totalDeposited: user.totalDeposited,
     })

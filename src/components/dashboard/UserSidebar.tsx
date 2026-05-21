@@ -23,7 +23,7 @@ import {
   Copy,
   Check,
   Menu,
-  DollarSign,
+  ArrowRightLeft,
 } from 'lucide-react'
 
 interface NavItem {
@@ -66,6 +66,9 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
         .slice(0, 2)
     : 'U'
 
+  const tradingBalance = user?.tradingBalance || 0
+  const withdrawalBalance = user?.withdrawalBalance || 0
+
   return (
     <div className="flex h-full flex-col">
       {/* User Info */}
@@ -82,15 +85,34 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           </div>
         </div>
 
-        {/* Balance */}
-        <div className="rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-3">
-          <p className="text-xs text-muted-foreground mb-1">Available Balance</p>
-          <div className="flex items-center gap-1.5">
-            <DollarSign className="size-5 text-primary" />
-            <span className="text-2xl font-bold text-primary">
-              {user?.balance?.toFixed(2) || '0.00'}
-            </span>
-            <span className="text-xs text-muted-foreground ml-1">USDC</span>
+        {/* Dual Wallet Display */}
+        <div className="space-y-2">
+          {/* Trading Wallet */}
+          <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingUp className="size-3.5 text-emerald-400" />
+              <p className="text-xs text-emerald-400 font-medium">Trading Wallet</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xl font-bold text-emerald-400">
+                {tradingBalance.toFixed(2)}
+              </span>
+              <span className="text-xs text-muted-foreground ml-1">USDC</span>
+            </div>
+          </div>
+
+          {/* Withdrawal Wallet */}
+          <div className="rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Wallet className="size-3.5 text-cyan-400" />
+              <p className="text-xs text-cyan-400 font-medium">Withdrawal Wallet</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-xl font-bold text-cyan-400">
+                {withdrawalBalance.toFixed(2)}
+              </span>
+              <span className="text-xs text-muted-foreground ml-1">USDC</span>
+            </div>
           </div>
         </div>
       </div>

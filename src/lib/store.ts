@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 
 export type AppView = 'landing' | 'dashboard' | 'admin'
-export type DashboardTab = 'earnings' | 'withdraw' | 'leaderboard' | 'challenges'
-export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals'
+export type DashboardTab = 'earnings' | 'withdraw' | 'leaderboard' | 'challenges' | 'wallets'
+export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments'
 
 interface AppState {
   // Navigation
@@ -26,6 +26,7 @@ interface AppState {
   logout: () => void
   setShowAuthModal: (show: boolean) => void
   setAuthMode: (mode: 'login' | 'register') => void
+  updateUserWallets: (tradingBalance: number, withdrawalBalance: number) => void
 }
 
 export interface UserData {
@@ -35,7 +36,8 @@ export interface UserData {
   role: string
   referralCode: string
   walletAddress?: string
-  balance: number
+  tradingBalance: number
+  withdrawalBalance: number
   totalEarnings: number
   totalDeposited: number
 }
@@ -65,4 +67,7 @@ export const useAppStore = create<AppState>((set) => ({
   }),
   setShowAuthModal: (show) => set({ showAuthModal: show }),
   setAuthMode: (mode) => set({ authMode: mode }),
+  updateUserWallets: (tradingBalance, withdrawalBalance) => set((state) => ({
+    user: state.user ? { ...state.user, tradingBalance, withdrawalBalance } : null,
+  })),
 }))

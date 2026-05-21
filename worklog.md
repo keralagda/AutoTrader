@@ -139,3 +139,39 @@ Stage Summary:
 - Dark crypto theme with custom CSS
 - Auth persistence via localStorage
 - Lint passes cleanly, all pages compile and serve
+
+---
+Task ID: 8
+Agent: Main
+Task: Major feature upgrade - Dual wallets, Profit subtract, Advanced Plan Builder, Payment Gateways
+
+Work Log:
+- Updated Prisma schema: replaced `balance` with `tradingBalance` + `withdrawalBalance` on User model
+- Added Plan model fields: stackingEnabled, maxStacks, stackingBonusPercent, lockPeriodDays, autoCompound, earlyExitPenalty, distribution percentages, subscription distribution, plain English logic fields
+- Added PaymentGateway model with crypto/indian gateway support
+- Added Payment model for tracking payment records
+- Added `operation` and `reason` fields to ProfitDistribution model
+- Added `stackIndex`, `lockedUntil` to Deposit model
+- Added `walletTarget`, `paymentMethod` to Earning/Withdrawal models
+- Created /api/transfer-wallet endpoint for Trading -> Withdrawal wallet transfers
+- Created /api/admin/payment-gateways CRUD endpoint
+- Updated all existing API routes for dual wallet system and new plan fields
+- Rebuilt Admin ProfitsTab with Add/Subtract toggle, confirmation safeguards (AlertDialog), reason field, operation history with color-coded badges
+- Rebuilt Admin PlansTab with Advanced Plan Builder (7 sections: Basic Info, Deposit & Earning, Stacking Options, Lock & Exit Rules, Distribution Percentages, Subscription Distribution, Plan Logic Preview)
+- Created PaymentGatewaysTab admin component with Crypto (USDC/BTC/ETH) and Indian (UPI/Bank Transfer/Razorpay) gateway management
+- Updated AdminSidebar with Payments tab
+- Updated AdminDashboard to render PaymentGatewaysTab
+- Updated UserSidebar with dual wallet display (Trading + Withdrawal)
+- Updated UserDashboard with Transfer modal for moving funds between wallets
+- Updated WithdrawTab for dual wallets, payment method selection, gateway integration
+- Updated DepositModal with payment method selection, stacking info display
+- Updated PlansSection landing page to show stacking and lock period info
+- Updated types.ts with all new types (PaymentGatewayType, PaymentType, dual wallet constants)
+- Updated store.ts with dual wallet UserData and updateUserWallets action
+
+Stage Summary:
+- Dual wallet system: Trading Wallet (deposits/earnings) + Withdrawal Wallet (available for withdrawal)
+- Profit subtract feature with confirmation dialogs and reason tracking
+- Advanced field-based Plan Builder with auto-generated plain English descriptions, stacking options, distribution bars, validation
+- Payment gateway management for Crypto (USDC Polygon, BTC, ETH) and Indian (UPI, Bank Transfer, Razorpay)
+- All lint passes, dev server running cleanly

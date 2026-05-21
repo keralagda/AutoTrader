@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
-import type { PlanType } from '@/lib/types'
+import type { PlanType, PaymentGatewayType } from '@/lib/types'
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,10 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Layers,
+  Lock,
+  Bitcoin,
+  Landmark,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -53,9 +57,11 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
   const { user } = useAppStore()
   const { toast } = useToast()
   const [plans, setPlans] = useState<PlanType[]>([])
+  const [gateways, setGateways] = useState<PaymentGatewayType[]>([])
   const [loadingPlans, setLoadingPlans] = useState(true)
   const [selectedPlanId, setSelectedPlanId] = useState<string>('')
   const [amount, setAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('crypto_usdc')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -77,14 +83,26 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
     }
   }, [])
 
+  const fetchGateways = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/payment-gateways')
+      if (res.ok) {
+        const data = await res.json()
+        setGateways(data.filter((g: PaymentGatewayType) => g.isActive))
+      }
+    } catch {}
+  }, [])
+
   useEffect(() => {
     if (open) {
       fetchPlans()
+      fetchGateways()
       setSuccess(false)
       setSelectedPlanId('')
       setAmount('')
+      setPaymentMethod('crypto_usdc')
     }
-  }, [open, fetchPlans])
+  }, [open, fetchPlans, fetchGateways])
 
   const validationError = (() => {
     if (!selectedPlan) return null
@@ -93,11 +111,14 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
       return `Minimum deposit is ${formatCurrency(selectedPlan.minDeposit)}`
     if (parsedAmount > selectedPlan.maxDeposit)
       return `Maximum deposit is ${formatCurrency(selectedPlan.maxDeposit)}`
+
+    // Check stacking
     return null
   })()
 
+  const stackingBonus = selectedPlan?.stackingEnabled ? selectedPlan.stackingBonusPercent : 0
   const estimatedDailyEarning = selectedPlan
-    ? (parsedAmount * selectedPlan.dailyEarningPercent) / 100
+    ? (parsedAmount * (selectedPlan.dailyEarningPercent + stackingBonus)) / 100
     : 0
 
   const handleSubmit = async () => {
@@ -112,6 +133,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
           userId: user.id,
           planId: selectedPlanId,
           amount: parsedAmount,
+          paymentMethod,
         }),
       })
 
@@ -119,7 +141,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
         setSuccess(true)
         toast({
           title: 'Deposit Successful!',
-          description: `You've deposited ${formatCurrency(parsedAmount)} into the ${selectedPlan?.name} plan.`,
+          description: `You've deposited ${formatCurrency(parsedAmount)} into the ${selectedPlan?.name} plan via ${paymentMethod}.`,
         })
       } else {
         const json = await res.json()
@@ -129,12 +151,8 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
           variant: 'destructive',
         })
       }
-    } catch (err) {
-      toast({
-        title: 'Network error',
-        description: 'Please try again later',
-        variant: 'destructive',
-      })
+    } catch {
+      toast({ title: 'Network error', description: 'Please try again later', variant: 'destructive' })
     } finally {
       setSubmitting(false)
     }
@@ -149,7 +167,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
             New Deposit
           </DialogTitle>
           <DialogDescription>
-            Choose a plan and make a deposit to start earning
+            Choose a plan, payment method, and make a deposit
           </DialogDescription>
         </DialogHeader>
 
@@ -181,17 +199,15 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
                     <SelectValue placeholder="Choose a plan..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {plans.map((plan) => (
+                    {plans.filter(p => p.isActive).map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${PLAN_COLORS[plan.name] || ''}`}
-                          >
+                          <Badge variant="outline" className={`text-[10px] ${PLAN_COLORS[plan.name] || ''}`}>
                             {plan.name}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
                             {plan.dailyEarningPercent}%/day
+                            {plan.stackingEnabled && ' · Stackable'}
                           </span>
                         </div>
                       </SelectItem>
@@ -205,15 +221,15 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
             {selectedPlan && (
               <div className="rounded-lg bg-muted/50 border border-border/50 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Badge
-                    variant="outline"
-                    className={PLAN_COLORS[selectedPlan.name] || ''}
-                  >
+                  <Badge variant="outline" className={PLAN_COLORS[selectedPlan.name] || ''}>
                     {selectedPlan.name}
                   </Badge>
                   <div className="flex items-center gap-1 text-emerald-400 text-sm font-medium">
                     <TrendingUp className="size-3.5" />
                     {selectedPlan.dailyEarningPercent}% daily
+                    {selectedPlan.stackingEnabled && stackingBonus > 0 && (
+                      <span className="text-xs text-amber-400 ml-1">+{stackingBonus}% stack</span>
+                    )}
                   </div>
                 </div>
                 <Separator />
@@ -227,16 +243,64 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
                     <p className="font-medium">{formatCurrency(selectedPlan.maxEarningLimit)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Min Deposit</p>
-                    <p className="font-medium">{formatCurrency(selectedPlan.minDeposit)}</p>
+                    <p className="text-muted-foreground">Deposit Range</p>
+                    <p className="font-medium">${selectedPlan.minDeposit} - ${selectedPlan.maxDeposit.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Max Deposit</p>
-                    <p className="font-medium">{formatCurrency(selectedPlan.maxDeposit)}</p>
+                    <p className="text-muted-foreground">Lock Period</p>
+                    <p className="font-medium flex items-center gap-1">
+                      {selectedPlan.lockPeriodDays > 0 ? (
+                        <><Lock className="size-3" />{selectedPlan.lockPeriodDays} days</>
+                      ) : 'None'}
+                    </p>
                   </div>
                 </div>
+                {selectedPlan.stackingEnabled && (
+                  <div className="flex items-center gap-1.5 text-xs text-violet-400">
+                    <Layers className="size-3" />
+                    <span>Stack up to {selectedPlan.maxStacks} deposits, +{selectedPlan.stackingBonusPercent}% bonus each</span>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Payment Method */}
+            <div className="space-y-2">
+              <Label>Payment Method</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {gateways.length > 0 ? gateways.slice(0, 4).map(gw => (
+                  <button
+                    key={gw.id}
+                    onClick={() => setPaymentMethod(gw.type === 'crypto' ? `crypto_${gw.network || 'usdc'}` : gw.name.toLowerCase().replace(/\s+/g, '_'))}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs transition-all ${
+                      paymentMethod === (gw.type === 'crypto' ? `crypto_${gw.network || 'usdc'}` : gw.name.toLowerCase().replace(/\s+/g, '_'))
+                        ? gw.type === 'crypto'
+                          ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                          : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
+                        : 'border-border/50 text-muted-foreground hover:border-border'
+                    }`}
+                  >
+                    {gw.type === 'crypto' ? <Bitcoin className="size-3.5" /> : <Landmark className="size-3.5" />}
+                    {gw.name}
+                  </button>
+                )) : (
+                  <>
+                    <button
+                      onClick={() => setPaymentMethod('crypto_usdc')}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs transition-all ${paymentMethod === 'crypto_usdc' ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}
+                    >
+                      <Bitcoin className="size-3.5" /> USDC (Polygon)
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod('upi')}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs transition-all ${paymentMethod === 'upi' ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400' : 'border-border/50 text-muted-foreground'}`}
+                    >
+                      <Landmark className="size-3.5" /> UPI
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
 
             {/* Amount Input */}
             <div className="space-y-2">
@@ -302,12 +366,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
             <Button
               className="w-full"
               onClick={handleSubmit}
-              disabled={
-                submitting ||
-                !selectedPlanId ||
-                parsedAmount <= 0 ||
-                !!validationError
-              }
+              disabled={submitting || !selectedPlanId || parsedAmount <= 0 || !!validationError}
             >
               {submitting ? (
                 <>

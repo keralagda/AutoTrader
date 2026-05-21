@@ -24,10 +24,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId, amount, walletAddress } = await request.json()
+    const { userId, amount, walletAddress, paymentMethod } = await request.json()
 
     if (!userId || !amount || !walletAddress) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
+    }
+
+    if (amount < 10) {
+      return NextResponse.json({ error: 'Minimum withdrawal is $10' }, { status: 400 })
     }
 
     const user = await db.user.findUnique({ where: { id: userId } })
@@ -35,28 +39,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (amount > user.balance) {
-      return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 })
+    // Withdrawals come from the withdrawal wallet
+    if (amount > user.withdrawalBalance) {
+      return NextResponse.json({
+        error: `Insufficient withdrawal balance. You have $${user.withdrawalBalance.toFixed(2)} available. Transfer funds from your Trading Wallet first.`
+      }, { status: 400 })
     }
 
-    if (amount < 10) {
-      return NextResponse.json({ error: 'Minimum withdrawal is $10' }, { status: 400 })
-    }
-
-    // Create withdrawal request
     const withdrawal = await db.withdrawal.create({
       data: {
         userId,
         amount,
         walletAddress,
+        paymentMethod: paymentMethod || 'crypto_usdc',
         status: 'pending',
       },
     })
 
-    // Deduct from balance
+    // Deduct from withdrawal balance
     await db.user.update({
       where: { id: userId },
-      data: { balance: user.balance - amount },
+      data: { withdrawalBalance: user.withdrawalBalance - amount },
     })
 
     return NextResponse.json(withdrawal, { status: 201 })

@@ -9,12 +9,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
 
-    const existingUser = await db.user.findUnique({ where: { email } })
-    if (existingUser) {
+    const existing = await db.user.findUnique({ where: { email } })
+    if (existing) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
     }
 
-    // Find referrer if referral code provided
+    // Generate unique referral code for new user
+    const userRefCode = `AT${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`
+
+    // Find referrer if code provided
     let referredById: string | null = null
     if (referralCode) {
       const referrer = await db.user.findUnique({ where: { referralCode } })
@@ -24,17 +27,15 @@ export async function POST(request: Request) {
       referredById = referrer.id
     }
 
-    const newReferralCode = name.substring(0, 3).toUpperCase() + Math.random().toString(36).substring(2, 8).toUpperCase()
-
     const user = await db.user.create({
       data: {
         name,
         email,
-        password, // In production, hash with bcrypt
-        referralCode: newReferralCode,
+        password,
+        referralCode: userRefCode,
         referredById,
-        role: 'user',
-        balance: 0,
+        tradingBalance: 0,
+        withdrawalBalance: 0,
         totalEarnings: 0,
         totalDeposited: 0,
       },
@@ -46,8 +47,8 @@ export async function POST(request: Request) {
       name: user.name,
       role: user.role,
       referralCode: user.referralCode,
-      walletAddress: user.walletAddress,
-      balance: user.balance,
+      tradingBalance: user.tradingBalance,
+      withdrawalBalance: user.withdrawalBalance,
       totalEarnings: user.totalEarnings,
       totalDeposited: user.totalDeposited,
     }, { status: 201 })

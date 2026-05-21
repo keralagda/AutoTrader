@@ -5,28 +5,26 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-    const type = searchParams.get('type')
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
-    const where: any = { userId }
-    if (type) where.type = type
-
     const earnings = await db.earning.findMany({
-      where,
+      where: { userId },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     })
 
-    // Calculate summary
-    const totalEarnings = earnings.reduce((sum, e) => sum + e.amount, 0)
-    const referralEarnings = earnings.filter(e => e.type === 'referral').reduce((sum, e) => sum + e.amount, 0)
-    const profitShareEarnings = earnings.filter(e => e.type === 'profit_share').reduce((sum, e) => sum + e.amount, 0)
-    const dailyEarnings = earnings.filter(e => e.type === 'daily').reduce((sum, e) => sum + e.amount, 0)
-    const bonusEarnings = earnings.filter(e => e.type === 'bonus').reduce((sum, e) => sum + e.amount, 0)
+    const summary = {
+      total: earnings.filter(e => e.type !== 'subtract').reduce((sum, e) => sum + e.amount, 0),
+      referral: earnings.filter(e => e.type === 'referral').reduce((sum, e) => sum + e.amount, 0),
+      profitShare: earnings.filter(e => e.type === 'profit_share').reduce((sum, e) => sum + e.amount, 0),
+      daily: earnings.filter(e => e.type === 'daily').reduce((sum, e) => sum + e.amount, 0),
+      bonus: earnings.filter(e => e.type === 'bonus' || e.type === 'stacking_bonus').reduce((sum, e) => sum + e.amount, 0),
+      subtracted: earnings.filter(e => e.type === 'subtract').reduce((sum, e) => sum + e.amount, 0),
+    }
 
-    // Group referral earnings by level
     const referralByLevel = Array.from({ length: 7 }, (_, i) => {
       const level = i + 1
       const levelEarnings = earnings.filter(e => e.type === 'referral' && e.level === level)
@@ -38,7 +36,6 @@ export async function GET(request: Request) {
       }
     })
 
-    // Group profit share earnings by level
     const profitShareByLevel = Array.from({ length: 7 }, (_, i) => {
       const level = i + 1
       const levelEarnings = earnings.filter(e => e.type === 'profit_share' && e.level === level)
@@ -50,18 +47,7 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json({
-      earnings,
-      summary: {
-        total: totalEarnings,
-        referral: referralEarnings,
-        profitShare: profitShareEarnings,
-        daily: dailyEarnings,
-        bonus: bonusEarnings,
-      },
-      referralByLevel,
-      profitShareByLevel,
-    })
+    return NextResponse.json({ earnings, summary, referralByLevel, profitShareByLevel })
   } catch (error) {
     console.error('Get earnings error:', error)
     return NextResponse.json({ error: 'Failed to get earnings' }, { status: 500 })

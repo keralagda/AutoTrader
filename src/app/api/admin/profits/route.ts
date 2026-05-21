@@ -3,15 +3,20 @@ import { db } from '@/lib/db'
 
 export async function POST(request: Request) {
   try {
-    const { userId, riskMode, amount, dayOfWeek } = await request.json()
+    const { userId, riskMode, amount, dayOfWeek, operation, reason } = await request.json()
 
     if (!userId || !riskMode || !amount || !dayOfWeek) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
     }
 
+    const op = operation || 'add'
+    if (op !== 'add' && op !== 'subtract') {
+      return NextResponse.json({ error: 'Operation must be "add" or "subtract"' }, { status: 400 })
+    }
+
     // Get user's active deposits
     const deposits = await db.deposit.findMany({
-      where: { userId, status: 'active' },
+      where: { userId, status: { in: ['active', 'locked'] } },
       include: { plan: true },
     })
 
@@ -19,96 +24,192 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No active deposits found for this user' }, { status: 404 })
     }
 
+    const user = await db.user.findUnique({ where: { id: userId } })
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     const results = []
 
     for (const deposit of deposits) {
-      // Create earning
-      const earning = await db.earning.create({
-        data: {
-          userId,
-          depositId: deposit.id,
-          amount,
-          type: 'daily',
-        },
-      })
+      const absAmount = Math.abs(amount)
 
-      // Create profit distribution record
-      const profitDist = await db.profitDistribution.create({
-        data: {
-          depositId: deposit.id,
-          amount,
-          riskMode,
-          dayOfWeek,
-        },
-      })
+      if (op === 'subtract') {
+        // SUBTRACT operation: reduce user's balance and earnings
+        const earning = await db.earning.create({
+          data: {
+            userId,
+            depositId: deposit.id,
+            amount: -absAmount,
+            type: 'subtract',
+            walletTarget: 'trading',
+          },
+        })
 
-      // Update deposit earned so far
-      await db.deposit.update({
-        where: { id: deposit.id },
-        data: { earnedSoFar: deposit.earnedSoFar + amount },
-      })
+        const profitDist = await db.profitDistribution.create({
+          data: {
+            depositId: deposit.id,
+            amount: -absAmount,
+            riskMode,
+            dayOfWeek,
+            operation: 'subtract',
+            reason: reason || 'Admin adjustment - profit leveled',
+          },
+        })
 
-      // Update user balance and total earnings
-      const user = await db.user.findUnique({ where: { id: userId } })
-      if (user) {
+        // Update deposit earned so far (reduce it)
+        const newEarnedSoFar = Math.max(0, deposit.earnedSoFar - absAmount)
+        await db.deposit.update({
+          where: { id: deposit.id },
+          data: { earnedSoFar: newEarnedSoFar },
+        })
+
+        // Reduce user trading balance and total earnings
+        const newTradingBalance = Math.max(0, user.tradingBalance - absAmount)
+        const newTotalEarnings = Math.max(0, user.totalEarnings - absAmount)
         await db.user.update({
           where: { id: userId },
           data: {
-            balance: user.balance + amount,
-            totalEarnings: user.totalEarnings + amount,
+            tradingBalance: newTradingBalance,
+            totalEarnings: newTotalEarnings,
           },
         })
-      }
 
-      // Distribute profit share to upline (30% of profit goes to trade profit share)
-      const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
-      const profitShareAmount = (amount * 30) / 100
-      let currentReferrerId = user?.referredById
-      let level = 0
+        // Reverse profit share to upline
+        const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+        const profitShareAmount = (absAmount * 30) / 100
+        let currentReferrerId = user.referredById
+        let level = 0
 
-      while (currentReferrerId && level < 7) {
-        const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
-        if (!referrer) break
+        while (currentReferrerId && level < 7) {
+          const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+          if (!referrer) break
 
-        const shareAmount = (profitShareAmount * REFERRAL_PERCENTS[level]) / 100
+          const shareAmount = (profitShareAmount * REFERRAL_PERCENTS[level]) / 100
 
-        await db.earning.create({
+          await db.earning.create({
+            data: {
+              userId: referrer.id,
+              depositId: deposit.id,
+              amount: -shareAmount,
+              type: 'subtract',
+              level: level + 1,
+              walletTarget: 'trading',
+            },
+          })
+
+          await db.user.update({
+            where: { id: referrer.id },
+            data: {
+              totalEarnings: Math.max(0, referrer.totalEarnings - shareAmount),
+              tradingBalance: Math.max(0, referrer.tradingBalance - shareAmount),
+            },
+          })
+
+          currentReferrerId = referrer.referredById
+          level++
+        }
+
+        results.push({ earning, profitDist })
+      } else {
+        // ADD operation (existing logic)
+        // Calculate stacking bonus
+        const stackingBonus = deposit.plan.stackingEnabled && deposit.stackIndex > 1
+          ? deposit.plan.stackingBonusPercent * (deposit.stackIndex - 1)
+          : 0
+        const effectiveDailyPercent = deposit.plan.dailyEarningPercent + stackingBonus
+
+        const earning = await db.earning.create({
           data: {
-            userId: referrer.id,
+            userId,
             depositId: deposit.id,
-            amount: shareAmount,
-            type: 'profit_share',
-            level: level + 1,
+            amount: absAmount,
+            type: stackingBonus > 0 ? 'daily' : 'daily',
+            walletTarget: 'trading',
           },
         })
 
-        await db.user.update({
-          where: { id: referrer.id },
+        const profitDist = await db.profitDistribution.create({
           data: {
-            totalEarnings: referrer.totalEarnings + shareAmount,
-            balance: referrer.balance + shareAmount,
+            depositId: deposit.id,
+            amount: absAmount,
+            riskMode,
+            dayOfWeek,
+            operation: 'add',
+            reason: reason || `Daily profit added (${riskMode} mode, ${effectiveDailyPercent}% effective)`,
           },
         })
 
-        currentReferrerId = referrer.referredById
-        level++
-      }
-
-      results.push({ earning, profitDist })
-
-      // Check if deposit reached max earning limit
-      if (deposit.earnedSoFar + amount >= deposit.plan.maxEarningLimit) {
+        // Update deposit earned so far
         await db.deposit.update({
           where: { id: deposit.id },
-          data: { status: 'completed' },
+          data: { earnedSoFar: deposit.earnedSoFar + absAmount },
         })
+
+        // Update user trading balance and total earnings
+        await db.user.update({
+          where: { id: userId },
+          data: {
+            tradingBalance: user.tradingBalance + absAmount,
+            totalEarnings: user.totalEarnings + absAmount,
+          },
+        })
+
+        // Distribute profit share to upline (30% of profit goes to trade profit share)
+        const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+        const profitShareAmount = (absAmount * 30) / 100
+        let currentReferrerId = user.referredById
+        let level = 0
+
+        while (currentReferrerId && level < 7) {
+          const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+          if (!referrer) break
+
+          const shareAmount = (profitShareAmount * REFERRAL_PERCENTS[level]) / 100
+
+          await db.earning.create({
+            data: {
+              userId: referrer.id,
+              depositId: deposit.id,
+              amount: shareAmount,
+              type: 'profit_share',
+              level: level + 1,
+              walletTarget: 'trading',
+            },
+          })
+
+          await db.user.update({
+            where: { id: referrer.id },
+            data: {
+              totalEarnings: referrer.totalEarnings + shareAmount,
+              tradingBalance: referrer.tradingBalance + shareAmount,
+            },
+          })
+
+          currentReferrerId = referrer.referredById
+          level++
+        }
+
+        results.push({ earning, profitDist })
+
+        // Check if deposit reached max earning limit
+        if (deposit.earnedSoFar + absAmount >= deposit.plan.maxEarningLimit) {
+          await db.deposit.update({
+            where: { id: deposit.id },
+            data: { status: 'completed' },
+          })
+        }
       }
     }
 
-    return NextResponse.json({ message: 'Profit added successfully', results }, { status: 201 })
+    return NextResponse.json({
+      message: op === 'add' ? 'Profit added successfully' : 'Profit subtracted successfully',
+      operation: op,
+      results,
+    }, { status: 201 })
   } catch (error) {
-    console.error('Add profit error:', error)
-    return NextResponse.json({ error: 'Failed to add profit' }, { status: 500 })
+    console.error('Profit operation error:', error)
+    return NextResponse.json({ error: 'Failed to process profit operation' }, { status: 500 })
   }
 }
 

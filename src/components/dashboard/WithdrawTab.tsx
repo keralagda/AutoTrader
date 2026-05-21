@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
-import type { WithdrawalType } from '@/lib/types'
+import type { WithdrawalType, PaymentGatewayType } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -18,8 +19,9 @@ import {
 } from '@/components/ui/table'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DollarSign, Wallet, AlertCircle, Loader2 } from 'lucide-react'
+import { DollarSign, Wallet, AlertCircle, Loader2, ArrowRightLeft, Bitcoin, Landmark } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { ALL_PAYMENT_METHODS } from '@/lib/types'
 
 const NETWORK_FEE_PERCENT = 2
 
@@ -50,6 +52,11 @@ function getStatusColor(status: string) {
   }
 }
 
+function getMethodLabel(method: string) {
+  const found = ALL_PAYMENT_METHODS.find(m => m.value === method)
+  return found ? found.label : method
+}
+
 export function WithdrawTab() {
   const { user } = useAppStore()
   const { toast } = useToast()
@@ -58,8 +65,11 @@ export function WithdrawTab() {
   const [submitting, setSubmitting] = useState(false)
   const [amount, setAmount] = useState('')
   const [walletAddress, setWalletAddress] = useState(user?.walletAddress || '')
+  const [paymentMethod, setPaymentMethod] = useState('crypto_usdc')
+  const [gateways, setGateways] = useState<PaymentGatewayType[]>([])
 
-  const balance = user?.balance || 0
+  const withdrawalBalance = user?.withdrawalBalance || 0
+  const tradingBalance = user?.tradingBalance || 0
   const parsedAmount = parseFloat(amount) || 0
   const networkFee = parsedAmount * (NETWORK_FEE_PERCENT / 100)
   const youReceive = parsedAmount - networkFee
@@ -80,9 +90,20 @@ export function WithdrawTab() {
     }
   }, [user?.id])
 
+  const fetchGateways = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/payment-gateways')
+      if (res.ok) {
+        const data = await res.json()
+        setGateways(data.filter((g: PaymentGatewayType) => g.isActive))
+      }
+    } catch {}
+  }, [])
+
   useEffect(() => {
     fetchWithdrawals()
-  }, [fetchWithdrawals])
+    fetchGateways()
+  }, [fetchWithdrawals, fetchGateways])
 
   useEffect(() => {
     if (user?.walletAddress) {
@@ -91,8 +112,8 @@ export function WithdrawTab() {
   }, [user?.walletAddress])
 
   const handleQuickSelect = (value: number) => {
-    if (value >= balance) {
-      setAmount(balance.toFixed(2))
+    if (value >= withdrawalBalance) {
+      setAmount(withdrawalBalance.toFixed(2))
     } else {
       setAmount(value.toFixed(2))
     }
@@ -101,24 +122,19 @@ export function WithdrawTab() {
   const handleSubmit = async () => {
     if (!user?.id) return
     if (parsedAmount < 10) {
-      toast({
-        title: 'Minimum withdrawal is $10',
-        variant: 'destructive',
-      })
+      toast({ title: 'Minimum withdrawal is $10', variant: 'destructive' })
       return
     }
-    if (parsedAmount > balance) {
+    if (parsedAmount > withdrawalBalance) {
       toast({
-        title: 'Insufficient balance',
+        title: 'Insufficient withdrawal balance',
+        description: `You have $${withdrawalBalance.toFixed(2)} in your Withdrawal Wallet. Transfer funds from your Trading Wallet first.`,
         variant: 'destructive',
       })
       return
     }
     if (!walletAddress.trim()) {
-      toast({
-        title: 'Wallet address required',
-        variant: 'destructive',
-      })
+      toast({ title: 'Wallet address / UPI ID required', variant: 'destructive' })
       return
     }
 
@@ -131,30 +147,23 @@ export function WithdrawTab() {
           userId: user.id,
           amount: parsedAmount,
           walletAddress: walletAddress.trim(),
+          paymentMethod,
         }),
       })
 
       if (res.ok) {
         toast({
           title: 'Withdrawal submitted!',
-          description: `${formatCurrency(parsedAmount)} withdrawal request has been submitted.`,
+          description: `${formatCurrency(parsedAmount)} withdrawal request has been submitted via ${getMethodLabel(paymentMethod)}.`,
         })
         setAmount('')
         fetchWithdrawals()
       } else {
         const json = await res.json()
-        toast({
-          title: 'Withdrawal failed',
-          description: json.error || 'Something went wrong',
-          variant: 'destructive',
-        })
+        toast({ title: 'Withdrawal failed', description: json.error, variant: 'destructive' })
       }
-    } catch (err) {
-      toast({
-        title: 'Network error',
-        description: 'Please try again later',
-        variant: 'destructive',
-      })
+    } catch {
+      toast({ title: 'Network error', description: 'Please try again later', variant: 'destructive' })
     } finally {
       setSubmitting(false)
     }
@@ -162,17 +171,31 @@ export function WithdrawTab() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      {/* Balance Display */}
-      <Card className="border-border/50 bg-gradient-to-br from-primary/10 to-card backdrop-blur-sm">
-        <CardContent className="p-6 text-center">
-          <p className="text-sm text-muted-foreground mb-2">Current Balance</p>
-          <div className="flex items-center justify-center gap-2">
-            <DollarSign className="size-8 text-primary" />
-            <span className="text-4xl font-bold text-primary">{balance.toFixed(2)}</span>
+      {/* Dual Wallet Display */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-card backdrop-blur-sm">
+          <CardContent className="p-5 text-center">
+            <div className="flex items-center justify-center gap-1.5 mb-2">
+              <TrendingUpIcon className="size-4 text-emerald-400" />
+              <p className="text-xs text-emerald-400 font-medium">Trading Wallet</p>
+            </div>
+            <span className="text-3xl font-bold text-emerald-400">{tradingBalance.toFixed(2)}</span>
             <span className="text-sm text-muted-foreground ml-1">USDC</span>
-          </div>
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground mt-1">For deposits & earning</p>
+          </CardContent>
+        </Card>
+        <Card className="border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-card backdrop-blur-sm">
+          <CardContent className="p-5 text-center">
+            <div className="flex items-center justify-center gap-1.5 mb-2">
+              <Wallet className="size-4 text-cyan-400" />
+              <p className="text-xs text-cyan-400 font-medium">Withdrawal Wallet</p>
+            </div>
+            <span className="text-3xl font-bold text-cyan-400">{withdrawalBalance.toFixed(2)}</span>
+            <span className="text-sm text-muted-foreground ml-1">USDC</span>
+            <p className="text-xs text-muted-foreground mt-1">Available for withdrawal</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Withdrawal Form */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -183,6 +206,51 @@ export function WithdrawTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Payment Method */}
+          <div className="space-y-2">
+            <Label>Payment Method</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {gateways.length > 0 ? gateways.map(gw => (
+                <button
+                  key={gw.id}
+                  onClick={() => {
+                    setPaymentMethod(gw.type === 'crypto' ? `crypto_${gw.network || 'usdc'}` : gw.name.toLowerCase().replace(/\s+/g, '_'))
+                    setWalletAddress('')
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${
+                    paymentMethod === (gw.type === 'crypto' ? `crypto_${gw.network || 'usdc'}` : gw.name.toLowerCase().replace(/\s+/g, '_'))
+                      ? gw.type === 'crypto'
+                        ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                        : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  {gw.type === 'crypto' ? (
+                    <Bitcoin className="size-4" />
+                  ) : (
+                    <Landmark className="size-4" />
+                  )}
+                  <span className="truncate">{gw.name}</span>
+                </button>
+              )) : (
+                ALL_PAYMENT_METHODS.map(method => (
+                  <button
+                    key={method.value}
+                    onClick={() => { setPaymentMethod(method.value); setWalletAddress('') }}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${
+                      paymentMethod === method.value
+                        ? 'bg-primary/15 border-primary/30 text-primary'
+                        : 'border-border/50 text-muted-foreground hover:border-border'
+                    }`}
+                  >
+                    <span>{method.icon}</span>
+                    <span className="truncate">{method.label}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
           {/* Amount Input */}
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (USDC)</Label>
@@ -214,7 +282,7 @@ export function WithdrawTab() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleQuickSelect(balance)}
+                onClick={() => handleQuickSelect(withdrawalBalance)}
                 className="flex-1 text-xs text-primary"
               >
                 Max
@@ -222,12 +290,22 @@ export function WithdrawTab() {
             </div>
           </div>
 
-          {/* Wallet Address */}
+          {/* Wallet Address / UPI ID */}
           <div className="space-y-2">
-            <Label htmlFor="wallet">Wallet Address</Label>
+            <Label htmlFor="wallet">
+              {paymentMethod.startsWith('crypto') ? 'Wallet Address' :
+               paymentMethod === 'upi' ? 'UPI ID' :
+               paymentMethod === 'razorpay' ? 'Registered Email / Phone' :
+               'Account Details'}
+            </Label>
             <Input
               id="wallet"
-              placeholder="Enter your wallet address"
+              placeholder={
+                paymentMethod.startsWith('crypto') ? 'Enter your wallet address' :
+                paymentMethod === 'upi' ? 'yourname@upi' :
+                paymentMethod === 'razorpay' ? 'email@example.com' :
+                'Enter your account details'
+              }
               value={walletAddress}
               onChange={(e) => setWalletAddress(e.target.value)}
             />
@@ -249,10 +327,10 @@ export function WithdrawTab() {
             </div>
           </div>
 
-          {parsedAmount > balance && parsedAmount > 0 && (
+          {parsedAmount > withdrawalBalance && parsedAmount > 0 && (
             <div className="flex items-center gap-2 text-rose-400 text-sm">
               <AlertCircle className="size-4" />
-              <span>Insufficient balance</span>
+              <span>Insufficient withdrawal balance. Transfer funds from Trading Wallet.</span>
             </div>
           )}
 
@@ -260,7 +338,7 @@ export function WithdrawTab() {
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={submitting || parsedAmount <= 0 || parsedAmount > balance || !walletAddress.trim()}
+            disabled={submitting || parsedAmount <= 0 || parsedAmount > withdrawalBalance || !walletAddress.trim()}
           >
             {submitting ? (
               <>
@@ -293,7 +371,8 @@ export function WithdrawTab() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead className="hidden sm:table-cell">Wallet</TableHead>
+                    <TableHead className="hidden sm:table-cell">Method</TableHead>
+                    <TableHead className="hidden md:table-cell">Wallet</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -304,14 +383,16 @@ export function WithdrawTab() {
                         {formatDate(w.createdAt)}
                       </TableCell>
                       <TableCell className="font-medium">{formatCurrency(w.amount)}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground max-w-32 truncate">
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant="outline" className="text-xs">
+                          {getMethodLabel(w.paymentMethod || 'crypto_usdc')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-32 truncate">
                         {w.walletAddress}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${getStatusColor(w.status)}`}
-                        >
+                        <Badge variant="outline" className={`text-xs ${getStatusColor(w.status)}`}>
                           {w.status}
                         </Badge>
                       </TableCell>
@@ -328,5 +409,14 @@ export function WithdrawTab() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function TrendingUpIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
   )
 }

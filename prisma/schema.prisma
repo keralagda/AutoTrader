@@ -8,58 +8,89 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String
-  password      String
-  walletAddress String?
-  role          String    @default("user") // "user" or "admin"
-  referralCode  String    @unique
-  referredById  String?
-  referredBy    User?     @relation("Referrals", fields: [referredById], references: [id])
-  referrals     User[]    @relation("Referrals")
-  balance       Float     @default(0)
-  totalEarnings Float     @default(0)
-  totalDeposited Float    @default(0)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String
+  password         String
+  walletAddress    String?
+  role             String    @default("user") // "user" or "admin"
+  referralCode     String    @unique
+  referredById     String?
+  referredBy       User?     @relation("Referrals", fields: [referredById], references: [id])
+  referrals        User[]    @relation("Referrals")
+  tradingBalance   Float     @default(0) // Wallet 1: For Trading Plans (deposits & earnings stay here)
+  withdrawalBalance Float    @default(0) // Wallet 2: For Withdrawals (user transfers from trading to withdrawal)
+  totalEarnings    Float     @default(0)
+  totalDeposited   Float     @default(0)
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  deposits      Deposit[]
-  earnings      Earning[]
-  withdrawals   Withdrawal[]
-  leaderboardEntries LeaderboardEntry[]
-  userChallenges UserChallenge[]
+  deposits            Deposit[]
+  earnings            Earning[]
+  withdrawals         Withdrawal[]
+  leaderboardEntries  LeaderboardEntry[]
+  userChallenges      UserChallenge[]
+  payments            Payment[]
 }
 
 model Plan {
-  id                  String   @id @default(cuid())
-  name                String
-  entryFee            Float
-  minDeposit          Float
-  maxDeposit          Float
-  dailyEarningPercent Float
-  maxEarningLimit     Float
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?  // Plain English description of the plan
+  entryFee              Float
+  minDeposit            Float
+  maxDeposit            Float
+  dailyEarningPercent   Float
+  maxEarningLimit       Float
+
+  // Advanced Plan Builder Fields
+  stackingEnabled       Boolean  @default(false) // Allow stacking multiple deposits in this plan
+  maxStacks             Int      @default(1)     // Max simultaneous deposits allowed per user
+  stackingBonusPercent  Float    @default(0)     // Bonus % for each additional stack
+  lockPeriodDays        Int      @default(0)     // Lock-in period in days (0 = no lock)
+  autoCompound          Boolean  @default(false) // Auto-reinvest earnings into trading balance
+  earlyExitPenalty      Float    @default(0)     // Penalty % for early withdrawal (0 = no penalty)
+
+  // Distribution Rules (plain English mechanism stored as structured fields)
+  accountHolderPercent  Float    @default(50)    // % going to account holder
+  tradeProfitSharePercent Float  @default(30)    // % going to trade profit share pool
+  rewardsOffersPercent  Float    @default(15)    // % going to rewards & offers
+  platformFeePercent    Float    @default(5)     // % platform fee
+
+  // Referral earning from subscription fee
+  subscriptionReferralPercent Float @default(80) // % of entry fee going to referral/profit share
+  subscriptionRewardsPercent  Float @default(15) // % of entry fee going to rewards & offers
+  subscriptionPlatformPercent Float @default(5)  // % of entry fee going to platform
+
+  // Plan Logic Description (plain English)
+  earningMechanism      String?  // e.g. "Daily earnings calculated at X% of deposit amount, capped at Y times deposit"
+  withdrawalRule        String?  // e.g. "Earnings can be withdrawn anytime, principal locked for Z days"
+  stackingRule          String?  // e.g. "Users can stack up to N deposits, each stack earns bonus B%"
+
+  isActive              Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   deposits Deposit[]
 }
 
 model Deposit {
-  id        String   @id @default(cuid())
-  userId    String
-  planId    String
-  amount    Float
-  status    String   @default("active") // "active", "completed", "cancelled"
-  earnedSoFar Float  @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String
+  planId        String
+  amount        Float
+  status        String   @default("active") // "active", "completed", "cancelled", "locked"
+  earnedSoFar   Float    @default(0)
+  stackIndex    Int      @default(1) // Which stack this deposit belongs to (1 = first, 2 = second, etc.)
+  lockedUntil   DateTime? // If plan has lockPeriodDays, this is the unlock date
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  user     User     @relation(fields: [userId], references: [id])
-  plan     Plan     @relation(fields: [planId], references: [id])
-  earnings Earning[]
+  user              User                @relation(fields: [userId], references: [id])
+  plan              Plan                @relation(fields: [planId], references: [id])
+  earnings          Earning[]
   profitDistributions ProfitDistribution[]
 }
 
@@ -68,8 +99,9 @@ model Earning {
   userId    String
   depositId String?
   amount    Float
-  type      String   // "referral", "profit_share", "bonus", "daily"
+  type      String   // "referral", "profit_share", "bonus", "daily", "stacking_bonus", "subtract"
   level     Int?
+  walletTarget String @default("trading") // "trading" or "withdrawal" - which wallet receives this
   createdAt DateTime @default(now())
 
   user    User     @relation(fields: [userId], references: [id])
@@ -83,6 +115,7 @@ model Withdrawal {
   walletAddress String
   status        String   @default("pending") // "pending", "approved", "rejected", "completed"
   txHash        String?
+  paymentMethod String?  // "crypto_usdc", "crypto_btc", "crypto_eth", "upi", "bank_transfer", "razorpay"
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -95,19 +128,21 @@ model ProfitDistribution {
   amount     Float
   riskMode   String   // "safe", "medium", "risk"
   dayOfWeek  String   // "monday", "tuesday", etc.
+  operation  String   @default("add") // "add" or "subtract"
+  reason     String?  // Admin's reason for this operation
   createdAt  DateTime @default(now())
 
   deposit Deposit @relation(fields: [depositId], references: [id])
 }
 
 model LeaderboardEntry {
-  id           String   @id @default(cuid())
-  userId       String
+  id            String   @id @default(cuid())
+  userId        String
   totalEarnings Float
-  rank         Int
-  period       String   // "daily", "weekly", "monthly", "all_time"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  rank          Int
+  period        String   // "daily", "weekly", "monthly", "all_time"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -142,4 +177,38 @@ model Setting {
   id    String @id @default(cuid())
   key   String @unique
   value String
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  userId        String
+  amount        Float
+  method        String   // "crypto_usdc", "crypto_btc", "crypto_eth", "upi", "bank_transfer", "razorpay"
+  status        String   @default("pending") // "pending", "confirmed", "failed", "refunded"
+  txHash        String?  // For crypto payments
+  upiRef        String?  // For UPI payments
+  gatewayRef    String?  // For Razorpay/other gateway reference
+  planId        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model PaymentGateway {
+  id          String   @id @default(cuid())
+  name        String   // e.g. "USDC (Polygon)", "UPI", "Razorpay"
+  type        String   // "crypto" or "indian"
+  network     String?  // e.g. "polygon", "ethereum", "bitcoin"
+  address     String?  // Wallet address for crypto
+  apiKey      String?  // API key for gateways
+  apiSecret   String?  // API secret for gateways
+  webhookUrl  String?  // Webhook URL for payment confirmations
+  minAmount   Float    @default(10)
+  maxAmount   Float    @default(100000)
+  feePercent  Float    @default(0)
+  isActive    Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
