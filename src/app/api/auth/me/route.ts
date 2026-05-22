@@ -20,6 +20,7 @@ export async function GET(request: Request) {
       id: user.id,
       email: user.email,
       name: user.name,
+      phone: user.phone,
       role: user.role,
       referralCode: user.referralCode,
       walletAddress: user.walletAddress,
@@ -27,6 +28,8 @@ export async function GET(request: Request) {
       withdrawalBalance: user.withdrawalBalance,
       totalEarnings: user.totalEarnings,
       totalDeposited: user.totalDeposited,
+      kycStatus: user.kycStatus,
+      twoFactorEnabled: user.twoFactorEnabled,
     })
   } catch (error) {
     console.error('Get user error:', error)

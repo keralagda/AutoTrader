@@ -33,6 +33,7 @@ import {
   CreditCard,
   ScrollText,
   Bell,
+  Shield,
 } from 'lucide-react'
 
 interface NavItem {
@@ -55,6 +56,7 @@ const navItems: NavItem[] = [
   { id: 'messages', label: 'Message Centre', icon: MessageSquare },
   { id: 'transactions', label: 'Transactions', icon: ScrollText },
   { id: 'news', label: 'News', icon: Newspaper },
+  { id: 'security', label: 'Security', icon: Shield },
 ]
 
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {

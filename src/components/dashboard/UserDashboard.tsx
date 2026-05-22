@@ -15,6 +15,7 @@ import { LeaderboardTab } from './LeaderboardTab'
 import { MessagesTab } from './MessagesTab'
 import { NewsTab } from './NewsTab'
 import { TransactionsTab } from './TransactionsTab'
+import { SecurityTab } from './SecurityTab'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -32,6 +33,7 @@ import {
   ArrowRightLeft,
   Bell,
   ScrollText,
+  Shield,
 } from 'lucide-react'
 import {
   Dialog,
@@ -60,6 +62,7 @@ const TAB_META: Record<
   messages: { title: 'Message Centre', icon: MessageSquare },
   transactions: { title: 'Transactions', icon: ScrollText },
   news: { title: 'News', icon: Newspaper },
+  security: { title: 'Security', icon: Shield },
 }
 
 export function UserDashboard() {
@@ -143,6 +146,7 @@ export function UserDashboard() {
       case 'messages': return <MessagesTab />
       case 'transactions': return <TransactionsTab />
       case 'news': return <NewsTab />
+      case 'security': return <SecurityTab />
       default: return <OverviewTab />
     }
   }

@@ -6,6 +6,7 @@ import LandingPage from '@/components/landing/LandingPage'
 import AuthModal from '@/components/auth/AuthModal'
 import { UserDashboard } from '@/components/dashboard/UserDashboard'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
+import { InstallPWA } from '@/components/InstallPWA'
 
 export default function Home() {
   const { isAuthenticated, user, currentView, login } = useAppStore()
@@ -91,6 +92,7 @@ export default function Home() {
         <LandingPage />
       )}
       <AuthModal />
+      <InstallPWA />
     </>
   )
 }

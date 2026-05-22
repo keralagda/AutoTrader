@@ -5,6 +5,8 @@ import { useAppStore } from '@/lib/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TrendingUp, Wallet, Users, UserPlus, PiggyBank, Crown } from 'lucide-react'
+import { DailyCheckIn } from './DailyCheckIn'
+import { ReferralShare } from './ReferralShare'
 
 interface ProfileData {
   activePlan: string | null
@@ -99,6 +101,9 @@ export function OverviewTab() {
         <p className="text-muted-foreground text-sm mt-1">Here&apos;s your account overview</p>
       </div>
 
+      {/* Daily Check-in */}
+      <DailyCheckIn />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
         {stats.map(stat => {
@@ -136,6 +141,9 @@ export function OverviewTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Referral Share */}
+      <ReferralShare />
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { User, Mail, Phone, Wallet, Save, Edit2 } from 'lucide-react'
+import { KYCVerification } from './KYCVerification'
 
 export function ProfileTab() {
   const { user, updateUserProfile } = useAppStore()
@@ -180,6 +181,9 @@ export function ProfileTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* KYC Verification */}
+      <KYCVerification />
     </div>
   )
 }

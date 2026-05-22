@@ -15,6 +15,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
+    // Record login history
+    const headers = request.headers
+    const userAgent = headers.get('user-agent') || ''
+    const ipAddress = headers.get('x-forwarded-for') || headers.get('x-real-ip') || 'unknown'
+    const isMobile = /mobile|android|iphone|ipad/i.test(userAgent)
+
+    await db.loginHistory.create({
+      data: {
+        userId: user.id,
+        ipAddress: typeof ipAddress === 'string' ? ipAddress.split(',')[0].trim() : 'unknown',
+        userAgent: userAgent.substring(0, 200),
+        device: isMobile ? 'mobile' : 'desktop',
+      },
+    })
+
     // Check if 2FA is enabled
     if (user.twoFactorEnabled) {
       return NextResponse.json({
@@ -36,6 +51,7 @@ export async function POST(request: Request) {
       id: user.id,
       email: user.email,
       name: user.name,
+      phone: user.phone,
       role: user.role,
       referralCode: user.referralCode,
       walletAddress: user.walletAddress,
