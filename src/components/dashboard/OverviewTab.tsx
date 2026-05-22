@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { TrendingUp, Wallet, Users, UserPlus, PiggyBank, Crown } from 'lucide-react'
 import { DailyCheckIn } from './DailyCheckIn'
 import { ReferralShare } from './ReferralShare'
+import { PortfolioChart } from './PortfolioChart'
 
 interface ProfileData {
   activePlan: string | null
@@ -141,6 +142,9 @@ export function OverviewTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Portfolio & Earnings Chart */}
+      <PortfolioChart />
 
       {/* Referral Share */}
       <ReferralShare />
