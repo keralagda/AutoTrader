@@ -45,6 +45,8 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   
   // System Settings
   { tab: 'settings', label: 'Settings', icon: Wrench, group: 'system' },
+  { tab: 'geoBlocking', label: 'Geo-Blocking', icon: Shield, group: 'system' },
+  { tab: 'notifTemplates', label: 'Notif Templates', icon: Bell, group: 'system' },
 ]
 
 export function AdminSidebar() {

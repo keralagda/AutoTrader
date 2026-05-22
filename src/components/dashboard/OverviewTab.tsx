@@ -8,6 +8,7 @@ import { TrendingUp, Wallet, Users, UserPlus, PiggyBank, Crown } from 'lucide-re
 import { DailyCheckIn } from './DailyCheckIn'
 import { ReferralShare } from './ReferralShare'
 import { PortfolioChart } from './PortfolioChart'
+import { CopyTradingSection } from './CopyTradingSection'
 
 interface ProfileData {
   activePlan: string | null
@@ -145,6 +146,9 @@ export function OverviewTab() {
 
       {/* Portfolio & Earnings Chart */}
       <PortfolioChart />
+
+      {/* Top Earners */}
+      <CopyTradingSection />
 
       {/* Referral Share */}
       <ReferralShare />

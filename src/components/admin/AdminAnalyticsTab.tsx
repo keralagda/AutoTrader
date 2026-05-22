@@ -4,44 +4,49 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import {
   TrendingUp,
   Users,
   DollarSign,
   Activity,
-  PieChart,
   Download,
   RefreshCw,
-  Calendar,
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock,
 } from 'lucide-react'
 
 interface PlatformStats {
   totalUsers: number
   activeUsers: number
   totalDeposits: number
-  totalWithdrawals: number
-  totalEarnings: number
-  activeDeposits: number
-  pendingWithdrawals: number
   platformRevenue: number
+  netRevenue: number
+  pendingWithdrawals: number
+  completedWithdrawals: number
+  totalEarningsDistributed: number
+  newUsersInPeriod: number
+  recentActivity: { id: string; action: string; details: any; createdAt: string }[]
 }
 
 export function AdminAnalyticsTab() {
   const { toast } = useToast()
   const [stats, setStats] = useState<PlatformStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('7d')
+  const [period, setPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
 
   const fetchStats = async () => {
+    setLoading(true)
     try {
       const res = await fetch(`/api/admin/analytics?period=${period}`)
       if (res.ok) {
         setStats(await res.json())
+      } else {
+        toast({ title: 'Failed to load analytics', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Error', description: 'Failed to load analytics', variant: 'destructive' })
+      toast({ title: 'Network error', variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -51,27 +56,36 @@ export function AdminAnalyticsTab() {
     fetchStats()
   }, [period])
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount)
+
+  const formatNumber = (num: number) => new Intl.NumberFormat('en-US').format(num)
+
+  const handleExport = () => {
+    window.open('/api/admin/export?type=transactions', '_blank')
   }
 
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-US').format(num)
+  const getActivityLabel = (action: string) => {
+    const labels: Record<string, string> = {
+      cron_profit_distribution: 'Profit Distribution',
+      withdrawal_completed: 'Withdrawal Completed',
+      withdrawal_rejected: 'Withdrawal Rejected',
+      password_changed: 'Password Changed',
+      password_reset: 'Password Reset',
+      account_deleted: 'Account Deleted',
+      bank_transfer_submitted: 'Bank Transfer',
+      bulk_add_balance: 'Bulk Add Balance',
+      bulk_send_notification: 'Bulk Notification',
+    }
+    return labels[action] || action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
-  if (loading) {
+  if (loading && !stats) {
     return (
       <div className="space-y-6">
-        {[1, 2, 3, 4].map(i => (
+        {[1, 2].map(i => (
           <Card key={i} className="bg-card/50 border-border/50 animate-pulse">
-            <CardContent className="p-6">
-              <div className="h-6 bg-muted rounded w-1/4 mb-4" />
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map(j => (
-                  <div key={j} className="h-24 bg-muted rounded" />
-                ))}
-              </div>
-            </CardContent>
+            <CardContent className="p-6"><div className="h-24 bg-muted rounded" /></CardContent>
           </Card>
         ))}
       </div>
@@ -81,154 +95,115 @@ export function AdminAnalyticsTab() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Platform Analytics</h2>
-          <p className="text-sm text-muted-foreground mt-1">Real-time platform performance metrics</p>
+          <h2 className="text-xl font-bold">Platform Analytics</h2>
+          <p className="text-sm text-muted-foreground">Real-time performance metrics</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
-            {['7d', '30d', '90d', 'all'].map(p => (
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+            {(['7d', '30d', '90d', 'all'] as const).map(p => (
               <button
                 key={p}
-                onClick={() => setPeriod(p as any)}
+                onClick={() => setPeriod(p)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  period === p
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
+                  period === p ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {p.toUpperCase()}
+                {p === 'all' ? 'ALL' : p.toUpperCase()}
               </button>
             ))}
           </div>
-          <Button variant="outline" size="sm" onClick={fetchStats} className="gap-1.5">
-            <RefreshCw className="size-3.5" /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <Download className="size-3.5" /> Export
-          </Button>
+          <Button variant="outline" size="sm" onClick={fetchStats}><RefreshCw className="size-3.5" /></Button>
+          <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5"><Download className="size-3.5" /> Export</Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Main Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground flex items-center gap-2">
-              <Users className="size-3.5" /> Total Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(stats?.totalUsers || 0)}</div>
-            <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="size-3" /> +{formatNumber(Math.floor(Math.random() * 10))} today
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="size-4 text-emerald-400" />
+              <span className="text-xs text-muted-foreground">Total Users</span>
+            </div>
+            <p className="text-2xl font-bold">{formatNumber(stats?.totalUsers || 0)}</p>
+            <p className="text-xs text-emerald-400 mt-1">+{stats?.newUsersInPeriod || 0} this period</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Activity className="size-4 text-cyan-400" />
+              <span className="text-xs text-muted-foreground">Active Investors</span>
+            </div>
+            <p className="text-2xl font-bold">{formatNumber(stats?.activeUsers || 0)}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats?.totalUsers ? ((stats.activeUsers / stats.totalUsers) * 100).toFixed(0) : 0}% of total
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground flex items-center gap-2">
-              <Activity className="size-3.5" /> Active Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(stats?.activeUsers || 0)}</div>
-            <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="size-3" /> {Math.floor(Math.random() * 20)}% active rate
-            </p>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <ArrowUpRight className="size-4 text-emerald-400" />
+              <span className="text-xs text-muted-foreground">Total Deposits</span>
+            </div>
+            <p className="text-2xl font-bold text-emerald-400">{formatCurrency(stats?.totalDeposits || 0)}</p>
+            <p className="text-xs text-muted-foreground mt-1">In selected period</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground flex items-center gap-2">
-              <DollarSign className="size-3.5" /> Total Deposits
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-400">{formatCurrency(stats?.totalDeposits || 0)}</div>
-            <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="size-3" /> +{formatCurrency(Math.random() * 1000)} today
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="size-4 text-amber-400" />
+              <span className="text-xs text-muted-foreground">Net Revenue</span>
+            </div>
+            <p className={`text-2xl font-bold ${(stats?.netRevenue || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {formatCurrency(stats?.netRevenue || 0)}
             </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground flex items-center gap-2">
-              <DollarSign className="size-3.5" /> Platform Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-400">{formatCurrency(stats?.platformRevenue || 0)}</div>
-            <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="size-3" /> {Math.floor(Math.random() * 10)}% of deposits
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Deposits - Payouts</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Additional Stats */}
+      {/* Financial Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground">Active Deposits</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold">{formatNumber(stats?.activeDeposits || 0)}</div>
-                <p className="text-xs text-muted-foreground">Total active investments</p>
-              </div>
-              <div className="h-12 w-24">
-                <div className="h-full bg-emerald-500/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500" style={{ width: '65%' }} />
-                </div>
-              </div>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ArrowDownRight className="size-4 text-rose-400" />
+              <span className="text-sm font-medium">Withdrawals Completed</span>
             </div>
+            <p className="text-xl font-bold text-rose-400">{formatCurrency(stats?.completedWithdrawals || 0)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground">Pending Withdrawals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-amber-400">{formatNumber(stats?.pendingWithdrawals || 0)}</div>
-                <p className="text-xs text-muted-foreground">Awaiting approval</p>
-              </div>
-              <Badge variant="outline" className="bg-amber-500/20 text-amber-400 border-amber-500/30">
-                {formatCurrency(Math.random() * 5000)}
-              </Badge>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="size-4 text-amber-400" />
+              <span className="text-sm font-medium">Pending Withdrawals</span>
             </div>
+            <p className="text-xl font-bold text-amber-400">{formatCurrency(stats?.pendingWithdrawals || 0)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-card/50 border-border/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-muted-foreground">Total Earnings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-cyan-400">{formatCurrency(stats?.totalEarnings || 0)}</div>
-                <p className="text-xs text-muted-foreground">User earnings</p>
-              </div>
-              <div className="h-12 w-24">
-                <div className="h-full bg-cyan-500/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-cyan-500" style={{ width: '80%' }} />
-                </div>
-              </div>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="size-4 text-cyan-400" />
+              <span className="text-sm font-medium">Earnings Distributed</span>
             </div>
+            <p className="text-xl font-bold text-cyan-400">{formatCurrency(stats?.totalEarningsDistributed || 0)}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity (Real Data) */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -237,44 +212,34 @@ export function AdminAnalyticsTab() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[
-              { type: 'Deposit', amount: '$500', user: 'John Doe', time: '5 min ago', status: 'confirmed' },
-              { type: 'Withdrawal', amount: '$250', user: 'Jane Smith', time: '15 min ago', status: 'pending' },
-              { type: 'Profit', amount: '$30', user: 'Bob Wilson', time: '30 min ago', status: 'completed' },
-              { type: 'Deposit', amount: '$1,000', user: 'Alice Brown', time: '1 hour ago', status: 'confirmed' },
-              { type: 'Withdrawal', amount: '$500', user: 'Charlie Davis', time: '2 hours ago', status: 'approved' },
-            ].map((activity, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                    activity.type === 'Deposit' ? 'bg-emerald-500/20 text-emerald-400' :
-                    activity.type === 'Withdrawal' ? 'bg-rose-500/20 text-rose-400' :
-                    'bg-cyan-500/20 text-cyan-400'
-                  }`}>
-                    {activity.type === 'Deposit' ? <TrendingUp className="size-4" /> :
-                     activity.type === 'Withdrawal' ? <DollarSign className="size-4" /> :
-                     <Activity className="size-4" />}
+          {stats?.recentActivity && stats.recentActivity.length > 0 ? (
+            <div className="space-y-2">
+              {stats.recentActivity.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/30">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Activity className="size-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{getActivityLabel(activity.action)}</p>
+                      {activity.details && (
+                        <p className="text-xs text-muted-foreground">
+                          {activity.details.credited ? `$${activity.details.credited} credited` : ''}
+                          {activity.details.processed ? ` • ${activity.details.processed} processed` : ''}
+                          {activity.details.amount ? `$${activity.details.amount}` : ''}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{activity.type}</p>
-                    <p className="text-xs text-muted-foreground">{activity.user}</p>
-                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(activity.createdAt).toLocaleDateString()} {new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold">{activity.amount}</p>
-                  <p className="text-xs text-muted-foreground">{activity.time}</p>
-                </div>
-                <Badge className={`text-[10px] ${
-                  activity.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' :
-                  activity.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
-                  'bg-cyan-500/20 text-cyan-400'
-                }`}>
-                  {activity.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">No recent activity</p>
+          )}
         </CardContent>
       </Card>
     </div>

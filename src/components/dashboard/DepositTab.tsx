@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { BankTransferModal } from './BankTransferModal'
 import {
   Table,
   TableBody,
@@ -49,6 +50,7 @@ export function DepositTab() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [bankTransferOpen, setBankTransferOpen] = useState(false)
 
   const parsedAmount = parseFloat(amount) || 0
   const tradingBalance = user?.tradingBalance || 0
@@ -283,6 +285,21 @@ export function DepositTab() {
               'Confirm Deposit'
             )}
           </Button>
+
+          {/* Alternative: Bank Transfer */}
+          <div className="text-center">
+            <Separator className="my-3" />
+            <p className="text-xs text-muted-foreground mb-2">Or deposit via bank transfer</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBankTransferOpen(true)}
+              className="gap-2"
+            >
+              <Landmark className="size-3.5" />
+              Bank Transfer (Manual)
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -332,6 +349,9 @@ export function DepositTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Bank Transfer Modal */}
+      <BankTransferModal open={bankTransferOpen} onOpenChange={setBankTransferOpen} />
     </div>
   )
 }

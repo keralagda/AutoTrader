@@ -374,6 +374,7 @@ export function WithdrawTab() {
                     <TableHead className="hidden sm:table-cell">Method</TableHead>
                     <TableHead className="hidden md:table-cell">Wallet</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="hidden lg:table-cell">TX Hash</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -395,6 +396,15 @@ export function WithdrawTab() {
                         <Badge variant="outline" className={`text-xs ${getStatusColor(w.status)}`}>
                           {w.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-xs font-mono text-muted-foreground max-w-24 truncate">
+                        {(w as any).txHash ? (
+                          <span className="text-emerald-400" title={(w as any).txHash}>
+                            {(w as any).txHash.substring(0, 10)}...
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/50">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
