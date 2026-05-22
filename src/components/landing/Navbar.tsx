@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Diamond, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/lib/store'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 const navLinks = [
   { label: 'Home', href: '#home' },
@@ -80,6 +81,7 @@ export default function Navbar() {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
+            <LanguageSwitcher />
             <Button
               variant="ghost"
               size="sm"
@@ -127,6 +129,10 @@ export default function Navbar() {
                   {link.label}
                 </button>
               ))}
+              <div className="flex items-center justify-between pt-2 pb-1">
+                <span className="text-xs text-muted-foreground">Language</span>
+                <LanguageSwitcher />
+              </div>
               <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"

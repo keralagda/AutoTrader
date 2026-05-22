@@ -26,6 +26,7 @@ import { AdminDepositsTab } from './AdminDepositsTab'
 import { AdminAnalyticsTab } from './AdminAnalyticsTab'
 import { AdminWithdrawalLimitsTab } from './AdminWithdrawalLimitsTab'
 import { AdminSystemHealthTab } from './AdminSystemHealthTab'
+import { AdminBulkOperationsTab } from './AdminBulkOperationsTab'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -104,6 +105,7 @@ export function AdminDashboard() {
       case 'analytics': return <AdminAnalyticsTab />
       case 'withdrawalLimits': return <AdminWithdrawalLimitsTab />
       case 'systemHealth': return <AdminSystemHealthTab />
+      case 'bulkOps': return <AdminBulkOperationsTab />
       default: return <PlansTab />
     }
   }

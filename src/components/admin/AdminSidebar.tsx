@@ -18,6 +18,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'users', label: 'Users', icon: Users, group: 'users' },
   { tab: 'kyc', label: 'KYC Verification', icon: ShieldCheck, group: 'users' },
   { tab: 'fakeProfiles', label: 'Fake Profiles', icon: UserPlus, group: 'users' },
+  { tab: 'bulkOps', label: 'Bulk Operations', icon: Zap, group: 'users' },
   
   // Financial Management
   { tab: 'withdrawals', label: 'Withdrawals', icon: Wallet, group: 'finance' },

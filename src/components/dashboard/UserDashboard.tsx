@@ -16,6 +16,7 @@ import { MessagesTab } from './MessagesTab'
 import { NewsTab } from './NewsTab'
 import { TransactionsTab } from './TransactionsTab'
 import { SecurityTab } from './SecurityTab'
+import { WelcomeTour } from './WelcomeTour'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -280,6 +281,9 @@ export function UserDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Welcome Tour for new users */}
+      <WelcomeTour />
     </div>
   )
 }
