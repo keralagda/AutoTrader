@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAppStore, type UserData } from '@/lib/store'
 import { UserDashboard } from '@/components/dashboard/UserDashboard'
 import { InstallPWA } from '@/components/InstallPWA'
+import { AIChatbot } from '@/components/dashboard/AIChatbot'
 
 export default function DashboardPage() {
   const { isAuthenticated, user, login, logout } = useAppStore()
@@ -58,6 +59,7 @@ export default function DashboardPage() {
     <>
       <UserDashboard />
       <InstallPWA />
+      <AIChatbot />
     </>
   )
 }

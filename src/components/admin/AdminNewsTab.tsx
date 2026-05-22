@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import { Newspaper, Plus, Trash2, Edit2, Save } from 'lucide-react'
+import { Newspaper, Plus, Trash2, Edit2, Save, Brain, Loader2 } from 'lucide-react'
 
 interface NewsItem {
   id: string
@@ -28,6 +28,36 @@ export function AdminNewsTab() {
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ title: '', content: '', category: 'general', isPublished: true })
+  const [generating, setGenerating] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/admin/news')
+      .then(r => r.json())
+      .then(setNews)
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleAIGenerate = async () => {
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/ai/generate-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'news',
+          prompt: 'Write a news article about crypto market updates, platform improvements, or investment tips for today.',
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setForm(prev => ({ ...prev, title: data.title, content: data.content }))
+        toast({ title: 'AI generated content! Review and publish.' })
+      }
+    } catch {
+      toast({ title: 'AI generation failed', variant: 'destructive' })
+    } finally { setGenerating(false) }
+  }
 
   useEffect(() => {
     fetch('/api/admin/news')
@@ -146,9 +176,15 @@ export function AdminNewsTab() {
                 </Button>
               </div>
             ) : (
-              <Button onClick={handleCreate} className="gap-1.5">
-                <Plus className="size-4" /> Create
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleCreate} className="gap-1.5">
+                  <Plus className="size-4" /> Create
+                </Button>
+                <Button variant="outline" onClick={handleAIGenerate} disabled={generating} className="gap-1.5">
+                  {generating ? <Loader2 className="size-4 animate-spin" /> : <Brain className="size-4" />}
+                  {generating ? 'Generating...' : 'AI Generate'}
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>

@@ -9,6 +9,8 @@ import { DailyCheckIn } from './DailyCheckIn'
 import { ReferralShare } from './ReferralShare'
 import { PortfolioChart } from './PortfolioChart'
 import { CopyTradingSection } from './CopyTradingSection'
+import { AITradingSignal } from './AITradingSignal'
+import { AIMarketCommentary } from './AIMarketCommentary'
 
 interface ProfileData {
   activePlan: string | null
@@ -147,8 +149,14 @@ export function OverviewTab() {
       {/* Portfolio & Earnings Chart */}
       <PortfolioChart />
 
-      {/* Top Earners */}
-      <CopyTradingSection />
+      {/* AI Market Commentary */}
+      <AIMarketCommentary />
+
+      {/* AI Trading Signal + Top Earners */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AITradingSignal />
+        <CopyTradingSection />
+      </div>
 
       {/* Referral Share */}
       <ReferralShare />
