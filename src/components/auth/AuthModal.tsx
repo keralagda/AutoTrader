@@ -157,6 +157,22 @@ function LoginForm() {
           </div>
         </div>
 
+        {/* Forgot Password */}
+        <div className="text-right">
+          <button
+            type="button"
+            onClick={() => {
+              toast({
+                title: 'Password Reset',
+                description: 'Contact admin or use the Security tab after login to change your password.',
+              })
+            }}
+            className="text-xs text-muted-foreground hover:text-emerald-400 transition-colors"
+          >
+            Forgot password?
+          </button>
+        </div>
+
         {/* Error message */}
         {error && (
           <motion.p

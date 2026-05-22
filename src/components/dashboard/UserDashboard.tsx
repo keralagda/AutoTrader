@@ -17,6 +17,8 @@ import { NewsTab } from './NewsTab'
 import { TransactionsTab } from './TransactionsTab'
 import { SecurityTab } from './SecurityTab'
 import { WelcomeTour } from './WelcomeTour'
+import { MobileBottomNav } from './MobileBottomNav'
+import { ProfitNotification } from './ProfitNotification'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -199,7 +201,7 @@ export function UserDashboard() {
         </header>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
           {renderTab()}
         </div>
       </main>
@@ -284,6 +286,12 @@ export function UserDashboard() {
 
       {/* Welcome Tour for new users */}
       <WelcomeTour />
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
+
+      {/* Profit Notification Checker */}
+      <ProfitNotification />
     </div>
   )
 }
