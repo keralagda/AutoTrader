@@ -1,16 +1,38 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { UserSidebar } from './UserSidebar'
+import { OverviewTab } from './OverviewTab'
+import { ProfileTab } from './ProfileTab'
 import { EarningsTab } from './EarningsTab'
+import { InvestmentTab } from './InvestmentTab'
+import { DepositTab } from './DepositTab'
 import { WithdrawTab } from './WithdrawTab'
-import { LeaderboardTab } from './LeaderboardTab'
+import { TeamTab } from './TeamTab'
 import { ChallengesTab } from './ChallengesTab'
-import { DepositModal } from './DepositModal'
+import { LeaderboardTab } from './LeaderboardTab'
+import { MessagesTab } from './MessagesTab'
+import { NewsTab } from './NewsTab'
+import { TransactionsTab } from './TransactionsTab'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, TrendingUp, Wallet, Trophy, Target, ArrowRightLeft } from 'lucide-react'
+import {
+  LayoutDashboard,
+  User,
+  TrendingUp,
+  PiggyBank,
+  CreditCard,
+  Wallet,
+  Users,
+  Target,
+  Trophy,
+  MessageSquare,
+  Newspaper,
+  ArrowRightLeft,
+  Bell,
+  ScrollText,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -26,25 +48,42 @@ const TAB_META: Record<
   string,
   { title: string; icon: React.ComponentType<{ className?: string }> }
 > = {
+  overview: { title: 'Dashboard', icon: LayoutDashboard },
+  profile: { title: 'Profile', icon: User },
   earnings: { title: 'My Earnings', icon: TrendingUp },
-  withdraw: { title: 'Withdraw Funds', icon: Wallet },
+  investment: { title: 'Investment', icon: PiggyBank },
+  deposit: { title: 'Deposit', icon: CreditCard },
+  withdraw: { title: 'Withdrawal', icon: Wallet },
+  team: { title: 'Team', icon: Users },
+  challenges: { title: 'Competition', icon: Target },
   leaderboard: { title: 'Leaderboard', icon: Trophy },
-  challenges: { title: 'Challenges', icon: Target },
+  messages: { title: 'Message Centre', icon: MessageSquare },
+  transactions: { title: 'Transactions', icon: ScrollText },
+  news: { title: 'News', icon: Newspaper },
 }
 
 export function UserDashboard() {
   const { dashboardTab, user, updateUserWallets } = useAppStore()
-  const [depositModalOpen, setDepositModalOpen] = useState(false)
   const [transferModalOpen, setTransferModalOpen] = useState(false)
   const [transferAmount, setTransferAmount] = useState('')
   const [transferring, setTransferring] = useState(false)
+  const [unreadNotifs, setUnreadNotifs] = useState(0)
   const { toast } = useToast()
 
-  const currentTab = TAB_META[dashboardTab] || TAB_META.earnings
+  const currentTab = TAB_META[dashboardTab] || TAB_META.overview
   const TabIcon = currentTab.icon
 
   const tradingBalance = user?.tradingBalance || 0
   const withdrawalBalance = user?.withdrawalBalance || 0
+
+  // Fetch notification count
+  useEffect(() => {
+    if (!user?.id) return
+    fetch(`/api/notifications?userId=${user.id}`)
+      .then(r => r.json())
+      .then(data => setUnreadNotifs(data.unreadCount || 0))
+      .catch(() => {})
+  }, [user?.id, dashboardTab])
 
   const handleTransfer = async () => {
     if (!user?.id) return
@@ -92,25 +131,26 @@ export function UserDashboard() {
 
   const renderTab = () => {
     switch (dashboardTab) {
-      case 'earnings':
-        return <EarningsTab />
-      case 'withdraw':
-        return <WithdrawTab />
-      case 'leaderboard':
-        return <LeaderboardTab />
-      case 'challenges':
-        return <ChallengesTab />
-      default:
-        return <EarningsTab />
+      case 'overview': return <OverviewTab />
+      case 'profile': return <ProfileTab />
+      case 'earnings': return <EarningsTab />
+      case 'investment': return <InvestmentTab />
+      case 'deposit': return <DepositTab />
+      case 'withdraw': return <WithdrawTab />
+      case 'team': return <TeamTab />
+      case 'challenges': return <ChallengesTab />
+      case 'leaderboard': return <LeaderboardTab />
+      case 'messages': return <MessagesTab />
+      case 'transactions': return <TransactionsTab />
+      case 'news': return <NewsTab />
+      default: return <OverviewTab />
     }
   }
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
       <UserSidebar />
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
         <header className="shrink-0 border-b border-border/50 bg-card/50 backdrop-blur-sm px-4 md:px-6 py-3">
@@ -141,14 +181,14 @@ export function UserDashboard() {
                 <ArrowRightLeft className="size-4" />
                 <span className="hidden sm:inline">Transfer</span>
               </Button>
-              <Button
-                onClick={() => setDepositModalOpen(true)}
-                className="gap-1.5"
-                size="sm"
-              >
-                <Plus className="size-4" />
-                <span className="hidden sm:inline">New Deposit</span>
-              </Button>
+              <button className="relative p-2 rounded-md hover:bg-muted transition-colors" onClick={() => { /* Could open notifications panel */ }}>
+                <Bell className="size-4 text-muted-foreground" />
+                {unreadNotifs > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-500 text-[9px] text-white flex items-center justify-center font-bold">
+                    {unreadNotifs > 9 ? '9+' : unreadNotifs}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
         </header>
@@ -158,9 +198,6 @@ export function UserDashboard() {
           {renderTab()}
         </div>
       </main>
-
-      {/* Deposit Modal */}
-      <DepositModal open={depositModalOpen} onOpenChange={setDepositModalOpen} />
 
       {/* Transfer Modal */}
       <Dialog open={transferModalOpen} onOpenChange={setTransferModalOpen}>
@@ -175,7 +212,6 @@ export function UserDashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Current Balances */}
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-center">
                 <p className="text-xs text-emerald-400 font-medium">Trading Wallet</p>
@@ -187,14 +223,12 @@ export function UserDashboard() {
               </div>
             </div>
 
-            {/* Transfer Direction */}
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <span className="text-emerald-400 font-medium">Trading</span>
               <ArrowRightLeft className="size-4" />
               <span className="text-cyan-400 font-medium">Withdrawal</span>
             </div>
 
-            {/* Amount */}
             <div className="space-y-2">
               <Label>Amount (USDC)</Label>
               <div className="relative">
@@ -230,14 +264,6 @@ export function UserDashboard() {
                   Max
                 </Button>
               </div>
-            </div>
-
-            {/* Note */}
-            <div className="rounded-lg bg-muted/50 border border-border/50 p-3">
-              <p className="text-xs text-muted-foreground">
-                Funds transferred to your Withdrawal Wallet can be used for withdrawal requests.
-                This action cannot be reversed automatically.
-              </p>
             </div>
 
             <Button

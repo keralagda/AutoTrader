@@ -34,7 +34,7 @@ export async function PUT(request: Request) {
       if (user) {
         await db.user.update({
           where: { id: withdrawal.userId },
-          data: { balance: user.balance + withdrawal.amount },
+          data: { tradingBalance: user.tradingBalance + withdrawal.amount },
         })
       }
     }

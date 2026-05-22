@@ -1,0 +1,348 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useToast } from '@/hooks/use-toast'
+import { Layout, Save, Upload, Image, Eye, EyeOff, GripVertical, Trash2 } from 'lucide-react'
+
+interface SectionData {
+  sectionKey: string
+  title: string
+  subtitle: string
+  content: any
+  isVisible: boolean
+  sortOrder: number
+}
+
+interface MediaItem {
+  id: string
+  fileName: string
+  fileType: string
+  url: string
+  alt: string | null
+  createdAt: string
+}
+
+const SECTION_LABELS: Record<string, { label: string; description: string }> = {
+  hero: { label: 'Hero Section', description: 'Main banner with headline, subtitle, CTA buttons and stats' },
+  navbar: { label: 'Navigation Bar', description: 'Logo, navigation links and auth buttons' },
+  stats: { label: 'Statistics Section', description: 'Platform stats with animated counters' },
+  footer: { label: 'Footer', description: 'Company info, links and social media' },
+}
+
+export function AdminLandingEditorTab() {
+  const { toast } = useToast()
+  const [sections, setSections] = useState<Record<string, any>>({})
+  const [media, setMedia] = useState<MediaItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/landing-content').then(r => r.json()),
+      fetch('/api/admin/media').then(r => r.json()),
+    ]).then(([content, mediaData]) => {
+      setSections(content || {})
+      setMedia(Array.isArray(mediaData) ? mediaData : [])
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const handleSaveSection = async (sectionKey: string) => {
+    setSaving(sectionKey)
+    const data = sections[sectionKey]
+    try {
+      const res = await fetch('/api/admin/landing-editor', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sectionKey,
+          title: data.title || null,
+          subtitle: data.subtitle || null,
+          content: data,
+          isVisible: data.isVisible !== false,
+          sortOrder: data.sortOrder || 0,
+        }),
+      })
+      if (res.ok) toast({ title: `${SECTION_LABELS[sectionKey]?.label || sectionKey} saved!` })
+      else toast({ title: 'Failed to save', variant: 'destructive' })
+    } catch { toast({ title: 'Network error', variant: 'destructive' }) }
+    finally { setSaving(null) }
+  }
+
+  const updateSection = (key: string, field: string, value: any) => {
+    setSections(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }))
+  }
+
+  const updateNestedSection = (key: string, path: string, value: any) => {
+    setSections(prev => {
+      const section = { ...prev[key] }
+      const parts = path.split('.')
+      let obj: any = section
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (Array.isArray(obj[parts[i]])) obj[parts[i]] = [...obj[parts[i]]]
+        else obj[parts[i]] = { ...obj[parts[i]] }
+        obj = obj[parts[i]]
+      }
+      obj[parts[parts.length - 1]] = value
+      return { ...prev, [key]: section }
+    })
+  }
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { toast({ title: 'File too large (max 5MB)', variant: 'destructive' }); return }
+
+    setUploading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('alt', file.name)
+
+    try {
+      const res = await fetch('/api/admin/landing-editor', { method: 'POST', body: formData })
+      if (res.ok) {
+        const data = await res.json()
+        setMedia(prev => [{ id: data.id, fileName: data.fileName, fileType: 'image', url: data.url, alt: data.fileName, createdAt: new Date().toISOString() }, ...prev])
+        toast({ title: 'File uploaded!' })
+      }
+    } catch { toast({ title: 'Upload failed', variant: 'destructive' }) }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = '' }
+  }
+
+  const handleDeleteMedia = async (id: string) => {
+    await fetch(`/api/admin/media?id=${id}`, { method: 'DELETE' })
+    setMedia(prev => prev.filter(m => m.id !== id))
+  }
+
+  return (
+    <div className="space-y-6">
+      <Tabs defaultValue="sections">
+        <TabsList>
+          <TabsTrigger value="sections" className="gap-1.5"><Layout className="size-3.5" />Sections</TabsTrigger>
+          <TabsTrigger value="media" className="gap-1.5"><Image className="size-3.5" />Media Library</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="sections" className="mt-4 space-y-4">
+          {/* Hero Section Editor */}
+          <SectionEditor
+            sectionKey="hero"
+            data={sections.hero || {}}
+            saving={saving === 'hero'}
+            onSave={() => handleSaveSection('hero')}
+            onToggleVisibility={(v) => updateSection('hero', 'isVisible', v)}
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Headline</Label>
+                <Textarea value={sections.hero?.title || ''} onChange={e => updateSection('hero', 'title', e.target.value)} rows={2} placeholder="Main headline text" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Subtitle</Label>
+                <Input value={sections.hero?.subtitle || ''} onChange={e => updateSection('hero', 'subtitle', e.target.value)} placeholder="Subtitle text" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Description</Label>
+                <Textarea value={sections.hero?.description || ''} onChange={e => updateSection('hero', 'description', e.target.value)} rows={2} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Primary CTA Text</Label>
+                  <Input value={sections.hero?.ctaPrimary || ''} onChange={e => updateSection('hero', 'ctaPrimary', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Secondary CTA Text</Label>
+                  <Input value={sections.hero?.ctaSecondary || ''} onChange={e => updateSection('hero', 'ctaSecondary', e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Background Image URL</Label>
+                <Input value={sections.hero?.backgroundImage || ''} onChange={e => updateSection('hero', 'backgroundImage', e.target.value)} placeholder="Paste URL or upload in Media tab" />
+              </div>
+              {/* Stats */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Hero Stats</Label>
+                {(sections.hero?.stats || []).map((stat: any, i: number) => (
+                  <div key={i} className="grid grid-cols-4 gap-2">
+                    <Input value={stat.label} onChange={e => { const stats = [...(sections.hero?.stats || [])]; stats[i] = { ...stats[i], label: e.target.value }; updateSection('hero', 'stats', stats) }} placeholder="Label" />
+                    <Input type="number" value={stat.value} onChange={e => { const stats = [...(sections.hero?.stats || [])]; stats[i] = { ...stats[i], value: parseInt(e.target.value) || 0 }; updateSection('hero', 'stats', stats) }} />
+                    <Input value={stat.prefix} onChange={e => { const stats = [...(sections.hero?.stats || [])]; stats[i] = { ...stats[i], prefix: e.target.value }; updateSection('hero', 'stats', stats) }} placeholder="Prefix" />
+                    <Input value={stat.suffix} onChange={e => { const stats = [...(sections.hero?.stats || [])]; stats[i] = { ...stats[i], suffix: e.target.value }; updateSection('hero', 'stats', stats) }} placeholder="Suffix" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </SectionEditor>
+
+          {/* Stats Section Editor */}
+          <SectionEditor
+            sectionKey="stats"
+            data={sections.stats || {}}
+            saving={saving === 'stats'}
+            onSave={() => handleSaveSection('stats')}
+            onToggleVisibility={(v) => updateSection('stats', 'isVisible', v)}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label className="text-xs">Section Title</Label><Input value={sections.stats?.title || ''} onChange={e => updateSection('stats', 'title', e.target.value)} /></div>
+                <div className="space-y-2"><Label className="text-xs">Subtitle</Label><Input value={sections.stats?.subtitle || ''} onChange={e => updateSection('stats', 'subtitle', e.target.value)} /></div>
+              </div>
+              <Label className="text-xs font-medium">Stat Items</Label>
+              {(sections.stats?.items || []).map((item: any, i: number) => (
+                <div key={i} className="grid grid-cols-5 gap-2">
+                  <Input value={item.label} onChange={e => { const items = [...(sections.stats?.items || [])]; items[i] = { ...items[i], label: e.target.value }; updateSection('stats', 'items', items) }} placeholder="Label" />
+                  <Input type="number" value={item.value} onChange={e => { const items = [...(sections.stats?.items || [])]; items[i] = { ...items[i], value: parseInt(e.target.value) || 0 }; updateSection('stats', 'items', items) }} />
+                  <Input value={item.prefix} onChange={e => { const items = [...(sections.stats?.items || [])]; items[i] = { ...items[i], prefix: e.target.value }; updateSection('stats', 'items', items) }} placeholder="$" />
+                  <Input value={item.suffix} onChange={e => { const items = [...(sections.stats?.items || [])]; items[i] = { ...items[i], suffix: e.target.value }; updateSection('stats', 'items', items) }} placeholder="+" />
+                  <Input value={item.color} onChange={e => { const items = [...(sections.stats?.items || [])]; items[i] = { ...items[i], color: e.target.value }; updateSection('stats', 'items', items) }} placeholder="emerald" />
+                </div>
+              ))}
+            </div>
+          </SectionEditor>
+
+          {/* Navbar Editor */}
+          <SectionEditor
+            sectionKey="navbar"
+            data={sections.navbar || {}}
+            saving={saving === 'navbar'}
+            onSave={() => handleSaveSection('navbar')}
+            onToggleVisibility={(v) => updateSection('navbar', 'isVisible', v)}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label className="text-xs">Logo Text</Label><Input value={sections.navbar?.logoText || ''} onChange={e => updateSection('navbar', 'logoText', e.target.value)} /></div>
+                <div className="space-y-2"><Label className="text-xs">Logo Image URL</Label><Input value={sections.navbar?.logoImage || ''} onChange={e => updateSection('navbar', 'logoImage', e.target.value)} placeholder="Upload in Media tab" /></div>
+              </div>
+              <Label className="text-xs font-medium">Navigation Links</Label>
+              {(sections.navbar?.links || []).map((link: any, i: number) => (
+                <div key={i} className="grid grid-cols-2 gap-2">
+                  <Input value={link.label} onChange={e => { const links = [...(sections.navbar?.links || [])]; links[i] = { ...links[i], label: e.target.value }; updateSection('navbar', 'links', links) }} placeholder="Label" />
+                  <Input value={link.href} onChange={e => { const links = [...(sections.navbar?.links || [])]; links[i] = { ...links[i], href: e.target.value }; updateSection('navbar', 'links', links) }} placeholder="URL" />
+                </div>
+              ))}
+              <Button variant="outline" size="sm" onClick={() => updateSection('navbar', 'links', [...(sections.navbar?.links || []), { label: '', href: '' }])}>+ Add Link</Button>
+            </div>
+          </SectionEditor>
+
+          {/* Footer Editor */}
+          <SectionEditor
+            sectionKey="footer"
+            data={sections.footer || {}}
+            saving={saving === 'footer'}
+            onSave={() => handleSaveSection('footer')}
+            onToggleVisibility={(v) => updateSection('footer', 'isVisible', v)}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2"><Label className="text-xs">Company Name</Label><Input value={sections.footer?.companyName || ''} onChange={e => updateSection('footer', 'companyName', e.target.value)} /></div>
+                <div className="space-y-2"><Label className="text-xs">Tagline</Label><Input value={sections.footer?.tagline || ''} onChange={e => updateSection('footer', 'tagline', e.target.value)} /></div>
+                <div className="space-y-2"><Label className="text-xs">Copyright</Label><Input value={sections.footer?.copyright || ''} onChange={e => updateSection('footer', 'copyright', e.target.value)} /></div>
+              </div>
+              <Label className="text-xs font-medium">Footer Links</Label>
+              {(sections.footer?.links || []).map((link: any, i: number) => (
+                <div key={i} className="grid grid-cols-2 gap-2">
+                  <Input value={link.label} onChange={e => { const links = [...(sections.footer?.links || [])]; links[i] = { ...links[i], label: e.target.value }; updateSection('footer', 'links', links) }} />
+                  <Input value={link.url} onChange={e => { const links = [...(sections.footer?.links || [])]; links[i] = { ...links[i], url: e.target.value }; updateSection('footer', 'links', links) }} />
+                </div>
+              ))}
+              <Button variant="outline" size="sm" onClick={() => updateSection('footer', 'links', [...(sections.footer?.links || []), { label: '', url: '' }])}>+ Add Link</Button>
+            </div>
+          </SectionEditor>
+        </TabsContent>
+
+        {/* Media Library Tab */}
+        <TabsContent value="media" className="mt-4">
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2"><Image className="size-4 text-primary" />Media Library ({media.length})</CardTitle>
+                <div>
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleUpload} />
+                  <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
+                    <Upload className="size-3.5" />{uploading ? 'Uploading...' : 'Upload File'}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Upload images and media for use in landing page sections. Max 5MB per file.</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {media.map(item => (
+                  <div key={item.id} className="group relative rounded-lg border border-border/50 overflow-hidden bg-muted/30">
+                    {item.fileType === 'image' ? (
+                      <img src={item.url} alt={item.alt || ''} className="w-full h-24 object-cover" />
+                    ) : (
+                      <div className="w-full h-24 flex items-center justify-center text-2xl">📄</div>
+                    )}
+                    <div className="p-1.5">
+                      <p className="text-[10px] text-muted-foreground truncate">{item.fileName}</p>
+                    </div>
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <Button size="icon" variant="ghost" className="size-7 text-white" onClick={() => { navigator.clipboard.writeText(item.url); toast({ title: 'URL copied!' }) }}>
+                        <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                      </Button>
+                      <Button size="icon" variant="ghost" className="size-7 text-rose-400" onClick={() => handleDeleteMedia(item.id)}>
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {media.length === 0 && (
+                  <div className="col-span-full text-center py-12 text-muted-foreground">
+                    <Image className="size-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No media uploaded yet</p>
+                    <p className="text-xs">Upload images to use in your landing page</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
+
+// Reusable Section Editor wrapper
+function SectionEditor({ sectionKey, data, saving, onSave, onToggleVisibility, children }: {
+  sectionKey: string; data: any; saving: boolean; onSave: () => void; onToggleVisibility: (v: boolean) => void; children: React.ReactNode
+}) {
+  const info = SECTION_LABELS[sectionKey] || { label: sectionKey, description: '' }
+  const isVisible = data.isVisible !== false
+
+  return (
+    <Card className="bg-card/50 border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <GripVertical className="size-4 text-muted-foreground cursor-grab" />
+            <div>
+              <CardTitle className="text-sm">{info.label}</CardTitle>
+              <p className="text-[11px] text-muted-foreground">{info.description}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {isVisible ? <Eye className="size-3.5 text-emerald-400" /> : <EyeOff className="size-3.5 text-muted-foreground" />}
+              <Switch checked={isVisible} onCheckedChange={onToggleVisibility} />
+            </div>
+            <Button size="sm" onClick={onSave} disabled={saving} className="gap-1.5">
+              <Save className="size-3.5" />{saving ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  )
+}

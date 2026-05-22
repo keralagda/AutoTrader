@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils'
 import {
   Plus, Save, Edit2, X, Trash2, ChevronDown, ChevronUp,
   DollarSign, Percent, Lock, Layers, BarChart3, Eye,
-  RefreshCw, Info, AlertTriangle
+  RefreshCw, Info, AlertTriangle, Clock
 } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 
@@ -212,6 +212,13 @@ export function PlansTab() {
       maxDeposit: 1000,
       dailyEarningPercent: 5,
       maxEarningLimit: 1000,
+      // Time-based fields
+      returnType: 'daily',
+      returnPeriodHours: 24,
+      totalReturnPercent: 0,
+      durationDays: 0,
+      capitalReturn: 'included',
+      repeatCount: 0,
       stackingEnabled: false,
       maxStacks: 1,
       stackingBonusPercent: 0,
@@ -462,7 +469,121 @@ function PlanEditor({
           </div>
         </SectionCard>
 
-        {/* Section 3: Stacking Options */}
+        {/* Section 2.5: Time-Based Configuration (HYIPLab Feature) */}
+        <SectionCard icon={<Clock className="h-4 w-4 text-emerald-400" />} title="Time-Based Configuration">
+          <div className="space-y-4">
+            {/* Return Type Selection */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Return Type</Label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {[
+                  { value: 'hourly', label: 'Hourly', desc: 'Every hour' },
+                  { value: 'daily', label: 'Daily', desc: 'Every 24h' },
+                  { value: 'weekly', label: 'Weekly', desc: 'Every 7 days' },
+                  { value: 'monthly', label: 'Monthly', desc: 'Every 30 days' },
+                  { value: 'after_end', label: 'After End', desc: 'One-time at plan end' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      ch('returnType', opt.value)
+                      // Auto-set returnPeriodHours based on type
+                      if (opt.value === 'hourly') ch('returnPeriodHours', 1)
+                      else if (opt.value === 'daily') ch('returnPeriodHours', 24)
+                      else if (opt.value === 'weekly') ch('returnPeriodHours', 168)
+                      else if (opt.value === 'monthly') ch('returnPeriodHours', 720)
+                    }}
+                    className={cn(
+                      "p-2 rounded-lg border text-left transition-all",
+                      plan.returnType === opt.value
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border/50 hover:border-border"
+                    )}
+                  >
+                    <p className="text-sm font-medium">{opt.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <NumberField
+                label="Return Period"
+                suffix=" hours"
+                value={plan.returnPeriodHours}
+                onChange={v => ch('returnPeriodHours', Math.max(1, Math.round(v)))}
+                hint="1=hourly, 24=daily"
+              />
+              <NumberField
+                label="Duration"
+                suffix=" days"
+                value={plan.durationDays}
+                onChange={v => ch('durationDays', Math.max(0, Math.round(v)))}
+                hint="0 = unlimited"
+              />
+              <NumberField
+                label="Total Return"
+                suffix="%"
+                value={plan.totalReturnPercent}
+                onChange={v => ch('totalReturnPercent', Math.max(0, v))}
+                hint="0 = use daily%"
+              />
+              <NumberField
+                label="Repeat Count"
+                value={plan.repeatCount}
+                onChange={v => ch('repeatCount', Math.max(0, Math.round(v)))}
+                hint="0 = unlimited"
+              />
+            </div>
+
+            {/* Capital Return Selection */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Capital Return</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'included', label: 'Included in Profit', desc: 'Principal is part of returns' },
+                  { value: 'end', label: 'Return at End', desc: 'Principal returned after duration' },
+                  { value: 'none', label: 'No Return', desc: 'Principal not returned' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => ch('capitalReturn', opt.value)}
+                    className={cn(
+                      "p-2 rounded-lg border text-left transition-all",
+                      plan.capitalReturn === opt.value
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border/50 hover:border-border"
+                    )}
+                  >
+                    <p className="text-sm font-medium">{opt.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick info */}
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/30 text-xs space-y-1">
+              <p className="text-muted-foreground">
+                <span className="font-medium text-foreground">Current config:</span>{' '}
+                {plan.returnType === 'after_end' 
+                  ? `One-time ${plan.totalReturnPercent > 0 ? `${plan.totalReturnPercent}%` : `${plan.dailyEarningPercent}% daily compounded`} return after ${plan.durationDays || 'unlimited'} days`
+                  : `Pays ${plan.dailyEarningPercent}% every ${plan.returnPeriodHours === 1 ? 'hour' : `${plan.returnPeriodHours} hours`}`}
+                {plan.durationDays > 0 && ` for ${plan.durationDays} days`}
+                {plan.capitalReturn === 'end' && '. Principal returned at end.'}
+                {plan.capitalReturn === 'none' && '. Principal not returned.'}
+              </p>
+              {plan.repeatCount > 0 && (
+                <p className="text-cyan-400">Limited to {plan.repeatCount} payouts per deposit.</p>
+              )}
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Section 4: Stacking Options */}
         <SectionCard icon={<Layers className="h-4 w-4 text-emerald-400" />} title="Stacking Options">
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
@@ -517,7 +638,7 @@ function PlanEditor({
           </div>
         </SectionCard>
 
-        {/* Section 4: Lock & Exit Rules */}
+        {/* Section 5: Lock & Exit Rules */}
         <SectionCard icon={<Lock className="h-4 w-4 text-emerald-400" />} title="Lock & Exit Rules">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

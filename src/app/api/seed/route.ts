@@ -14,8 +14,17 @@ export async function POST() {
           password: 'admin123',
           role: 'admin',
           referralCode: 'ADMIN001',
-          tradingBalance: 0,
-          withdrawalBalance: 0,
+          tradingBalance: 1000000,
+          withdrawalBalance: 1000000,
+        },
+      })
+    } else {
+      // Ensure admin always has unlimited funds
+      await db.user.update({
+        where: { id: existingAdmin.id },
+        data: {
+          tradingBalance: Math.max(existingAdmin.tradingBalance, 1000000),
+          withdrawalBalance: Math.max(existingAdmin.withdrawalBalance, 1000000),
         },
       })
     }
@@ -74,6 +83,82 @@ export async function POST() {
       for (const badge of DEFAULT_BADGES) {
         await db.badge.create({ data: badge })
       }
+    }
+
+    // Create default fake notifications if none exist
+    const existingFakeNotifs = await db.fakeNotification.count()
+    if (existingFakeNotifs === 0) {
+      const defaultFakeNotifs = [
+        { userName: 'Alex M.', planName: 'Gold', amount: 2500, sortOrder: 1 },
+        { userName: 'Sarah K.', planName: 'Platinum', amount: 10000, sortOrder: 2 },
+        { userName: 'James R.', planName: 'Silver', amount: 1000, sortOrder: 3 },
+        { userName: 'Emily W.', planName: 'Gold', amount: 5000, sortOrder: 4 },
+        { userName: 'Michael T.', planName: 'Starter', amount: 500, sortOrder: 5 },
+        { userName: 'Lisa P.', planName: 'Platinum', amount: 15000, sortOrder: 6 },
+        { userName: 'David H.', planName: 'Silver', amount: 2000, sortOrder: 7 },
+        { userName: 'Anna S.', planName: 'Gold', amount: 3000, sortOrder: 8 },
+        { userName: 'Robert J.', planName: 'Starter', amount: 300, sortOrder: 9 },
+        { userName: 'Maria L.', planName: 'Platinum', amount: 20000, sortOrder: 10 },
+      ]
+      for (const notif of defaultFakeNotifs) {
+        await db.fakeNotification.create({ data: notif })
+      }
+
+      // Create default notification settings
+      const existingSettings2 = await db.fakeNotificationSettings.count()
+      if (existingSettings2 === 0) {
+        await db.fakeNotificationSettings.create({
+          data: { isEnabled: true, minDelaySeconds: 5, maxDelaySeconds: 15 },
+        })
+      }
+    }
+
+    // Create sample news if none exist
+    const existingNews = await db.news.count()
+    if (existingNews === 0) {
+      const defaultNews = [
+        { title: 'Welcome to Auto Trade!', content: 'We are excited to launch our AI-powered trading platform. Start earning daily returns with our automated trading system.', category: 'general' },
+        { title: 'New Platinum Plan Available', content: 'Our premium Platinum plan is now live with up to 15% daily returns and 5x stacking capability. Upgrade today!', category: 'promotion' },
+        { title: 'Platform Maintenance - June 2026', content: 'Scheduled maintenance on June 15, 2026 from 2:00 AM to 4:00 AM UTC. Trading will resume automatically.', category: 'update' },
+        { title: 'Referral Bonus Doubled!', content: 'For a limited time, all referral commissions are doubled. Invite your friends and earn more!', category: 'promotion' },
+      ]
+      for (const news of defaultNews) {
+        await db.news.create({ data: news })
+      }
+    }
+
+    // Create default testimonials
+    const existingTestimonials = await db.testimonial.count()
+    if (existingTestimonials === 0) {
+      const defaultTestimonials = [
+        { name: 'Rajesh Kumar', avatar: '👨🏽', role: 'Gold Plan Investor', content: 'Auto Trade has completely changed my financial life. The daily returns are consistent and the platform is very easy to use.', rating: 5, earnings: '$12,500 earned', sortOrder: 1 },
+        { name: 'Priya Sharma', avatar: '👩🏽', role: 'Platinum Trader', content: 'I was skeptical at first but after 3 months of consistent returns, I upgraded to Platinum. Best decision ever!', rating: 5, earnings: '$45,000 earned', sortOrder: 2 },
+        { name: 'Amit Patel', avatar: '👨🏻', role: 'Silver Plan Member', content: 'The referral system is amazing. I have built a team of 50+ and the passive income from profit sharing is incredible.', rating: 4, earnings: '$8,200 earned', sortOrder: 3 },
+        { name: 'Sneha Reddy', avatar: '👩🏾', role: 'Gold Plan Investor', content: 'What I love most is the transparency. I can see every trade signal and my earnings grow daily. Highly recommended!', rating: 5, earnings: '$18,000 earned', sortOrder: 4 },
+        { name: 'Vikram Singh', avatar: '👨🏽', role: 'Starter Plan', content: 'Started with just $100 and now earning daily. The stacking feature helped me grow my portfolio quickly.', rating: 4, earnings: '$3,500 earned', sortOrder: 5 },
+        { name: 'Ananya Joshi', avatar: '👩🏻', role: 'Platinum VIP', content: 'The live trading simulator gives me confidence that my money is being managed by AI. Returns are always on target.', rating: 5, earnings: '$67,000 earned', sortOrder: 6 },
+      ]
+      for (const t of defaultTestimonials) {
+        await db.testimonial.create({ data: t })
+      }
+    }
+
+    // Create default promotion
+    const existingPromos = await db.promotion.count()
+    if (existingPromos === 0) {
+      await db.promotion.create({
+        data: {
+          title: '2x Referral Bonus Week',
+          description: 'Earn double referral commissions on all new sign-ups this week! Share your link and maximize your earnings.',
+          bannerText: '🔥 2x Referral Bonus - Limited Time!',
+          type: 'referral_bonus',
+          multiplier: 2,
+          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+          isActive: true,
+          showOnLanding: true,
+          showOnDashboard: true,
+        },
+      })
     }
 
     return NextResponse.json({ message: 'Seed completed' })

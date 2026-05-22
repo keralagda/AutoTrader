@@ -12,6 +12,7 @@ model User {
   email            String    @unique
   name             String
   password         String
+  phone            String?
   walletAddress    String?
   role             String    @default("user") // "user" or "admin"
   referralCode     String    @unique
@@ -23,6 +24,11 @@ model User {
   totalEarnings    Float     @default(0)
   totalDeposited   Float     @default(0)
   isActive         Boolean   @default(true)
+  isFake           Boolean   @default(false)
+  fakeAvatar       String?
+  kycStatus        String    @default("none") // "none", "pending", "approved", "rejected"
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean   @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -35,41 +41,57 @@ model User {
   userStats           UserStats?
   userBadges          UserBadge[]
   dailyCheckIns       DailyCheckIn[]
+  messages            Message[]
+  kycVerification     KycVerification?
+  supportTickets      SupportTicket[]
+  notifications       Notification[]
+  p2pSent             P2PTransfer[]    @relation("P2PSent")
+  p2pReceived         P2PTransfer[]    @relation("P2PReceived")
+  loginHistory        LoginHistory[]
+  transactionLogs     TransactionLog[]
 }
 
 model Plan {
   id                    String   @id @default(cuid())
   name                  String
-  description           String?  // Plain English description of the plan
+  description           String?
   entryFee              Float
   minDeposit            Float
   maxDeposit            Float
   dailyEarningPercent   Float
   maxEarningLimit       Float
 
+  // Time-based Plan Configuration
+  returnType            String   @default("daily") // "hourly", "daily", "weekly", "monthly", "after_end"
+  returnPeriodHours     Int      @default(24)      // How often profit is credited (1=hourly, 24=daily, 168=weekly)
+  totalReturnPercent    Float    @default(0)       // Total % return over plan lifetime (0 = use dailyEarningPercent * duration)
+  durationDays          Int      @default(0)       // Plan duration in days (0 = unlimited until maxEarningLimit)
+  capitalReturn         String   @default("included") // "included" (principal in profit), "end" (return at end), "none" (no return)
+  repeatCount           Int      @default(0)       // Number of profit payouts (0 = unlimited until max)
+
   // Advanced Plan Builder Fields
-  stackingEnabled       Boolean  @default(false) // Allow stacking multiple deposits in this plan
-  maxStacks             Int      @default(1)     // Max simultaneous deposits allowed per user
-  stackingBonusPercent  Float    @default(0)     // Bonus % for each additional stack
-  lockPeriodDays        Int      @default(0)     // Lock-in period in days (0 = no lock)
-  autoCompound          Boolean  @default(false) // Auto-reinvest earnings into trading balance
-  earlyExitPenalty      Float    @default(0)     // Penalty % for early withdrawal (0 = no penalty)
+  stackingEnabled       Boolean  @default(false)
+  maxStacks             Int      @default(1)
+  stackingBonusPercent  Float    @default(0)
+  lockPeriodDays        Int      @default(0)
+  autoCompound          Boolean  @default(false)
+  earlyExitPenalty      Float    @default(0)
 
-  // Distribution Rules (plain English mechanism stored as structured fields)
-  accountHolderPercent  Float    @default(50)    // % going to account holder
-  tradeProfitSharePercent Float  @default(30)    // % going to trade profit share pool
-  rewardsOffersPercent  Float    @default(15)    // % going to rewards & offers
-  platformFeePercent    Float    @default(5)     // % platform fee
+  // Distribution Rules
+  accountHolderPercent  Float    @default(50)
+  tradeProfitSharePercent Float  @default(30)
+  rewardsOffersPercent  Float    @default(15)
+  platformFeePercent    Float    @default(5)
 
-  // Referral earning from subscription fee
-  subscriptionReferralPercent Float @default(80) // % of entry fee going to referral/profit share
-  subscriptionRewardsPercent  Float @default(15) // % of entry fee going to rewards & offers
-  subscriptionPlatformPercent Float @default(5)  // % of entry fee going to platform
+  // Subscription Distribution
+  subscriptionReferralPercent Float @default(80)
+  subscriptionRewardsPercent  Float @default(15)
+  subscriptionPlatformPercent Float @default(5)
 
-  // Plan Logic Description (plain English)
-  earningMechanism      String?  // e.g. "Daily earnings calculated at X% of deposit amount, capped at Y times deposit"
-  withdrawalRule        String?  // e.g. "Earnings can be withdrawn anytime, principal locked for Z days"
-  stackingRule          String?  // e.g. "Users can stack up to N deposits, each stack earns bonus B%"
+  // Plan Logic Description
+  earningMechanism      String?
+  withdrawalRule        String?
+  stackingRule          String?
 
   isActive              Boolean  @default(true)
   sortOrder             Int      @default(0)
@@ -84,10 +106,16 @@ model Deposit {
   userId        String
   planId        String
   amount        Float
-  status        String   @default("active") // "active", "completed", "cancelled", "locked"
+  status        String   @default("active") // "active", "completed", "cancelled", "locked", "ended"
   earnedSoFar   Float    @default(0)
-  stackIndex    Int      @default(1) // Which stack this deposit belongs to (1 = first, 2 = second, etc.)
-  lockedUntil   DateTime? // If plan has lockPeriodDays, this is the unlock date
+  stackIndex    Int      @default(1)
+  lockedUntil   DateTime?
+  nextProfitAt  DateTime? // When the next scheduled profit will be credited
+  profitCount   Int      @default(0) // How many times profit has been paid out
+  capitalReturned Boolean @default(false) // Whether principal has been returned
+  endsAt        DateTime? // When this deposit's plan duration expires
+  lastProfitAt  DateTime? // When profit was last credited
+  isReinvested  Boolean  @default(false) // Whether this was created via reinvest
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -95,6 +123,24 @@ model Deposit {
   plan              Plan                @relation(fields: [planId], references: [id])
   earnings          Earning[]
   profitDistributions ProfitDistribution[]
+}
+
+// ─── Transaction Log (Complete Ledger) ─────────────────────────────
+
+model TransactionLog {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // "deposit", "withdrawal", "investment", "profit", "referral", "transfer", "reinvest", "capital_return", "fee", "bonus"
+  amount      Float
+  balanceBefore Float  @default(0)
+  balanceAfter  Float  @default(0)
+  wallet      String   @default("trading") // "trading" or "withdrawal"
+  description String?
+  referenceId String?  // ID of related deposit/withdrawal/earning
+  status      String   @default("completed") // "completed", "pending", "failed"
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Earning {
@@ -287,4 +333,212 @@ model PaymentGateway {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// ─── Message Centre ────────────────────────────────────────────────
+
+model Message {
+  id          String   @id @default(cuid())
+  userId      String
+  subject     String
+  body        String
+  type        String   @default("email") // "email", "notification", "system"
+  direction   String   @default("received") // "sent", "received"
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─── News ──────────────────────────────────────────────────────────
+
+model News {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  category    String   @default("general") // "general", "update", "promotion", "alert"
+  isPublished Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Fake Notification Toast (Admin-managed) ───────────────────────
+
+model FakeNotification {
+  id          String   @id @default(cuid())
+  userName    String   // Fake user name
+  planName    String   // Plan they "joined"
+  amount      Float    @default(0) // Amount invested
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+// ─── Fake Notification Settings ────────────────────────────────────
+
+model FakeNotificationSettings {
+  id              String  @id @default(cuid())
+  isEnabled       Boolean @default(true)
+  minDelaySeconds Int     @default(5)
+  maxDelaySeconds Int     @default(15)
+}
+
+// ─── KYC Verification ──────────────────────────────────────────────
+
+model KycVerification {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  documentType  String   // "aadhaar", "pan", "passport", "driving_license"
+  documentNumber String?
+  documentUrl   String?  // File path/URL
+  selfieUrl     String?
+  status        String   @default("pending") // "pending", "approved", "rejected"
+  rejectionReason String?
+  submittedAt   DateTime @default(now())
+  reviewedAt    DateTime?
+  reviewedBy    String?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─── Support Tickets ───────────────────────────────────────────────
+
+model SupportTicket {
+  id          String   @id @default(cuid())
+  userId      String
+  subject     String
+  description String
+  category    String   @default("general") // "general", "withdrawal", "deposit", "technical", "account"
+  priority    String   @default("medium") // "low", "medium", "high", "urgent"
+  status      String   @default("open") // "open", "in_progress", "resolved", "closed"
+  assignedTo  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id])
+  replies TicketReply[]
+}
+
+model TicketReply {
+  id        String   @id @default(cuid())
+  ticketId  String
+  userId    String   // Who replied (user or admin)
+  message   String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id])
+}
+
+// ─── Notifications (In-App) ───────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info") // "info", "success", "warning", "earning", "withdrawal", "referral"
+  isRead    Boolean  @default(false)
+  link      String?  // Optional link to navigate to
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─── P2P Transfers ─────────────────────────────────────────────────
+
+model P2PTransfer {
+  id           String   @id @default(cuid())
+  senderId     String
+  receiverId   String
+  amount       Float
+  note         String?
+  status       String   @default("completed") // "completed", "reversed"
+  createdAt    DateTime @default(now())
+
+  sender   User @relation("P2PSent", fields: [senderId], references: [id])
+  receiver User @relation("P2PReceived", fields: [receiverId], references: [id])
+}
+
+// ─── Login History ─────────────────────────────────────────────────
+
+model LoginHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  ipAddress String?
+  userAgent String?
+  device    String?  // "desktop", "mobile", "tablet"
+  location  String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─── Activity Log (Admin Audit) ────────────────────────────────────
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?  // Who performed the action
+  action    String   // "withdrawal_approved", "profit_added", "user_banned", etc.
+  details   String?  // JSON details
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+// ─── Testimonials (Landing Page) ───────────────────────────────────
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  avatar    String?  // Emoji or URL
+  role      String?  // "Trader", "Investor", etc.
+  content   String
+  rating    Int      @default(5) // 1-5 stars
+  earnings  String?  // "$5,000 earned" display text
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// ─── Promotions / Countdown Timers ─────────────────────────────────
+
+model Promotion {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  bannerText  String?  // Short text for banner display
+  type        String   @default("general") // "general", "referral_bonus", "deposit_bonus", "limited_time"
+  multiplier  Float    @default(1) // e.g., 2 for "2x referral bonus"
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  showOnLanding Boolean @default(true)
+  showOnDashboard Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Landing Page CMS ──────────────────────────────────────────────
+
+model LandingSection {
+  id          String   @id @default(cuid())
+  sectionKey  String   @unique // "hero", "stats", "plans", "calculator", "distribution", "referral", "testimonials", "footer"
+  title       String?
+  subtitle    String?
+  content     String?  // JSON blob for complex content
+  isVisible   Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+model MediaUpload {
+  id          String   @id @default(cuid())
+  fileName    String
+  fileType    String   // "image", "video", "document"
+  fileSize    Int      @default(0)
+  url         String   // Stored path or base64 data URL
+  alt         String?
+  uploadedBy  String?
+  createdAt   DateTime @default(now())
 }

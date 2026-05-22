@@ -39,8 +39,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Withdrawals come from the withdrawal wallet
-    if (amount > user.withdrawalBalance) {
+    // Admin has unlimited funds - skip balance check
+    if (user.role !== 'admin' && amount > user.withdrawalBalance) {
       return NextResponse.json({
         error: `Insufficient withdrawal balance. You have $${user.withdrawalBalance.toFixed(2)} available. Transfer funds from your Trading Wallet first.`
       }, { status: 400 })

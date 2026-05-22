@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 
 export type AppView = 'landing' | 'dashboard' | 'admin'
-export type DashboardTab = 'earnings' | 'withdraw' | 'leaderboard' | 'challenges' | 'wallets'
-export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges'
+export type DashboardTab = 'overview' | 'profile' | 'earnings' | 'investment' | 'deposit' | 'withdraw' | 'team' | 'challenges' | 'leaderboard' | 'messages' | 'news' | 'transactions'
+export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits'
 
 interface AppState {
   // Navigation
@@ -27,12 +27,14 @@ interface AppState {
   setShowAuthModal: (show: boolean) => void
   setAuthMode: (mode: 'login' | 'register') => void
   updateUserWallets: (tradingBalance: number, withdrawalBalance: number) => void
+  updateUserProfile: (data: Partial<UserData>) => void
 }
 
 export interface UserData {
   id: string
   email: string
   name: string
+  phone?: string
   role: string
   referralCode: string
   walletAddress?: string
@@ -40,11 +42,13 @@ export interface UserData {
   withdrawalBalance: number
   totalEarnings: number
   totalDeposited: number
+  planName?: string
+  planCategory?: string
 }
 
 export const useAppStore = create<AppState>((set) => ({
   currentView: 'landing',
-  dashboardTab: 'earnings',
+  dashboardTab: 'overview',
   adminTab: 'plans',
   isAuthenticated: false,
   user: null,
@@ -69,5 +73,8 @@ export const useAppStore = create<AppState>((set) => ({
   setAuthMode: (mode) => set({ authMode: mode }),
   updateUserWallets: (tradingBalance, withdrawalBalance) => set((state) => ({
     user: state.user ? { ...state.user, tradingBalance, withdrawalBalance } : null,
+  })),
+  updateUserProfile: (data) => set((state) => ({
+    user: state.user ? { ...state.user, ...data } : null,
   })),
 }))

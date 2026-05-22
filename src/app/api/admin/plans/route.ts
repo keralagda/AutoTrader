@@ -19,7 +19,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 })
     }
 
-    const updateData: Record<string, unknown> = { ...data }
+    const updateData: any = { ...data }
 
     // Auto-generate plain English descriptions only if not explicitly provided
     if (data.earningMechanism === undefined && (data.dailyEarningPercent !== undefined || data.maxEarningLimit !== undefined || data.autoCompound !== undefined)) {
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   try {
     const data = await request.json()
 
-    const createData: Record<string, unknown> = { ...data }
+    const createData: any = { ...data }
 
     // Auto-generate plain English descriptions as fallback
     const daily = data.dailyEarningPercent ?? 0

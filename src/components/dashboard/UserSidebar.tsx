@@ -14,16 +14,25 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { NotificationCenter } from './NotificationCenter'
 import {
+  LayoutDashboard,
+  User,
   TrendingUp,
   Wallet,
+  Users,
   Trophy,
   Target,
+  MessageSquare,
+  Newspaper,
   LogOut,
   Copy,
   Check,
   Menu,
-  ArrowRightLeft,
+  PiggyBank,
+  CreditCard,
+  ScrollText,
+  Bell,
 } from 'lucide-react'
 
 interface NavItem {
@@ -34,10 +43,18 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'profile', label: 'Profile', icon: User },
   { id: 'earnings', label: 'My Earnings', icon: TrendingUp },
-  { id: 'withdraw', label: 'Withdraw Funds', icon: Wallet },
+  { id: 'investment', label: 'Investment', icon: PiggyBank },
+  { id: 'deposit', label: 'Deposit', icon: CreditCard },
+  { id: 'withdraw', label: 'Withdrawal', icon: Wallet },
+  { id: 'team', label: 'Team', icon: Users },
+  { id: 'challenges', label: 'Competition', icon: Target },
   { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-  { id: 'challenges', label: 'Challenges & Rewards', icon: Target },
+  { id: 'messages', label: 'Message Centre', icon: MessageSquare },
+  { id: 'transactions', label: 'Transactions', icon: ScrollText },
+  { id: 'news', label: 'News', icon: Newspaper },
 ]
 
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
@@ -83,11 +100,11 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
             <p className="text-sm font-semibold truncate">{user?.name || 'User'}</p>
             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           </div>
+          <NotificationCenter />
         </div>
 
         {/* Dual Wallet Display */}
         <div className="space-y-2">
-          {/* Trading Wallet */}
           <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <TrendingUp className="size-3.5 text-emerald-400" />
@@ -101,7 +118,6 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
             </div>
           </div>
 
-          {/* Withdrawal Wallet */}
           <div className="rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Wallet className="size-3.5 text-cyan-400" />

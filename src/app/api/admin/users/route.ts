@@ -15,6 +15,7 @@ export async function GET() {
         totalEarnings: true,
         totalDeposited: true,
         isActive: true,
+        isFake: true,
         createdAt: true,
         referredById: true,
         _count: {

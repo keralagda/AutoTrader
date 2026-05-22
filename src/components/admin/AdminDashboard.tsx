@@ -10,6 +10,21 @@ import { WithdrawalsTab } from './WithdrawalsTab'
 import { SettingsTab } from './SettingsTab'
 import { PaymentGatewaysTab } from './PaymentGatewaysTab'
 import { AdminChallengesTab } from './AdminChallengesTab'
+import { AdminMessagesTab } from './AdminMessagesTab'
+import { AdminNewsTab } from './AdminNewsTab'
+import { AdminFakeNotificationsTab } from './AdminFakeNotificationsTab'
+import { AdminFakeProfilesTab } from './AdminFakeProfilesTab'
+import { AdminTradingConfigTab } from './AdminTradingConfigTab'
+import { AdminKycTab } from './AdminKycTab'
+import { AdminTicketsTab } from './AdminTicketsTab'
+import { AdminActivityLogTab } from './AdminActivityLogTab'
+import { AdminTestimonialsTab } from './AdminTestimonialsTab'
+import { AdminPromotionsTab } from './AdminPromotionsTab'
+import { AdminLandingEditorTab } from './AdminLandingEditorTab'
+import { AdminCronTab } from './AdminCronTab'
+import { AdminDepositsTab } from './AdminDepositsTab'
+import { AdminAnalyticsTab } from './AdminAnalyticsTab'
+import { AdminWithdrawalLimitsTab } from './AdminWithdrawalLimitsTab'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -67,11 +82,26 @@ export function AdminDashboard() {
     switch (adminTab) {
       case 'plans': return <PlansTab />
       case 'profits': return <ProfitsTab />
+      case 'cron': return <AdminCronTab />
+      case 'deposits': return <AdminDepositsTab />
       case 'challenges': return <AdminChallengesTab />
       case 'users': return <UsersTab />
+      case 'kyc': return <AdminKycTab />
       case 'withdrawals': return <WithdrawalsTab />
       case 'payments': return <PaymentGatewaysTab />
+      case 'tickets': return <AdminTicketsTab />
+      case 'messages': return <AdminMessagesTab />
+      case 'news': return <AdminNewsTab />
+      case 'notifications': return <AdminFakeNotificationsTab />
+      case 'fakeProfiles': return <AdminFakeProfilesTab />
+      case 'tradingConfig': return <AdminTradingConfigTab />
+      case 'testimonials': return <AdminTestimonialsTab />
+      case 'promotions': return <AdminPromotionsTab />
+      case 'landingEditor': return <AdminLandingEditorTab />
+      case 'activityLog': return <AdminActivityLogTab />
       case 'settings': return <SettingsTab />
+      case 'analytics': return <AdminAnalyticsTab />
+      case 'withdrawalLimits': return <AdminWithdrawalLimitsTab />
       default: return <PlansTab />
     }
   }

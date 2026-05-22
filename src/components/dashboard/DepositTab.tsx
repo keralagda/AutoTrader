@@ -1,0 +1,337 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useAppStore } from '@/lib/store'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useToast } from '@/hooks/use-toast'
+import {
+  CreditCard,
+  DollarSign,
+  Wallet,
+  Bitcoin,
+  Landmark,
+  Loader2,
+  CheckCircle2,
+  Copy,
+  Check,
+} from 'lucide-react'
+import type { PaymentGatewayType } from '@/lib/types'
+
+interface DepositRecord {
+  id: string
+  amount: number
+  method: string
+  status: string
+  createdAt: string
+}
+
+export function DepositTab() {
+  const { user, updateUserWallets } = useAppStore()
+  const { toast } = useToast()
+  const [amount, setAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('crypto_usdc')
+  const [gateways, setGateways] = useState<PaymentGatewayType[]>([])
+  const [deposits, setDeposits] = useState<DepositRecord[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const parsedAmount = parseFloat(amount) || 0
+  const tradingBalance = user?.tradingBalance || 0
+  const withdrawalBalance = user?.withdrawalBalance || 0
+
+  const fetchGateways = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/payment-gateways')
+      if (res.ok) {
+        const data = await res.json()
+        setGateways(data.filter((g: PaymentGatewayType) => g.isActive))
+      }
+    } catch {}
+  }, [])
+
+  const fetchDeposits = useCallback(async () => {
+    if (!user?.id) return
+    try {
+      const res = await fetch(`/api/deposits/fund?userId=${user.id}`)
+      if (res.ok) {
+        setDeposits(await res.json())
+      }
+    } catch {}
+  }, [user?.id])
+
+  useEffect(() => {
+    fetchGateways()
+    fetchDeposits()
+  }, [fetchGateways, fetchDeposits])
+
+  const selectedGateway = gateways.find(g => {
+    const gwKey = g.type === 'crypto' ? `crypto_${g.network || 'usdc'}` : g.name.toLowerCase().replace(/\s+/g, '_')
+    return gwKey === paymentMethod
+  })
+
+  const handleDeposit = async () => {
+    if (!user?.id || parsedAmount <= 0) return
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/deposits/fund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          amount: parsedAmount,
+          method: paymentMethod,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        updateUserWallets(data.tradingBalance, data.withdrawalBalance)
+        setSuccess(true)
+        setAmount('')
+        toast({ title: 'Deposit Successful!', description: `$${parsedAmount.toFixed(2)} added to your Trading Wallet` })
+        fetchDeposits()
+        setTimeout(() => setSuccess(false), 3000)
+      } else {
+        const data = await res.json()
+        toast({ title: 'Deposit Failed', description: data.error, variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleCopyAddress = async () => {
+    if (selectedGateway?.address) {
+      await navigator.clipboard.writeText(selectedGateway.address)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div>
+        <h2 className="text-xl font-bold">Deposit Funds</h2>
+        <p className="text-sm text-muted-foreground">Add funds to your Trading Wallet</p>
+      </div>
+
+      {/* Wallet Balances */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-card">
+          <CardContent className="p-5 text-center">
+            <div className="flex items-center justify-center gap-1.5 mb-2">
+              <Wallet className="size-4 text-emerald-400" />
+              <p className="text-xs text-emerald-400 font-medium">Trading Wallet</p>
+            </div>
+            <span className="text-3xl font-bold text-emerald-400">${tradingBalance.toFixed(2)}</span>
+            <p className="text-xs text-muted-foreground mt-1">Used for plan investments</p>
+          </CardContent>
+        </Card>
+        <Card className="border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-card">
+          <CardContent className="p-5 text-center">
+            <div className="flex items-center justify-center gap-1.5 mb-2">
+              <Wallet className="size-4 text-cyan-400" />
+              <p className="text-xs text-cyan-400 font-medium">Withdrawal Wallet</p>
+            </div>
+            <span className="text-3xl font-bold text-cyan-400">${withdrawalBalance.toFixed(2)}</span>
+            <p className="text-xs text-muted-foreground mt-1">Available for withdrawal</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Deposit Form */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CreditCard className="size-4 text-primary" />
+            Add Funds
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Payment Method */}
+          <div className="space-y-2">
+            <Label>Payment Method</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {gateways.length > 0 ? gateways.map(gw => {
+                const gwKey = gw.type === 'crypto' ? `crypto_${gw.network || 'usdc'}` : gw.name.toLowerCase().replace(/\s+/g, '_')
+                return (
+                  <button
+                    key={gw.id}
+                    onClick={() => setPaymentMethod(gwKey)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${
+                      paymentMethod === gwKey
+                        ? gw.type === 'crypto'
+                          ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                          : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
+                        : 'border-border/50 text-muted-foreground hover:border-border'
+                    }`}
+                  >
+                    {gw.type === 'crypto' ? <Bitcoin className="size-4" /> : <Landmark className="size-4" />}
+                    <span className="truncate">{gw.name}</span>
+                  </button>
+                )
+              }) : (
+                <>
+                  <button
+                    onClick={() => setPaymentMethod('crypto_usdc')}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'crypto_usdc' ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}
+                  >
+                    <Bitcoin className="size-4" /> USDC (Polygon)
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod('upi')}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'upi' ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400' : 'border-border/50 text-muted-foreground'}`}
+                  >
+                    <Landmark className="size-4" /> UPI
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Gateway Address (if crypto) */}
+          {selectedGateway?.address && (
+            <div className="rounded-lg bg-muted/50 border border-border/50 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground">Send funds to this address:</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs font-mono bg-background/50 rounded px-2 py-1.5 truncate">
+                  {selectedGateway.address}
+                </code>
+                <Button variant="outline" size="icon" className="shrink-0 size-8" onClick={handleCopyAddress}>
+                  {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
+                </Button>
+              </div>
+              {selectedGateway.network && (
+                <p className="text-[10px] text-amber-400">Network: {selectedGateway.network.toUpperCase()}</p>
+              )}
+            </div>
+          )}
+
+          {/* Amount */}
+          <div className="space-y-2">
+            <Label>Amount</Label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                className="pl-9"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div className="flex gap-2">
+              {[50, 100, 500, 1000].map(val => (
+                <Button
+                  key={val}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs"
+                  onClick={() => setAmount(val.toString())}
+                >
+                  ${val}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Summary */}
+          {parsedAmount > 0 && (
+            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">You deposit</span>
+                <span className="font-bold text-emerald-400">${parsedAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-muted-foreground">Goes to</span>
+                <span className="text-emerald-400">Trading Wallet</span>
+              </div>
+            </div>
+          )}
+
+          {/* Submit */}
+          <Button
+            className="w-full"
+            onClick={handleDeposit}
+            disabled={submitting || parsedAmount <= 0}
+          >
+            {submitting ? (
+              <><Loader2 className="size-4 animate-spin mr-2" /> Processing...</>
+            ) : success ? (
+              <><CheckCircle2 className="size-4 mr-2" /> Deposited!</>
+            ) : (
+              'Confirm Deposit'
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Deposit History */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Deposit History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {deposits.length > 0 ? (
+            <ScrollArea className="max-h-64">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deposits.map(d => (
+                    <TableRow key={d.id}>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(d.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="font-medium">${d.amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px]">{d.method}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`text-[10px] ${
+                          d.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' :
+                          d.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                          'bg-rose-500/20 text-rose-400'
+                        }`}>
+                          {d.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          ) : (
+            <p className="text-center text-muted-foreground text-sm py-6">No deposits yet</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

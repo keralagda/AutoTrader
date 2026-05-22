@@ -41,9 +41,13 @@ export async function POST(request: Request) {
     }
 
     if (amount < plan.minDeposit || amount > plan.maxDeposit) {
-      return NextResponse.json({
-        error: `Deposit must be between $${plan.minDeposit} and $${plan.maxDeposit}`
-      }, { status: 400 })
+      // Admin bypasses deposit limits
+      const userCheck = await db.user.findUnique({ where: { id: userId }, select: { role: true } })
+      if (userCheck?.role !== 'admin') {
+        return NextResponse.json({
+          error: `Deposit must be between $${plan.minDeposit} and $${plan.maxDeposit}`
+        }, { status: 400 })
+      }
     }
 
     const user = await db.user.findUnique({ where: { id: userId } })
@@ -51,24 +55,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Check stacking limits
-    if (plan.stackingEnabled) {
-      const existingDeposits = await db.deposit.count({
-        where: { userId, planId, status: 'active' },
-      })
-      if (existingDeposits >= plan.maxStacks) {
-        return NextResponse.json({
-          error: `Maximum ${plan.maxStacks} active deposits allowed for ${plan.name} plan`
-        }, { status: 400 })
-      }
-    } else {
-      const existingDeposit = await db.deposit.findFirst({
-        where: { userId, planId, status: 'active' },
-      })
-      if (existingDeposit) {
-        return NextResponse.json({
-          error: `You already have an active deposit in the ${plan.name} plan. Stacking is not enabled.`
-        }, { status: 400 })
+    const isAdmin = user.role === 'admin'
+
+    // Check stacking limits (skip for admin)
+    if (!isAdmin) {
+      if (plan.stackingEnabled) {
+        const existingDeposits = await db.deposit.count({
+          where: { userId, planId, status: 'active' },
+        })
+        if (existingDeposits >= plan.maxStacks) {
+          return NextResponse.json({
+            error: `Maximum ${plan.maxStacks} active deposits allowed for ${plan.name} plan`
+          }, { status: 400 })
+        }
+      } else {
+        const existingDeposit = await db.deposit.findFirst({
+          where: { userId, planId, status: 'active' },
+        })
+        if (existingDeposit) {
+          return NextResponse.json({
+            error: `You already have an active deposit in the ${plan.name} plan. Stacking is not enabled.`
+          }, { status: 400 })
+        }
       }
     }
 
@@ -89,6 +97,20 @@ export async function POST(request: Request) {
       ? new Date(Date.now() + plan.lockPeriodDays * 24 * 60 * 60 * 1000)
       : null
 
+    // Calculate plan end date and next profit time
+    const now = new Date()
+    const endsAt = plan.durationDays > 0
+      ? new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000)
+      : null
+    const nextProfitAt = new Date(now.getTime() + plan.returnPeriodHours * 60 * 60 * 1000)
+
+    // Check if user has enough balance in trading wallet (skip for admin)
+    if (!isAdmin && amount > user.tradingBalance) {
+      return NextResponse.json({
+        error: `Insufficient trading wallet balance. You have $${user.tradingBalance.toFixed(2)}. Deposit funds first.`
+      }, { status: 400 })
+    }
+
     // Create deposit
     const deposit = await db.deposit.create({
       data: {
@@ -99,13 +121,29 @@ export async function POST(request: Request) {
         earnedSoFar: 0,
         stackIndex,
         lockedUntil,
+        endsAt,
+        nextProfitAt,
       },
     })
 
-    // Update user total deposited
+    // Deduct from trading wallet and update total deposited
+    const newBalance = isAdmin ? user.tradingBalance : user.tradingBalance - amount
     await db.user.update({
       where: { id: userId },
-      data: { totalDeposited: user.totalDeposited + amount },
+      data: {
+        totalDeposited: user.totalDeposited + amount,
+        tradingBalance: newBalance,
+      },
+    })
+
+    // Transaction log
+    await db.transactionLog.create({
+      data: {
+        userId, type: 'investment', amount: -amount,
+        balanceBefore: user.tradingBalance, balanceAfter: newBalance,
+        wallet: 'trading', description: `Invested $${amount} in ${plan.name} plan`,
+        referenceId: deposit.id,
+      },
     })
 
     // Create payment record

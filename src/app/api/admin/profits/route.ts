@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const results = []
+    const results: any[] = []
 
     for (const deposit of deposits) {
       const absAmount = Math.abs(amount)

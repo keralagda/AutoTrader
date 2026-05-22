@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (amount > user.tradingBalance) {
+    if (user.role !== 'admin' && amount > user.tradingBalance) {
       return NextResponse.json({ error: 'Insufficient trading balance' }, { status: 400 })
     }
 

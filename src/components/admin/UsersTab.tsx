@@ -133,7 +133,7 @@ export function UsersTab() {
       const earnings = earningsData.earnings || []
 
       // Find referrer
-      let referredBy = null
+      let referredBy: { id: string; name: string; email: string } | null = null
       if (user.referredById) {
         const referrer = users.find(u => u.id === user.referredById)
         if (referrer) {

@@ -17,7 +17,7 @@ export async function PUT(request: Request) {
   try {
     const settings = await request.json() as Record<string, string>
 
-    const results = []
+    const results: any[] = []
     for (const [key, value] of Object.entries(settings)) {
       const result = await db.setting.upsert({
         where: { key },

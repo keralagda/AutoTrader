@@ -15,6 +15,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
+    // Check if 2FA is enabled
+    if (user.twoFactorEnabled) {
+      return NextResponse.json({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        referralCode: user.referralCode,
+        walletAddress: user.walletAddress,
+        tradingBalance: user.tradingBalance,
+        withdrawalBalance: user.withdrawalBalance,
+        totalEarnings: user.totalEarnings,
+        totalDeposited: user.totalDeposited,
+        requires2FA: true,
+      })
+    }
+
     return NextResponse.json({
       id: user.id,
       email: user.email,
