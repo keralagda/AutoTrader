@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollText, ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react'
+import { P2PTransferSection } from './P2PTransferSection'
 
 interface Transaction {
   id: string
@@ -130,6 +131,9 @@ export function TransactionsTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* P2P Transfers */}
+      <P2PTransferSection />
     </div>
   )
 }

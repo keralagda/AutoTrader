@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Razorpay API credentials (should be set in environment)
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_123456789'
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || 'your_secret_key'
+// Razorpay API credentials
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || ''
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || ''
+const RAZORPAY_API_URL = 'https://api.razorpay.com/v1'
 
 export async function POST(request: Request) {
   try {
@@ -33,24 +34,70 @@ export async function POST(request: Request) {
       },
     })
 
-    // In production, this would create a Razorpay order
-    // For now, return mock order data
-    const order = {
-      id: `order_${payment.id}`,
-      amount: Math.round(amountNum * 100), // Razorpay uses paise
-      currency: 'INR',
-      receipt: payment.id,
-      payment_method: paymentMethod || 'upi',
+    let order: any
+
+    // If Razorpay keys are configured, create real order
+    if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
+      try {
+        const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64')
+        const res = await fetch(`${RAZORPAY_API_URL}/orders`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: Math.round(amountNum * 100), // Razorpay uses paise
+            currency: 'INR',
+            receipt: payment.id,
+            notes: {
+              userId,
+              paymentId: payment.id,
+            },
+          }),
+        })
+
+        if (res.ok) {
+          order = await res.json()
+        } else {
+          const errorData = await res.json()
+          console.error('Razorpay API error:', errorData)
+          // Fall back to demo mode
+          order = null
+        }
+      } catch (err) {
+        console.error('Razorpay API call failed:', err)
+        order = null
+      }
     }
+
+    // If real order creation failed or keys not configured, use demo mode
+    if (!order) {
+      order = {
+        id: `order_demo_${payment.id}`,
+        amount: Math.round(amountNum * 100),
+        currency: 'INR',
+        receipt: payment.id,
+        status: 'created',
+        _demo: true,
+      }
+    }
+
+    // Update payment with gateway reference
+    await db.payment.update({
+      where: { id: payment.id },
+      data: { gatewayRef: order.id },
+    })
 
     return NextResponse.json({
       success: true,
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      receipt: order.receipt,
+      receipt: payment.id,
       paymentMethod: paymentMethod || 'upi',
-      keyId: RAZORPAY_KEY_ID,
+      keyId: RAZORPAY_KEY_ID || 'demo_mode',
+      demoMode: !RAZORPAY_KEY_ID || order._demo === true,
     })
   } catch (error) {
     console.error('Razorpay create order error:', error)
