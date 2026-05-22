@@ -15,7 +15,7 @@ async function cronjobFetch(endpoint: string, options: RequestInit = {}) {
   return res
 }
 
-// GET - List all cron jobs from cron-job.org
+// GET - List cron jobs from cron-job.org (filtered to this project only)
 export async function GET() {
   try {
     if (!CRONJOB_API_KEY) {
@@ -29,7 +29,20 @@ export async function GET() {
     }
 
     const data = await res.json()
-    return NextResponse.json(data)
+
+    // Filter jobs to only show ones belonging to this project
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
+    const filteredJobs = (data.jobs || []).filter((job: any) => {
+      const jobUrl = job.url || ''
+      // Match by app URL domain or by title containing "Auto Trade"
+      if (appUrl && jobUrl.includes(new URL(appUrl).hostname)) return true
+      if (jobUrl.includes('auto-trader')) return true
+      if (jobUrl.includes('autotrade')) return true
+      if ((job.title || '').toLowerCase().includes('auto trade')) return true
+      return false
+    })
+
+    return NextResponse.json({ jobs: filteredJobs })
   } catch (error) {
     console.error('cron-job.org GET error:', error)
     return NextResponse.json({ error: 'Failed to fetch cron jobs' }, { status: 500 })
