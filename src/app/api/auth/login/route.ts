@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { verifyPassword, setSessionCookie, createToken } from '@/lib/auth'
 
 export async function POST(request: Request) {
   try {
@@ -11,8 +12,18 @@ export async function POST(request: Request) {
 
     const user = await db.user.findUnique({ where: { email } })
 
-    if (!user || user.password !== password) {
+    if (!user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+    }
+
+    // Verify password (supports bcrypt, SHA-256 legacy, and plain text for seeded accounts)
+    const isValid = await verifyPassword(password, user.password)
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json({ error: 'Account is deactivated' }, { status: 403 })
     }
 
     // Record login history
@@ -32,10 +43,24 @@ export async function POST(request: Request) {
 
     // Check if 2FA is enabled
     if (user.twoFactorEnabled) {
+      // Return a temporary token that only allows 2FA verification
+      const tempToken = createToken({ userId: user.id, email: user.email, role: '2fa_pending' })
       return NextResponse.json({
+        requires2FA: true,
+        tempToken,
+      })
+    }
+
+    // Create session cookie
+    const token = await setSessionCookie({ userId: user.id, email: user.email, role: user.role })
+
+    return NextResponse.json({
+      token,
+      user: {
         id: user.id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
         role: user.role,
         referralCode: user.referralCode,
         walletAddress: user.walletAddress,
@@ -43,22 +68,7 @@ export async function POST(request: Request) {
         withdrawalBalance: user.withdrawalBalance,
         totalEarnings: user.totalEarnings,
         totalDeposited: user.totalDeposited,
-        requires2FA: true,
-      })
-    }
-
-    return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      phone: user.phone,
-      role: user.role,
-      referralCode: user.referralCode,
-      walletAddress: user.walletAddress,
-      tradingBalance: user.tradingBalance,
-      withdrawalBalance: user.withdrawalBalance,
-      totalEarnings: user.totalEarnings,
-      totalDeposited: user.totalDeposited,
+      },
     })
   } catch (error) {
     console.error('Login error:', error)

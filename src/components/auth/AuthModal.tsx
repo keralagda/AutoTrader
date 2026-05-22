@@ -79,12 +79,29 @@ function LoginForm() {
           return
         }
 
-        login(data as UserData)
+        // Handle 2FA requirement
+        if (data.requires2FA) {
+          toast({ title: '2FA Required', description: 'Please enter your 2FA code' })
+          // Store temp token for 2FA verification
+          localStorage.setItem('autotrade_2fa_token', data.tempToken)
+          return
+        }
+
+        // Login successful - redirect to appropriate dashboard
+        const userData = data.user
+        login(userData as UserData)
         toast({
           title: 'Welcome back!',
-          description: `Signed in as ${data.name}`,
+          description: `Signed in as ${userData.name}`,
         })
         setShowAuthModal(false)
+
+        // Redirect based on role
+        if (userData.role === 'admin') {
+          window.location.href = '/admin'
+        } else {
+          window.location.href = '/dashboard'
+        }
       } catch {
         const msg = 'Network error. Please try again.'
         setError(msg)
@@ -279,12 +296,14 @@ function RegisterForm() {
           return
         }
 
-        login(data as UserData)
+        const userData = data.user
+        login(userData as UserData)
         toast({
           title: 'Account Created!',
-          description: `Welcome, ${data.name}!`,
+          description: `Welcome, ${userData.name}!`,
         })
         setShowAuthModal(false)
+        window.location.href = '/dashboard'
       } catch {
         const msg = 'Network error. Please try again.'
         setError(msg)

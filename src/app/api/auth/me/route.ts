@@ -1,13 +1,25 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
+    // Support both session-based and legacy userId query param
+    let userId: string | null = null
+
+    // Try session first
+    const session = await getSession()
+    if (session) {
+      userId = session.userId
+    }
+
+    // Fallback to query param (for backward compatibility during migration)
+    if (!userId) {
+      userId = request.nextUrl.searchParams.get('userId')
+    }
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     const user = await db.user.findUnique({ where: { id: userId } })

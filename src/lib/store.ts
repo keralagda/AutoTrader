@@ -64,11 +64,20 @@ export const useAppStore = create<AppState>((set) => ({
     currentView: user.role === 'admin' ? 'admin' : 'dashboard',
     showAuthModal: false,
   }),
-  logout: () => set({
-    isAuthenticated: false,
-    user: null,
-    currentView: 'landing',
-  }),
+  logout: () => {
+    // Clear session cookie via API
+    fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {})
+    localStorage.removeItem('autotrade_user')
+    set({
+      isAuthenticated: false,
+      user: null,
+      currentView: 'landing',
+    })
+    // Redirect to home
+    if (typeof window !== 'undefined') {
+      window.location.href = '/'
+    }
+  },
   setShowAuthModal: (show) => set({ showAuthModal: show }),
   setAuthMode: (mode) => set({ authMode: mode }),
   updateUserWallets: (tradingBalance, withdrawalBalance) => set((state) => ({

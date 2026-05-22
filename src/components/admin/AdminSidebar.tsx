@@ -278,7 +278,7 @@ export function AdminSidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
-          onClick={() => setView('dashboard')}
+          onClick={() => { window.location.href = '/dashboard' }}
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Site
