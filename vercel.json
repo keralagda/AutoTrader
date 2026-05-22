@@ -1,0 +1,26 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "prisma generate && next build",
+  "installCommand": "npm install",
+  "regions": ["sin1"],
+  "functions": {
+    "src/app/api/cron/distribute-profits/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/bulk-operations/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/admin/export/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/seed/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/distribute-profits",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

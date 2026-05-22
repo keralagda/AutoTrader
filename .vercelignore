@@ -1,0 +1,14 @@
+.git
+.env
+.env.local
+node_modules
+.next
+db/
+download/
+examples/
+mini-services/
+.zscripts/
+agent-ctx/
+screenshot.png
+screenshot-challenges.png
+*.pid

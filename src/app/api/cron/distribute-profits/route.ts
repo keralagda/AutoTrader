@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// This endpoint should be called by a cron job (e.g., every hour)
-// It processes all active deposits and credits profits based on their plan's schedule
+// This endpoint is called by:
+// 1. Vercel Cron (vercel.json schedule) - sends CRON_SECRET via Authorization header
+// 2. cron-job.org - sends x-cron-secret header
+// 3. Admin manual trigger from dashboard
 
 export async function POST(request: Request) {
   try {
-    // Optional auth check via secret header
-    const authHeader = request.headers.get('x-cron-secret')
+    // Auth check - accept multiple auth methods
     const cronSecret = process.env.CRON_SECRET || 'autotrade-cron-2026'
-    if (authHeader && authHeader !== cronSecret) {
+    const xCronSecret = request.headers.get('x-cron-secret')
+    const authorizationHeader = request.headers.get('authorization')
+
+    // Vercel Cron sends: Authorization: Bearer <CRON_SECRET>
+    const vercelAuth = authorizationHeader?.replace('Bearer ', '')
+
+    // Validate: at least one auth method must match (or no auth header = admin manual trigger)
+    const hasAuthHeader = xCronSecret || authorizationHeader
+    if (hasAuthHeader && xCronSecret !== cronSecret && vercelAuth !== cronSecret) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
