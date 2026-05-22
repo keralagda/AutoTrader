@@ -29,7 +29,8 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'challenges', label: 'Challenges & Badges', icon: Target, group: 'content' },
   { tab: 'testimonials', label: 'Testimonials', icon: Star, group: 'content' },
   { tab: 'promotions', label: 'Promotions', icon: Megaphone, group: 'content' },
-  { tab: 'landingEditor', label: 'Landing Page', icon: Layout, group: 'content' },
+  { tab: 'pageBuilder', label: 'Page Builder', icon: Layout, group: 'content' },
+  { tab: 'landingEditor', label: 'Landing Sections', icon: Layout, group: 'content' },
   { tab: 'news', label: 'News', icon: Newspaper, group: 'content' },
   { tab: 'notifications', label: 'Fake Notifications', icon: Bell, group: 'content' },
   

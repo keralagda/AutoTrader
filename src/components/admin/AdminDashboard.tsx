@@ -29,6 +29,7 @@ import { AdminSystemHealthTab } from './AdminSystemHealthTab'
 import { AdminBulkOperationsTab } from './AdminBulkOperationsTab'
 import { AdminGeoBlockingTab } from './AdminGeoBlockingTab'
 import { AdminNotificationTemplatesTab } from './AdminNotificationTemplatesTab'
+import { PageBuilderTab } from './PageBuilder'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -110,6 +111,7 @@ export function AdminDashboard() {
       case 'bulkOps': return <AdminBulkOperationsTab />
       case 'geoBlocking': return <AdminGeoBlockingTab />
       case 'notifTemplates': return <AdminNotificationTemplatesTab />
+      case 'pageBuilder': return <PageBuilderTab />
       default: return <PlansTab />
     }
   }
