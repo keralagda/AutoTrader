@@ -40,6 +40,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'messages', label: 'Messages', icon: MessageSquare, group: 'support' },
   { tab: 'activityLog', label: 'Activity Log', icon: ScrollText, group: 'support' },
   { tab: 'analytics', label: 'Analytics', icon: BarChart3, group: 'analytics' },
+  { tab: 'systemHealth', label: 'System Health', icon: Activity, group: 'analytics' },
   
   // System Settings
   { tab: 'settings', label: 'Settings', icon: Wrench, group: 'system' },

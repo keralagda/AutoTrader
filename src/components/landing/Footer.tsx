@@ -1,6 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { Diamond } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 const quickLinks = [
   { label: 'Home', href: '#home' },
@@ -40,6 +48,14 @@ const socialLinks = [
 ]
 
 export default function Footer() {
+  const [legalModal, setLegalModal] = useState<{ open: boolean; type: string; title: string; content: string }>({
+    open: false,
+    type: '',
+    title: '',
+    content: '',
+  })
+  const [loadingLegal, setLoadingLegal] = useState(false)
+
   const handleNavClick = (href: string) => {
     const el = document.querySelector(href)
     if (el) {
@@ -47,80 +63,128 @@ export default function Footer() {
     }
   }
 
+  const openLegalDoc = async (type: string) => {
+    setLoadingLegal(true)
+    setLegalModal({ open: true, type, title: 'Loading...', content: '' })
+    try {
+      const res = await fetch(`/api/legal?type=${type}`)
+      if (res.ok) {
+        const data = await res.json()
+        setLegalModal({ open: true, type, title: data.title, content: data.content })
+      }
+    } catch {
+      setLegalModal({ open: true, type, title: 'Error', content: 'Failed to load document.' })
+    } finally {
+      setLoadingLegal(false)
+    }
+  }
+
   return (
-    <footer className="border-t border-border bg-card/50 backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Diamond className="size-6 text-emerald-400 fill-emerald-400/30" />
-              <span className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
-                Auto Trade
-              </span>
+    <>
+      <footer className="border-t border-border bg-card/50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Brand */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Diamond className="size-6 text-emerald-400 fill-emerald-400/30" />
+                <span className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
+                  Auto Trade
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground max-w-xs">
+                Automated crypto investment platform powered by AI. Earn daily returns with
+                transparent distribution.
+              </p>
+              {/* Social Icons */}
+              <div className="flex items-center gap-3">
+                {socialLinks.map((social) => (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    aria-label={social.label}
+                    className="size-10 rounded-lg bg-background/50 border border-border flex items-center justify-center text-muted-foreground hover:text-emerald-400 hover:border-emerald-500/30 transition-all duration-200"
+                  >
+                    {social.icon}
+                  </a>
+                ))}
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Automated crypto investment platform powered by AI. Earn daily returns with
-              transparent distribution.
-            </p>
-            {/* Social Icons */}
-            <div className="flex items-center gap-3">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  aria-label={social.label}
-                  className="size-10 rounded-lg bg-background/50 border border-border flex items-center justify-center text-muted-foreground hover:text-emerald-400 hover:border-emerald-500/30 transition-all duration-200"
-                >
-                  {social.icon}
-                </a>
-              ))}
-            </div>
-          </div>
 
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold uppercase tracking-wider">Quick Links</h4>
-            <nav className="flex flex-col gap-2">
-              {quickLinks.map((link) => (
+            {/* Quick Links */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold uppercase tracking-wider">Quick Links</h4>
+              <nav className="flex flex-col gap-2">
+                {quickLinks.map((link) => (
+                  <button
+                    key={link.href}
+                    onClick={() => handleNavClick(link.href)}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left cursor-pointer"
+                  >
+                    {link.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Legal */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold uppercase tracking-wider">Legal</h4>
+              <nav className="flex flex-col gap-2">
                 <button
-                  key={link.href}
-                  onClick={() => handleNavClick(link.href)}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left cursor-pointer"
+                  onClick={() => openLegalDoc('terms')}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
                 >
-                  {link.label}
+                  Terms of Service
                 </button>
-              ))}
-            </nav>
+                <button
+                  onClick={() => openLegalDoc('privacy')}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  onClick={() => openLegalDoc('risk')}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
+                >
+                  Risk Disclaimer
+                </button>
+              </nav>
+            </div>
           </div>
 
-          {/* Legal */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold uppercase tracking-wider">Legal</h4>
-            <nav className="flex flex-col gap-2">
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Terms of Service
-              </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Privacy Policy
-              </a>
-              <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Risk Disclaimer
-              </a>
-            </nav>
+          {/* Bottom Bar */}
+          <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-muted-foreground">
+              &copy; {new Date().getFullYear()} Auto Trade. All rights reserved.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Powered by <span className="text-emerald-400 font-medium">Auto Trade Protocol</span>
+            </p>
           </div>
         </div>
+      </footer>
 
-        {/* Bottom Bar */}
-        <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Auto Trade. All rights reserved.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Powered by <span className="text-emerald-400 font-medium">Auto Trade Protocol</span>
-          </p>
-        </div>
-      </div>
-    </footer>
+      {/* Legal Document Modal */}
+      <Dialog open={legalModal.open} onOpenChange={(open) => setLegalModal(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{legalModal.title}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="prose prose-sm prose-invert max-w-none">
+              {legalModal.content.split('\n').map((line, i) => {
+                if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold mt-4 mb-2">{line.slice(2)}</h1>
+                if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-semibold mt-4 mb-2">{line.slice(3)}</h2>
+                if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-semibold text-sm">{line.slice(2, -2)}</p>
+                if (line.startsWith('- ')) return <li key={i} className="text-sm text-muted-foreground ml-4">{line.slice(2)}</li>
+                if (line.trim() === '') return <br key={i} />
+                return <p key={i} className="text-sm text-muted-foreground mb-1">{line}</p>
+              })}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
