@@ -159,39 +159,51 @@ export function UserDashboard() {
       <UserSidebar />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Bar */}
-        <header className="shrink-0 border-b border-border/50 bg-card/50 backdrop-blur-sm px-4 md:px-6 py-3">
+        {/* Mobile App Header */}
+        <header className="shrink-0 border-b border-border/50 bg-card/80 backdrop-blur-xl px-4 md:px-6 py-3 sticky top-0 z-30">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 pl-10 md:pl-0">
+            {/* Left: Page title */}
+            <div className="flex items-center gap-2.5 pl-10 md:pl-0">
               <TabIcon className="size-5 text-primary" />
-              <h1 className="text-lg font-semibold">{currentTab.title}</h1>
+              <h1 className="text-base md:text-lg font-semibold truncate">{currentTab.title}</h1>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2">
+              {/* Mobile: Compact balance display */}
+              <div className="flex md:hidden items-center gap-1.5">
+                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-mono text-[10px] px-1.5 py-0.5">
+                  ${tradingBalance.toFixed(0)}
+                </Badge>
+              </div>
+
+              {/* Desktop: Full balance display */}
+              <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
                 <span>Trading:</span>
                 <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-mono">
                   ${tradingBalance.toFixed(2)}
                 </Badge>
               </div>
-              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
                 <span>Withdraw:</span>
                 <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-mono">
                   ${withdrawalBalance.toFixed(2)}
                 </Badge>
               </div>
+
               <Button
                 onClick={() => setTransferModalOpen(true)}
                 variant="outline"
                 size="sm"
-                className="gap-1.5"
+                className="gap-1.5 h-8 px-2 md:px-3"
               >
-                <ArrowRightLeft className="size-4" />
-                <span className="hidden sm:inline">Transfer</span>
+                <ArrowRightLeft className="size-3.5 md:size-4" />
+                <span className="hidden md:inline">Transfer</span>
               </Button>
-              <button className="relative p-2 rounded-md hover:bg-muted transition-colors" onClick={() => { /* Could open notifications panel */ }}>
+              <button className="relative p-2 rounded-full hover:bg-muted active:scale-90 transition-all" onClick={() => { /* notifications */ }}>
                 <Bell className="size-4 text-muted-foreground" />
                 {unreadNotifs > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-500 text-[9px] text-white flex items-center justify-center font-bold">
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-500 text-[9px] text-white flex items-center justify-center font-bold animate-pulse">
                     {unreadNotifs > 9 ? '9+' : unreadNotifs}
                   </span>
                 )}
@@ -200,8 +212,8 @@ export function UserDashboard() {
           </div>
         </header>
 
-        {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
+        {/* Tab Content - extra bottom padding on mobile for bottom nav */}
+        <div className="flex-1 overflow-y-auto pb-20 md:pb-0 overscroll-y-contain">
           {renderTab()}
         </div>
       </main>
