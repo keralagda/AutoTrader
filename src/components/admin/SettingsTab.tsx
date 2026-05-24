@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/hooks/use-toast'
-import { Save, Settings } from 'lucide-react'
+import { Save, Settings, Image, Upload, Type, ImageIcon } from 'lucide-react'
 
 const DAYS = [
   { value: 'monday', label: 'Monday' },
@@ -28,6 +28,10 @@ interface SettingsState {
   trading_days: string
   profit_cycle: string
   challenges_enabled: string
+  logo_url: string
+  logo_dark_url: string
+  favicon_url: string
+  branding_mode: string // 'name' | 'logo' | 'name_logo'
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
@@ -38,6 +42,10 @@ const DEFAULT_SETTINGS: SettingsState = {
   trading_days: 'monday,tuesday,wednesday,thursday,friday',
   profit_cycle: 'weekly',
   challenges_enabled: 'false',
+  logo_url: '',
+  logo_dark_url: '',
+  favicon_url: '',
+  branding_mode: 'name',
 }
 
 export function SettingsTab() {
@@ -249,6 +257,170 @@ export function SettingsTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Branding & Logo Settings */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-emerald-400" />
+            Branding & Logo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Display Mode */}
+          <div className="space-y-3">
+            <Label className="text-muted-foreground font-medium">Header & Footer Display</Label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { value: 'name', label: 'Name Only', icon: <Type className="h-5 w-5" />, desc: 'Show platform name text' },
+                { value: 'name_logo', label: 'Name + Logo', icon: <><ImageIcon className="h-4 w-4" /><Type className="h-4 w-4" /></>, desc: 'Logo beside name' },
+                { value: 'logo', label: 'Logo Only', icon: <ImageIcon className="h-5 w-5" />, desc: 'Show logo image only' },
+              ].map(mode => (
+                <button
+                  key={mode.value}
+                  onClick={() => setSettings(prev => ({ ...prev, branding_mode: mode.value }))}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
+                    settings.branding_mode === mode.value
+                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">{mode.icon}</div>
+                  <span className="text-xs font-medium">{mode.label}</span>
+                  <span className="text-[10px] opacity-60">{mode.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Logo Uploads */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Main Logo */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Main Logo</Label>
+              <p className="text-[10px] text-muted-foreground">Recommended: 200×50px, PNG/SVG with transparent background</p>
+              <div className="border-2 border-dashed border-border/50 rounded-xl p-4 text-center hover:border-primary/30 transition-colors">
+                {settings.logo_url ? (
+                  <div className="space-y-2">
+                    <img src={settings.logo_url} alt="Logo" className="h-10 mx-auto object-contain" />
+                    <Button variant="ghost" size="sm" className="text-xs text-rose-400" onClick={() => setSettings(prev => ({ ...prev, logo_url: '' }))}>Remove</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+                    <p className="text-[10px] text-muted-foreground">200 × 50 px</p>
+                  </div>
+                )}
+              </div>
+              <Input
+                value={settings.logo_url}
+                onChange={e => setSettings(prev => ({ ...prev, logo_url: e.target.value }))}
+                placeholder="Paste logo URL or upload in Media"
+                className="text-xs h-8"
+              />
+            </div>
+
+            {/* Dark Mode Logo */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Dark Mode Logo</Label>
+              <p className="text-[10px] text-muted-foreground">For dark backgrounds. 200×50px, PNG/SVG, light colored</p>
+              <div className="border-2 border-dashed border-border/50 rounded-xl p-4 text-center bg-black/20 hover:border-primary/30 transition-colors">
+                {settings.logo_dark_url ? (
+                  <div className="space-y-2">
+                    <img src={settings.logo_dark_url} alt="Dark Logo" className="h-10 mx-auto object-contain" />
+                    <Button variant="ghost" size="sm" className="text-xs text-rose-400" onClick={() => setSettings(prev => ({ ...prev, logo_dark_url: '' }))}>Remove</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+                    <p className="text-[10px] text-muted-foreground">200 × 50 px</p>
+                  </div>
+                )}
+              </div>
+              <Input
+                value={settings.logo_dark_url}
+                onChange={e => setSettings(prev => ({ ...prev, logo_dark_url: e.target.value }))}
+                placeholder="Paste dark logo URL"
+                className="text-xs h-8"
+              />
+            </div>
+
+            {/* Favicon */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Favicon</Label>
+              <p className="text-[10px] text-muted-foreground">Browser tab icon. 32×32px or 64×64px, PNG/ICO/SVG</p>
+              <div className="border-2 border-dashed border-border/50 rounded-xl p-4 text-center hover:border-primary/30 transition-colors">
+                {settings.favicon_url ? (
+                  <div className="space-y-2">
+                    <img src={settings.favicon_url} alt="Favicon" className="h-8 w-8 mx-auto object-contain" />
+                    <Button variant="ghost" size="sm" className="text-xs text-rose-400" onClick={() => setSettings(prev => ({ ...prev, favicon_url: '' }))}>Remove</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
+                    <p className="text-[10px] text-muted-foreground">32 × 32 px</p>
+                  </div>
+                )}
+              </div>
+              <Input
+                value={settings.favicon_url}
+                onChange={e => setSettings(prev => ({ ...prev, favicon_url: e.target.value }))}
+                placeholder="Paste favicon URL"
+                className="text-xs h-8"
+              />
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="space-y-2">
+            <Label className="text-muted-foreground font-medium">Preview</Label>
+            <div className="rounded-xl border border-border/50 p-4 bg-background/50">
+              <div className="flex items-center gap-3">
+                {(settings.branding_mode === 'logo' || settings.branding_mode === 'name_logo') && (
+                  settings.logo_dark_url || settings.logo_url ? (
+                    <img src={settings.logo_dark_url || settings.logo_url} alt="Logo" className="h-8 object-contain" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                      <span className="text-sm font-bold text-emerald-400">B</span>
+                    </div>
+                  )
+                )}
+                {(settings.branding_mode === 'name' || settings.branding_mode === 'name_logo') && (
+                  <span className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
+                    {settings.platform_name || 'BNFX'}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">This is how your brand will appear in the header and footer</p>
+            </div>
+          </div>
+
+          {/* Size Guide */}
+          <div className="rounded-lg bg-muted/30 border border-border/30 p-4">
+            <p className="text-xs font-medium mb-2">📐 Recommended Sizes</p>
+            <div className="grid grid-cols-3 gap-3 text-[10px] text-muted-foreground">
+              <div className="p-2 rounded bg-background/50">
+                <p className="font-medium text-foreground">Main Logo</p>
+                <p>200 × 50 px</p>
+                <p>PNG or SVG</p>
+                <p>Transparent BG</p>
+              </div>
+              <div className="p-2 rounded bg-background/50">
+                <p className="font-medium text-foreground">Dark Logo</p>
+                <p>200 × 50 px</p>
+                <p>PNG or SVG</p>
+                <p>Light/white color</p>
+              </div>
+              <div className="p-2 rounded bg-background/50">
+                <p className="font-medium text-foreground">Favicon</p>
+                <p>32 × 32 px (min)</p>
+                <p>64 × 64 px (best)</p>
+                <p>PNG, ICO, or SVG</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
