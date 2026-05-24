@@ -9,7 +9,7 @@ export async function POST() {
     if (!existingAdmin) {
       await db.user.create({
         data: {
-          email: 'admin@autotrade.com',
+          email: 'admin@bnfx.com',
           name: 'Admin',
           password: 'admin123',
           role: 'admin',
@@ -57,7 +57,7 @@ export async function POST() {
     const existingSettings = await db.setting.count()
     if (existingSettings === 0) {
       const defaultSettings = [
-        { key: 'platform_name', value: 'Auto Trade' },
+        { key: 'platform_name', value: 'BNFX' },
         { key: 'min_withdrawal', value: '10' },
         { key: 'withdrawal_fee_percent', value: '2' },
         { key: 'trading_days', value: 'monday,tuesday,wednesday,thursday,friday' },
@@ -117,7 +117,7 @@ export async function POST() {
     const existingNews = await db.news.count()
     if (existingNews === 0) {
       const defaultNews = [
-        { title: 'Welcome to Auto Trade!', content: 'We are excited to launch our AI-powered trading platform. Start earning daily returns with our automated trading system.', category: 'general' },
+        { title: 'Welcome to BNFX!', content: 'We are excited to launch our AI-powered trading platform. Start earning daily returns with our automated trading system.', category: 'general' },
         { title: 'New Platinum Plan Available', content: 'Our premium Platinum plan is now live with up to 15% daily returns and 5x stacking capability. Upgrade today!', category: 'promotion' },
         { title: 'Platform Maintenance - June 2026', content: 'Scheduled maintenance on June 15, 2026 from 2:00 AM to 4:00 AM UTC. Trading will resume automatically.', category: 'update' },
         { title: 'Referral Bonus Doubled!', content: 'For a limited time, all referral commissions are doubled. Invite your friends and earn more!', category: 'promotion' },
@@ -131,7 +131,7 @@ export async function POST() {
     const existingTestimonials = await db.testimonial.count()
     if (existingTestimonials === 0) {
       const defaultTestimonials = [
-        { name: 'Rajesh Kumar', avatar: '👨🏽', role: 'Gold Plan Investor', content: 'Auto Trade has completely changed my financial life. The daily returns are consistent and the platform is very easy to use.', rating: 5, earnings: '$12,500 earned', sortOrder: 1 },
+        { name: 'Rajesh Kumar', avatar: '👨🏽', role: 'Gold Plan Investor', content: 'BNFX has completely changed my financial life. The daily returns are consistent and the platform is very easy to use.', rating: 5, earnings: '$12,500 earned', sortOrder: 1 },
         { name: 'Priya Sharma', avatar: '👩🏽', role: 'Platinum Trader', content: 'I was skeptical at first but after 3 months of consistent returns, I upgraded to Platinum. Best decision ever!', rating: 5, earnings: '$45,000 earned', sortOrder: 2 },
         { name: 'Amit Patel', avatar: '👨🏻', role: 'Silver Plan Member', content: 'The referral system is amazing. I have built a team of 50+ and the passive income from profit sharing is incredible.', rating: 4, earnings: '$8,200 earned', sortOrder: 3 },
         { name: 'Sneha Reddy', avatar: '👩🏾', role: 'Gold Plan Investor', content: 'What I love most is the transparency. I can see every trade signal and my earnings grow daily. Highly recommended!', rating: 5, earnings: '$18,000 earned', sortOrder: 4 },

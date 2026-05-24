@@ -2,7 +2,7 @@
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 const RESEND_API_URL = 'https://api.resend.com/emails'
-const FROM_EMAIL = 'Auto Trade <onboarding@resend.dev>' // Change to your domain after verification
+const FROM_EMAIL = 'BNFX <onboarding@resend.dev>' // Change to your domain after verification
 
 interface EmailOptions {
   to: string
@@ -55,13 +55,13 @@ const baseTemplate = (content: string) => `
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:30px;">
-      <h1 style="color:#10b981;font-size:24px;margin:0;">Auto Trade</h1>
+      <h1 style="color:#10b981;font-size:24px;margin:0;">BNFX</h1>
     </div>
     <div style="background:#1a1a1a;border-radius:12px;padding:30px;border:1px solid #333;">
       ${content}
     </div>
     <div style="text-align:center;margin-top:30px;color:#666;font-size:12px;">
-      <p>© ${new Date().getFullYear()} Auto Trade. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} BNFX. All rights reserved.</p>
       <p>This is an automated message. Do not reply directly.</p>
     </div>
   </div>
@@ -71,10 +71,10 @@ const baseTemplate = (content: string) => `
 export async function sendWelcomeEmail(to: string, name: string) {
   return sendEmail({
     to,
-    subject: 'Welcome to Auto Trade! 🎉',
+    subject: 'Welcome to BNFX! 🎉',
     html: baseTemplate(`
       <h2 style="color:#fff;margin:0 0 15px;">Welcome, ${name}!</h2>
-      <p style="color:#ccc;line-height:1.6;">Your Auto Trade account has been created successfully. You're now ready to start your investment journey.</p>
+      <p style="color:#ccc;line-height:1.6;">Your BNFX account has been created successfully. You're now ready to start your investment journey.</p>
       <p style="color:#ccc;line-height:1.6;">Here's how to get started:</p>
       <ol style="color:#ccc;line-height:2;">
         <li>Deposit funds to your Trading Wallet</li>
@@ -132,7 +132,7 @@ export async function sendWithdrawalUpdate(to: string, name: string, amount: num
 export async function sendPasswordResetCode(to: string, name: string, code: string) {
   return sendEmail({
     to,
-    subject: 'Password Reset Code - Auto Trade',
+    subject: 'Password Reset Code - BNFX',
     html: baseTemplate(`
       <h2 style="color:#fff;margin:0 0 15px;">Password Reset</h2>
       <p style="color:#ccc;">Hi ${name},</p>

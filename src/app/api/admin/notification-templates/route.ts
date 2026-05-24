@@ -8,7 +8,7 @@ const defaultTemplates = [
   {
     id: 'welcome',
     name: 'Welcome Message',
-    title: 'Welcome to Auto Trade! 🎉',
+    title: 'Welcome to BNFX! 🎉',
     message: 'Your account has been created successfully. Start by depositing funds and choosing an investment plan.',
     type: 'success',
   },

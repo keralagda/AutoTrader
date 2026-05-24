@@ -1,6 +1,6 @@
 {
-  "name": "Auto Trade - USDC Auto-Earning Platform",
-  "short_name": "Auto Trade",
+  "name": "BNFX - USDC Auto-Earning Platform",
+  "short_name": "BNFX",
   "description": "Automated crypto investment platform with daily returns. Enable your USDC auto-earning mode.",
   "start_url": "/",
   "display": "standalone",

@@ -16,9 +16,9 @@ export function ReferralShare() {
   const referralCode = user?.referralCode || ''
   const referralLink = typeof window !== 'undefined'
     ? `${window.location.origin}?ref=${referralCode}`
-    : `https://autotrade.app?ref=${referralCode}`
+    : `https://bnfx.app?ref=${referralCode}`
 
-  const shareMessage = `Join Auto Trade and start earning daily returns on your USDC investments! Use my referral code: ${referralCode}\n\n${referralLink}`
+  const shareMessage = `Join BNFX and start earning daily returns on your USDC investments! Use my referral code: ${referralCode}\n\n${referralLink}`
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(referralLink)
@@ -33,7 +33,7 @@ export function ReferralShare() {
   }
 
   const handleTelegramShare = () => {
-    const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join Auto Trade and start earning daily returns!')}`
+    const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join BNFX and start earning daily returns!')}`
     window.open(url, '_blank')
   }
 
@@ -41,7 +41,7 @@ export function ReferralShare() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Auto Trade - USDC Auto-Earning',
+          title: 'BNFX - USDC Auto-Earning',
           text: shareMessage,
           url: referralLink,
         })

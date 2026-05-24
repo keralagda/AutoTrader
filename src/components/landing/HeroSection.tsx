@@ -130,7 +130,7 @@ export default function HeroSection() {
             <span className="block mb-2">🔥 Start Now</span>
             <span className="block mb-2">Join{' '}</span>
             <span className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-amber-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_200%]">
-              Auto Trade!
+              BNFX!
             </span>
             <span className="block mt-2 text-3xl sm:text-4xl md:text-5xl">
               Enable Your USDC Auto-Earning Mode!

@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Auto Trade - USDC Auto-Earning Platform",
-  description: "Automated crypto investment platform with daily returns up to 15%. Join Auto Trade and enable your USDC auto-earning mode with AI-powered trading.",
-  keywords: ["Auto Trade", "USDC", "crypto", "investment", "auto-earning", "trading", "DeFi"],
-  authors: [{ name: "Auto Trade" }],
+  title: "BNFX - USDC Auto-Earning Platform",
+  description: "Automated crypto investment platform with daily returns up to 15%. Join BNFX and enable your USDC auto-earning mode with AI-powered trading.",
+  keywords: ["BNFX", "USDC", "crypto", "investment", "auto-earning", "trading", "DeFi"],
+  authors: [{ name: "BNFX" }],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Auto Trade",
+    title: "BNFX",
   },
 };
 

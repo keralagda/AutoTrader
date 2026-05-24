@@ -55,7 +55,7 @@ export default function PublicLeaderboardPage() {
             <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
               <TrendingUp className="size-4 text-primary" />
             </div>
-            <span className="font-bold">Auto Trade</span>
+            <span className="font-bold">BNFX</span>
           </Link>
           <Badge className="bg-primary/20 text-primary border-primary/30">
             <Trophy className="size-3 mr-1" />
@@ -67,7 +67,7 @@ export default function PublicLeaderboardPage() {
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">🏆 Leaderboard</h1>
-          <p className="text-muted-foreground">Top earners on Auto Trade platform</p>
+          <p className="text-muted-foreground">Top earners on BNFX platform</p>
         </div>
 
         <Tabs value={period} onValueChange={setPeriod} className="w-full">

@@ -4,8 +4,8 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from './db'
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.CRON_SECRET || 'autotrade-jwt-secret-change-me'
-const SESSION_COOKIE = 'autotrade_session'
+const JWT_SECRET = process.env.JWT_SECRET || process.env.CRON_SECRET || 'bnfx-jwt-secret-change-me'
+const SESSION_COOKIE = 'bnfx_session'
 const SESSION_EXPIRY = '7d' // 7 days
 
 // ─── Password Hashing ──────────────────────────────────────────────

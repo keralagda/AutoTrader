@@ -80,7 +80,7 @@ export async function generateSupportResponse(ticketSubject: string, ticketMessa
   const response = await aiChat([
     {
       role: 'system',
-      content: `You are a helpful customer support agent for Auto Trade, a crypto investment platform. Respond professionally and helpfully to user queries. Keep responses concise (2-4 sentences). Address the user by name. If the query is about withdrawals, mention 24-48 hour processing time. If about deposits, mention multiple payment methods available. Never make promises about returns or profits.`,
+      content: `You are a helpful customer support agent for BNFX, a crypto investment platform. Respond professionally and helpfully to user queries. Keep responses concise (2-4 sentences). Address the user by name. If the query is about withdrawals, mention 24-48 hour processing time. If about deposits, mention multiple payment methods available. Never make promises about returns or profits.`,
     },
     { role: 'user', content: `User: ${userName}\nSubject: ${ticketSubject}\nMessage: ${ticketMessage}\n\nGenerate a helpful support response.` },
   ], { temperature: 0.6, maxTokens: 256 })

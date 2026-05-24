@@ -64,7 +64,7 @@ export function RazorpayDepositModal({ open, onOpenChange }: { open: boolean; on
           key: orderData.keyId,
           amount: orderData.amount,
           currency: orderData.currency,
-          name: 'AutoTrade',
+          name: 'bnfx',
           description: 'Deposit to Trading Wallet',
           order_id: orderData.orderId,
           handler: async function (response: any) {

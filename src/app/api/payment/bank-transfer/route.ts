@@ -95,7 +95,7 @@ export async function GET() {
         bankName: 'State Bank of India',
         accountNumber: 'XXXX XXXX XXXX 1234',
         ifscCode: 'SBIN0001234',
-        accountHolder: 'Auto Trade Platform',
+        accountHolder: 'BNFX Platform',
         branch: 'Main Branch',
       },
     })

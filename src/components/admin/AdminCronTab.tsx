@@ -64,7 +64,7 @@ export function AdminCronTab() {
 
   // New job form
   const [newJobUrl, setNewJobUrl] = useState('')
-  const [newJobTitle, setNewJobTitle] = useState('Auto Trade - Profit Distribution')
+  const [newJobTitle, setNewJobTitle] = useState('BNFX - Profit Distribution')
   const [newJobSchedule, setNewJobSchedule] = useState('hourly')
 
   const fetchStatus = () => {
@@ -404,7 +404,7 @@ export function AdminCronTab() {
                 <Input
                   value={newJobTitle}
                   onChange={(e) => setNewJobTitle(e.target.value)}
-                  placeholder="Auto Trade - Profit Distribution"
+                  placeholder="BNFX - Profit Distribution"
                 />
               </div>
               <div className="space-y-2">

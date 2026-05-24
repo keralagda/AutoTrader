@@ -12,7 +12,7 @@ const defaultDocs: Record<string, { title: string; content: string }> = {
 **Last Updated: May 2026**
 
 ## 1. Acceptance of Terms
-By accessing and using Auto Trade ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Platform.
+By accessing and using BNFX ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Platform.
 
 ## 2. Eligibility
 - You must be at least 18 years old
@@ -148,7 +148,7 @@ Trading and investing in cryptocurrency and digital assets involves substantial 
 - Consult a financial advisor before investing
 
 ## 7. Acknowledgment
-By using Auto Trade, you acknowledge that:
+By using BNFX, you acknowledge that:
 - You understand the risks involved
 - You are making investment decisions independently
 - You accept full responsibility for your investment outcomes

@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     // Generate TOTP secret
     const secret = speakeasy.generateSecret({
-      name: `AutoTrade-${user.email}`,
+      name: `bnfx-${user.email}`,
       length: 20,
     })
 

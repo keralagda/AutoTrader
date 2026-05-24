@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export type AppView = 'landing' | 'dashboard' | 'admin'
 export type DashboardTab = 'overview' | 'profile' | 'earnings' | 'investment' | 'deposit' | 'withdraw' | 'team' | 'challenges' | 'leaderboard' | 'messages' | 'news' | 'transactions' | 'security'
-export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder'
+export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder' | 'templates'
 
 interface AppState {
   // Navigation
@@ -67,7 +67,7 @@ export const useAppStore = create<AppState>((set) => ({
   logout: () => {
     // Clear session cookie via API
     fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {})
-    localStorage.removeItem('autotrade_user')
+    localStorage.removeItem('bnfx_user')
     set({
       isAuthenticated: false,
       user: null,

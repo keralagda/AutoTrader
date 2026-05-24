@@ -83,7 +83,7 @@ function LoginForm() {
         if (data.requires2FA) {
           toast({ title: '2FA Required', description: 'Please enter your 2FA code' })
           // Store temp token for 2FA verification
-          localStorage.setItem('autotrade_2fa_token', data.tempToken)
+          localStorage.setItem('bnfx_2fa_token', data.tempToken)
           return
         }
 
@@ -519,7 +519,7 @@ export default function AuthModal() {
           <DialogHeader className="mb-6">
             <DialogTitle className="text-xl font-bold text-center">
               <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                Auto Trade
+                BNFX
               </span>
             </DialogTitle>
             <DialogDescription className="text-center text-muted-foreground">

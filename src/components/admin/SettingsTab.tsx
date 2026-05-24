@@ -31,7 +31,7 @@ interface SettingsState {
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
-  platform_name: 'Auto Trade',
+  platform_name: 'BNFX',
   currency: 'USDC',
   min_withdrawal: '10',
   withdrawal_fee: '2',

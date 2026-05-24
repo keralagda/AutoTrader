@@ -628,7 +628,7 @@ export const DEFAULT_CHALLENGES = [
   // Milestone Challenges
   {
     title: 'First Deposit',
-    description: 'Make your very first deposit on Auto Trade to kickstart your earning journey!',
+    description: 'Make your very first deposit on BNFX to kickstart your earning journey!',
     category: 'milestone',
     challengeType: 'action',
     targetValue: 1,
@@ -701,7 +701,7 @@ export const DEFAULT_CHALLENGES = [
   // Referral Challenges
   {
     title: 'Refer 3 Friends',
-    description: 'Invite 3 friends to join Auto Trade using your referral code and earn a bonus.',
+    description: 'Invite 3 friends to join BNFX using your referral code and earn a bonus.',
     category: 'referral',
     challengeType: 'target',
     targetValue: 3,
@@ -778,7 +778,7 @@ export const DEFAULT_CHALLENGES = [
 export const DEFAULT_BADGES = [
   {
     name: 'First Steps',
-    description: 'Made your first deposit on Auto Trade',
+    description: 'Made your first deposit on BNFX',
     icon: '👶',
     category: 'achievement',
     rarity: 'common',
@@ -788,7 +788,7 @@ export const DEFAULT_BADGES = [
   },
   {
     name: 'Rising Star',
-    description: 'Reached Level 5 on Auto Trade',
+    description: 'Reached Level 5 on BNFX',
     icon: '⭐',
     category: 'achievement',
     rarity: 'uncommon',
@@ -818,7 +818,7 @@ export const DEFAULT_BADGES = [
   },
   {
     name: 'Network Builder',
-    description: 'Referred 3 friends to Auto Trade',
+    description: 'Referred 3 friends to BNFX',
     icon: '👥',
     category: 'social',
     rarity: 'uncommon',
@@ -828,7 +828,7 @@ export const DEFAULT_BADGES = [
   },
   {
     name: 'Social Butterfly',
-    description: 'Referred 10 friends to Auto Trade',
+    description: 'Referred 10 friends to BNFX',
     icon: '🦋',
     category: 'social',
     rarity: 'rare',
@@ -868,7 +868,7 @@ export const DEFAULT_BADGES = [
   },
   {
     name: 'Veteran Trader',
-    description: 'Reached Level 10 on Auto Trade',
+    description: 'Reached Level 10 on BNFX',
     icon: '🎖️',
     category: 'achievement',
     rarity: 'rare',
@@ -878,7 +878,7 @@ export const DEFAULT_BADGES = [
   },
   {
     name: 'Elite Trader',
-    description: 'Reached Level 25 on Auto Trade',
+    description: 'Reached Level 25 on BNFX',
     icon: '👑',
     category: 'achievement',
     rarity: 'epic',
@@ -888,7 +888,7 @@ export const DEFAULT_BADGES = [
   },
   {
     name: 'Legendary',
-    description: 'Reached Level 50 on Auto Trade. A true legend!',
+    description: 'Reached Level 50 on BNFX. A true legend!',
     icon: '🐉',
     category: 'achievement',
     rarity: 'legendary',
@@ -918,7 +918,7 @@ export const DEFAULT_BADGES = [
   },
   {
     name: 'Early Adopter',
-    description: 'Joined Auto Trade during the launch period',
+    description: 'Joined BNFX during the launch period',
     icon: '🚀',
     category: 'special',
     rarity: 'uncommon',

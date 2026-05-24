@@ -20,21 +20,21 @@ export function middleware(request: NextRequest) {
 
   // Protect /dashboard route - require authenticated user
   if (pathname.startsWith('/dashboard')) {
-    const token = request.cookies.get('autotrade_session')?.value
+    const token = request.cookies.get('bnfx_session')?.value
     if (!token) {
       return NextResponse.redirect(new URL('/?login=true', request.url))
     }
     const payload = decodeJWT(token)
     if (!payload || !payload.userId) {
       const response = NextResponse.redirect(new URL('/?login=true', request.url))
-      response.cookies.delete('autotrade_session')
+      response.cookies.delete('bnfx_session')
       return response
     }
   }
 
   // Protect /admin route - require admin role
   if (pathname.startsWith('/admin')) {
-    const token = request.cookies.get('autotrade_session')?.value
+    const token = request.cookies.get('bnfx_session')?.value
     if (!token) {
       return NextResponse.redirect(new URL('/?login=true', request.url))
     }
@@ -46,7 +46,7 @@ export function middleware(request: NextRequest) {
 
   // Protect admin API routes
   if (pathname.startsWith('/api/admin')) {
-    const token = request.cookies.get('autotrade_session')?.value
+    const token = request.cookies.get('bnfx_session')?.value
       || request.headers.get('authorization')?.replace('Bearer ', '')
 
     // Allow cron requests with cron secret

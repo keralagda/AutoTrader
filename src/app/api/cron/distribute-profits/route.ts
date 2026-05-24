@@ -9,7 +9,7 @@ import { db } from '@/lib/db'
 export async function POST(request: Request) {
   try {
     // Auth check - accept multiple auth methods
-    const cronSecret = process.env.CRON_SECRET || 'autotrade-cron-2026'
+    const cronSecret = process.env.CRON_SECRET || 'bnfx-cron-2026'
     const xCronSecret = request.headers.get('x-cron-secret')
     const authorizationHeader = request.headers.get('authorization')
 

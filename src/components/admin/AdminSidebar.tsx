@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore, type AdminTab } from '@/lib/store'
-import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle } from 'lucide-react'
+import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -29,6 +29,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'challenges', label: 'Challenges & Badges', icon: Target, group: 'content' },
   { tab: 'testimonials', label: 'Testimonials', icon: Star, group: 'content' },
   { tab: 'promotions', label: 'Promotions', icon: Megaphone, group: 'content' },
+  { tab: 'templates', label: 'Templates', icon: Palette, group: 'content' },
   { tab: 'pageBuilder', label: 'Page Builder', icon: Layout, group: 'content' },
   { tab: 'landingEditor', label: 'Landing Sections', icon: Layout, group: 'content' },
   { tab: 'news', label: 'News', icon: Newspaper, group: 'content' },

@@ -1,4 +1,4 @@
-// Simple i18n implementation for Auto Trade
+// Simple i18n implementation for BNFX
 // Supports: English, Hindi, Tamil, Telugu, Malayalam, Kannada
 
 export type Locale = 'en' | 'hi' | 'ta' | 'te' | 'ml' | 'kn'
@@ -262,13 +262,13 @@ const translations: Record<Locale, TranslationKeys> = {
 // Get current locale from localStorage or default to 'en'
 export function getLocale(): Locale {
   if (typeof window === 'undefined') return 'en'
-  return (localStorage.getItem('autotrade_locale') as Locale) || 'en'
+  return (localStorage.getItem('bnfx_locale') as Locale) || 'en'
 }
 
 // Set locale
 export function setLocale(locale: Locale) {
   if (typeof window === 'undefined') return
-  localStorage.setItem('autotrade_locale', locale)
+  localStorage.setItem('bnfx_locale', locale)
   window.dispatchEvent(new Event('locale-changed'))
 }
 

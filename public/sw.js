@@ -1,4 +1,4 @@
-const CACHE_NAME = 'autotrade-v1';
+const CACHE_NAME = 'bnfx-v1';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

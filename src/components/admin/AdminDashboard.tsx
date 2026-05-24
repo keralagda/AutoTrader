@@ -30,6 +30,7 @@ import { AdminBulkOperationsTab } from './AdminBulkOperationsTab'
 import { AdminGeoBlockingTab } from './AdminGeoBlockingTab'
 import { AdminNotificationTemplatesTab } from './AdminNotificationTemplatesTab'
 import { PageBuilderTab } from './PageBuilder'
+import { AdminTemplatesTab } from './AdminTemplatesTab'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -112,6 +113,7 @@ export function AdminDashboard() {
       case 'geoBlocking': return <AdminGeoBlockingTab />
       case 'notifTemplates': return <AdminNotificationTemplatesTab />
       case 'pageBuilder': return <PageBuilderTab />
+      case 'templates': return <AdminTemplatesTab />
       default: return <PlansTab />
     }
   }
@@ -177,7 +179,7 @@ export function AdminDashboard() {
           >
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-          <h1 className="text-lg font-bold text-foreground">Auto Trade Admin</h1>
+          <h1 className="text-lg font-bold text-foreground">BNFX Admin</h1>
         </div>
 
         <div className="p-4 lg:p-8 space-y-6">

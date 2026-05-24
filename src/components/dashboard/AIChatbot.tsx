@@ -14,7 +14,7 @@ interface Message {
 export function AIChatbot() {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hi! I\'m Auto Trade\'s AI assistant. How can I help you today?' },
+    { role: 'assistant', content: 'Hi! I\'m BNFX\'s AI assistant. How can I help you today?' },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)

@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 // Default section content
 const DEFAULT_SECTIONS: Record<string, any> = {
   hero: {
-    title: '🔥 Start Now\nJoin Auto Trade!',
+    title: '🔥 Start Now\nJoin BNFX!',
     subtitle: 'Enable Your USDC Auto-Earning Mode!',
     description: 'Automated crypto trading with daily returns up to 15%. Join thousands of investors earning passive income with our AI-powered platform.',
     ctaPrimary: 'Start Earning',
@@ -27,9 +27,9 @@ const DEFAULT_SECTIONS: Record<string, any> = {
     ],
   },
   footer: {
-    companyName: 'Auto Trade',
+    companyName: 'BNFX',
     tagline: 'AI-Powered USDC Auto-Earning Platform',
-    copyright: '© 2026 Auto Trade. All rights reserved.',
+    copyright: '© 2026 BNFX. All rights reserved.',
     links: [
       { label: 'Terms of Service', url: '#' },
       { label: 'Privacy Policy', url: '#' },
@@ -42,7 +42,7 @@ const DEFAULT_SECTIONS: Record<string, any> = {
     ],
   },
   navbar: {
-    logoText: 'Auto Trade',
+    logoText: 'BNFX',
     logoImage: '',
     links: [
       { label: 'Home', href: '#home' },

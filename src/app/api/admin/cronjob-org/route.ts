@@ -34,11 +34,11 @@ export async function GET() {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
     const filteredJobs = (data.jobs || []).filter((job: any) => {
       const jobUrl = job.url || ''
-      // Match by app URL domain or by title containing "Auto Trade"
+      // Match by app URL domain or by title containing "BNFX"
       if (appUrl && jobUrl.includes(new URL(appUrl).hostname)) return true
       if (jobUrl.includes('auto-trader')) return true
-      if (jobUrl.includes('autotrade')) return true
-      if ((job.title || '').toLowerCase().includes('auto trade')) return true
+      if (jobUrl.includes('bnfx')) return true
+      if ((job.title || '').toLowerCase().includes('BNFX')) return true
       return false
     })
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     if (action === 'create') {
       // Create a new cron job
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-      const cronSecret = process.env.CRON_SECRET || 'autotrade-cron-2026'
+      const cronSecret = process.env.CRON_SECRET || 'bnfx-cron-2026'
 
       const jobUrl = url || `${appUrl}/api/cron/distribute-profits`
 
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       const jobData = {
         job: {
           url: jobUrl,
-          title: title || 'Auto Trade - Profit Distribution',
+          title: title || 'BNFX - Profit Distribution',
           enabled: enabled !== false,
           saveResponses: true,
           schedule: schedule || {

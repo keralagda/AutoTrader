@@ -91,7 +91,7 @@ export function WelcomeTour() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gift className="h-5 w-5 text-primary" />
-            Welcome to Auto Trade!
+            Welcome to BNFX!
           </DialogTitle>
           <DialogDescription>
             Here&apos;s how to get started in {tourSteps.length} easy steps

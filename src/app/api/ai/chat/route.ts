@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { aiChat, type AIMessage } from '@/lib/ai'
 
-const SYSTEM_PROMPT = `You are Auto Trade's AI assistant. You help users with questions about the platform.
+const SYSTEM_PROMPT = `You are BNFX's AI assistant. You help users with questions about the platform.
 
-Key facts about Auto Trade:
+Key facts about BNFX:
 - Crypto investment platform with daily returns
 - Supports USDC, BTC, ETH deposits
 - UPI and bank transfer also available

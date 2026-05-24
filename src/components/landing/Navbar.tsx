@@ -62,7 +62,7 @@ export default function Navbar() {
           <div className="flex items-center gap-2">
             <Diamond className="size-7 text-emerald-400 fill-emerald-400/30" />
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
-              Auto Trade
+              BNFX
             </span>
           </div>
 
