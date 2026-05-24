@@ -92,6 +92,16 @@ export function AdminTemplatesTab() {
                 className="h-48 relative overflow-hidden"
                 style={{ backgroundColor: template.colors.background }}
               >
+                {/* Background image */}
+                {(template as any).images?.heroBg && (
+                  <img
+                    src={(template as any).images.heroBg}
+                    alt={template.name}
+                    className="absolute inset-0 w-full h-full object-cover opacity-30"
+                  />
+                )}
+                <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${template.colors.background}ee, ${template.colors.background}88)` }} />
+
                 {/* Mini preview of the template */}
                 <div className="absolute inset-0 p-4 flex flex-col justify-center items-center text-center">
                   {/* Fake navbar */}
@@ -124,11 +134,12 @@ export function AdminTemplatesTab() {
                     </div>
                   </div>
 
-                  {/* Stats row */}
+                  {/* Stats row with icons */}
                   <div className="absolute bottom-2 left-3 right-3 flex justify-around">
-                    {template.hero.stats.slice(0, 4).map((stat, i) => (
+                    {template.hero.stats.slice(0, 4).map((stat: any, i: number) => (
                       <div key={i} className="text-center">
-                        <p className="text-[8px] font-bold" style={{ color: template.colors.primary }}>
+                        <span className="text-[8px]">{stat.icon || '📊'}</span>
+                        <p className="text-[7px] font-bold" style={{ color: template.colors.primary }}>
                           {stat.prefix}{stat.value > 1000 ? `${(stat.value / 1000).toFixed(0)}K` : stat.value}{stat.suffix}
                         </p>
                         <p className="text-[5px] opacity-50" style={{ color: template.colors.text }}>{stat.label}</p>
@@ -244,38 +255,71 @@ export function AdminTemplatesTab() {
                   </div>
                 </div>
 
-                {/* Hero */}
-                <div className="px-8 py-20 text-center max-w-3xl mx-auto">
-                  <h1 className="text-4xl font-bold mb-4">{previewTemplate.hero.headline}</h1>
-                  <p className="text-lg opacity-70 mb-8">{previewTemplate.hero.subtitle}</p>
-                  <div className="flex gap-3 justify-center mb-12">
-                    <button className="px-8 py-3 rounded-lg font-semibold text-white" style={{ backgroundColor: previewTemplate.colors.primary }}>
-                      {previewTemplate.hero.ctaText}
-                    </button>
-                    <button className="px-8 py-3 rounded-lg font-semibold border" style={{ borderColor: previewTemplate.colors.primary, color: previewTemplate.colors.primary }}>
-                      {previewTemplate.hero.ctaSecondary}
-                    </button>
-                  </div>
+                {/* Hero with background image */}
+                <div className="relative px-8 py-20 text-center overflow-hidden">
+                  {/* Background image overlay */}
+                  {(previewTemplate as any).images?.heroBg && (
+                    <div className="absolute inset-0">
+                      <img src={(previewTemplate as any).images.heroBg} alt="" className="w-full h-full object-cover opacity-20" />
+                      <div className="absolute inset-0 bg-gradient-to-b" style={{ background: `linear-gradient(to bottom, ${previewTemplate.colors.background}cc, ${previewTemplate.colors.background})` }} />
+                    </div>
+                  )}
+                  <div className="relative max-w-3xl mx-auto">
+                    <h1 className="text-4xl font-bold mb-4">{previewTemplate.hero.headline}</h1>
+                    <p className="text-lg opacity-70 mb-8">{previewTemplate.hero.subtitle}</p>
+                    <div className="flex gap-3 justify-center mb-12">
+                      <button className="px-8 py-3 rounded-lg font-semibold text-white shadow-lg" style={{ backgroundColor: previewTemplate.colors.primary, boxShadow: `0 10px 30px ${previewTemplate.colors.primary}40` }}>
+                        {previewTemplate.hero.ctaText}
+                      </button>
+                      <button className="px-8 py-3 rounded-lg font-semibold border-2" style={{ borderColor: previewTemplate.colors.primary, color: previewTemplate.colors.primary }}>
+                        {previewTemplate.hero.ctaSecondary}
+                      </button>
+                    </div>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-4 gap-6">
-                    {previewTemplate.hero.stats.map((stat, i) => (
-                      <div key={i} className="text-center p-4 rounded-xl" style={{ backgroundColor: previewTemplate.colors.card }}>
-                        <p className="text-2xl font-bold" style={{ color: previewTemplate.colors.primary }}>
-                          {stat.prefix}{stat.value.toLocaleString()}{stat.suffix}
-                        </p>
-                        <p className="text-xs opacity-60 mt-1">{stat.label}</p>
-                      </div>
-                    ))}
+                    {/* Stats with icons */}
+                    <div className="grid grid-cols-4 gap-4">
+                      {previewTemplate.hero.stats.map((stat: any, i: number) => (
+                        <div key={i} className="text-center p-4 rounded-xl backdrop-blur-sm" style={{ backgroundColor: previewTemplate.colors.card + 'cc' }}>
+                          <span className="text-xl mb-1 block">{stat.icon || '📊'}</span>
+                          <p className="text-xl font-bold" style={{ color: previewTemplate.colors.primary }}>
+                            {stat.prefix}{stat.value.toLocaleString()}{stat.suffix}
+                          </p>
+                          <p className="text-[10px] opacity-60 mt-1">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
+                {/* Features with images */}
+                {(previewTemplate as any).features && (
+                  <div className="px-8 py-12">
+                    <h2 className="text-2xl font-bold text-center mb-8">Why Choose BNFX?</h2>
+                    <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+                      {(previewTemplate as any).features.map((feature: any, i: number) => (
+                        <div key={i} className="rounded-xl overflow-hidden" style={{ backgroundColor: previewTemplate.colors.card }}>
+                          {feature.image && (
+                            <img src={feature.image} alt={feature.title} className="w-full h-32 object-cover opacity-80" />
+                          )}
+                          <div className="p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xl">{feature.icon}</span>
+                              <h3 className="font-semibold text-sm">{feature.title}</h3>
+                            </div>
+                            <p className="text-xs opacity-60">{feature.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Sections indicator */}
                 <div className="px-8 py-8 border-t" style={{ borderColor: previewTemplate.colors.card }}>
-                  <p className="text-center text-sm opacity-50 mb-4">Sections included in this template:</p>
+                  <p className="text-center text-sm opacity-50 mb-4">Sections included:</p>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {previewTemplate.sections.map(section => (
-                      <span key={section} className="px-3 py-1.5 rounded-full text-xs" style={{ backgroundColor: previewTemplate.colors.card }}>
+                    {previewTemplate.sections.map((section: string) => (
+                      <span key={section} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: previewTemplate.colors.primary + '20', color: previewTemplate.colors.primary }}>
                         {section}
                       </span>
                     ))}
