@@ -136,7 +136,7 @@ export function P2PTransferSection() {
                   </div>
                   <div className="text-right">
                     <p className={`text-xs font-bold ${t.direction === 'sent' ? 'text-rose-400' : 'text-emerald-400'}`}>
-                      {t.direction === 'sent' ? '-' : '+'}${t.amount.toFixed(2)}
+                      {t.direction === 'sent' ? '-' : '+'}${(t.amount || 0).toFixed(2)}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       {new Date(t.createdAt).toLocaleDateString()}

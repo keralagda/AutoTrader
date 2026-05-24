@@ -85,7 +85,7 @@ export function PortfolioChart() {
                   {data.summary.roi}% ROI
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  Total earned: ${data.summary.totalEarnings.toFixed(2)}
+                  Total earned: ${(data.summary.totalEarnings || 0).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -149,10 +149,10 @@ export function PortfolioChart() {
                     </div>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-[10px] text-muted-foreground">
-                        ${deposit.amount.toFixed(2)} invested
+                        ${(deposit.amount || 0).toFixed(2)} invested
                       </span>
                       <span className="text-[10px] text-emerald-400">
-                        ${deposit.earnedSoFar.toFixed(2)} earned
+                        ${(deposit.earnedSoFar || 0).toFixed(2)} earned
                       </span>
                     </div>
                     {/* Progress bar */}

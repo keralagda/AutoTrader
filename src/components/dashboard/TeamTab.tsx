@@ -148,7 +148,7 @@ export function TeamTab() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Deposited</p>
-                    <p className="text-sm font-bold">${member.totalDeposited.toFixed(2)}</p>
+                    <p className="text-sm font-bold">${(member.totalDeposited || 0).toFixed(2)}</p>
                     <Badge className={member.isActive ? 'bg-emerald-500/20 text-emerald-400 text-[9px]' : 'bg-rose-500/20 text-rose-400 text-[9px]'}>
                       {member.isActive ? 'Active' : 'Inactive'}
                     </Badge>
@@ -179,7 +179,7 @@ export function TeamTab() {
                     {level.members.slice(0, 5).map(m => (
                       <div key={m.id} className="flex justify-between text-xs py-1 border-t border-border/30">
                         <span className="text-muted-foreground">{m.name}</span>
-                        <span className="font-medium">${m.totalDeposited.toFixed(2)}</span>
+                        <span className="font-medium">${(m.totalDeposited || 0).toFixed(2)}</span>
                       </div>
                     ))}
                     {level.members.length > 5 && (

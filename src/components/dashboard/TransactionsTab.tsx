@@ -113,7 +113,7 @@ export function TransactionsTab() {
                   <p className={`text-sm font-bold ${tx.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {tx.amount >= 0 ? '+' : ''}${Math.abs(tx.amount).toFixed(2)}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">Bal: ${tx.balanceAfter.toFixed(2)}</p>
+                  <p className="text-[10px] text-muted-foreground">Bal: ${(tx.balanceAfter || 0).toFixed(2)}</p>
                 </div>
               </div>
             ))}

@@ -180,7 +180,7 @@ export function WithdrawalsTab() {
                             <p className="text-xs text-muted-foreground">{w.user.email}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm font-semibold text-foreground">${w.amount.toFixed(2)}</TableCell>
+                        <TableCell className="text-sm font-semibold text-foreground">${(w.amount || 0).toFixed(2)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5 max-w-[180px]">
                             <code className="text-xs text-muted-foreground truncate">{w.walletAddress}</code>

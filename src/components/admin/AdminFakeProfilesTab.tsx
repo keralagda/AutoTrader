@@ -307,9 +307,9 @@ export function AdminFakeProfilesTab() {
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate">{profile.email}</p>
                       <div className="flex gap-3 text-[10px] text-muted-foreground mt-0.5">
-                        <span>Bal: <span className="text-emerald-400">${profile.tradingBalance.toFixed(0)}</span></span>
-                        <span>Earned: <span className="text-cyan-400">${profile.totalEarnings.toFixed(0)}</span></span>
-                        <span>Dep: <span className="text-amber-400">${profile.totalDeposited.toFixed(0)}</span></span>
+                        <span>Bal: <span className="text-emerald-400">${(profile.tradingBalance || 0).toFixed(0)}</span></span>
+                        <span>Earned: <span className="text-cyan-400">${(profile.totalEarnings || 0).toFixed(0)}</span></span>
+                        <span>Dep: <span className="text-amber-400">${(profile.totalDeposited || 0).toFixed(0)}</span></span>
                       </div>
                     </div>
                   </div>

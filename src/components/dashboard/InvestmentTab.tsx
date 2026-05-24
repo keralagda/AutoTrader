@@ -511,11 +511,11 @@ function DepositCard({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Invested</p>
-            <p className="font-bold">${deposit.amount.toFixed(2)}</p>
+            <p className="font-bold">${(deposit.amount || 0).toFixed(2)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Earned</p>
-            <p className="font-bold text-emerald-400">${deposit.earnedSoFar.toFixed(2)}</p>
+            <p className="font-bold text-emerald-400">${(deposit.earnedSoFar || 0).toFixed(2)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Daily Rate</p>

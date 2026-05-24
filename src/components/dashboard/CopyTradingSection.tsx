@@ -82,7 +82,7 @@ export function CopyTradingSection() {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs font-bold text-emerald-400">${trader.totalEarnings.toFixed(0)}</p>
+              <p className="text-xs font-bold text-emerald-400">${(trader.totalEarnings || 0).toFixed(0)}</p>
               <p className="text-[10px] text-muted-foreground">${trader.dailyAverage}/day</p>
             </div>
           </div>

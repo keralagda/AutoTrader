@@ -326,7 +326,7 @@ export function DepositTab() {
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(d.createdAt).toLocaleDateString()}
                       </TableCell>
-                      <TableCell className="font-medium">${d.amount.toFixed(2)}</TableCell>
+                      <TableCell className="font-medium">${(d.amount || 0).toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-[10px]">{d.method}</Badge>
                       </TableCell>

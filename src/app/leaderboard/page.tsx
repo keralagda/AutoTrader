@@ -121,7 +121,7 @@ export default function PublicLeaderboardPage() {
                       <p className="text-sm font-medium truncate">{entry.userName}</p>
                     </div>
                     <p className="text-sm font-bold text-emerald-400">
-                      ${entry.totalEarnings.toFixed(2)}
+                      ${(entry.totalEarnings || 0).toFixed(2)}
                     </p>
                   </CardContent>
                 </Card>

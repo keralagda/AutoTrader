@@ -265,8 +265,8 @@ export function UsersTab() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
                       <TableCell className="text-sm text-foreground font-medium">${(user.tradingBalance || 0).toFixed(2)}</TableCell>
-                      <TableCell className="text-sm text-emerald-400">${user.totalEarnings.toFixed(2)}</TableCell>
-                      <TableCell className="text-sm text-foreground">${user.totalDeposited.toFixed(2)}</TableCell>
+                      <TableCell className="text-sm text-emerald-400">${(user.totalEarnings || 0).toFixed(2)}</TableCell>
+                      <TableCell className="text-sm text-foreground">${(user.totalDeposited || 0).toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -336,8 +336,8 @@ export function UsersTab() {
                   <p className="text-sm font-medium">{u.name}</p>
                   <p className="text-xs text-muted-foreground">{u.email}</p>
                   <div className="flex gap-3 mt-2 text-xs">
-                    <span className="text-emerald-400">Trading: ${u.tradingBalance.toFixed(2) || '0.00'}</span>
-                    <span className="text-cyan-400">Withdrawal: ${u.withdrawalBalance.toFixed(2) || '0.00'}</span>
+                    <span className="text-emerald-400">Trading: ${(u.tradingBalance || 0).toFixed(2) || '0.00'}</span>
+                    <span className="text-cyan-400">Withdrawal: ${(u.withdrawalBalance || 0).toFixed(2) || '0.00'}</span>
                   </div>
                 </div>
               ) : null
@@ -558,7 +558,7 @@ export function UsersTab() {
                     {selectedUser.deposits.map((dep: UserDeposit) => (
                       <div key={dep.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
                         <div>
-                          <p className="text-sm text-foreground">{dep.plan?.name || 'Plan'} — ${dep.amount.toFixed(2)}</p>
+                          <p className="text-sm text-foreground">{dep.plan?.name || 'Plan'} — ${(dep.amount || 0).toFixed(2)}</p>
                           <p className="text-xs text-muted-foreground">{new Date(dep.createdAt).toLocaleDateString()}</p>
                         </div>
                         <Badge
@@ -595,7 +595,7 @@ export function UsersTab() {
                           </p>
                           <p className="text-xs text-muted-foreground">{new Date(earn.createdAt).toLocaleDateString()}</p>
                         </div>
-                        <span className="text-sm font-medium text-emerald-400">+${earn.amount.toFixed(2)}</span>
+                        <span className="text-sm font-medium text-emerald-400">+${(earn.amount || 0).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
