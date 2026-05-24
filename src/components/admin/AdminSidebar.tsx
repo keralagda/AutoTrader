@@ -17,6 +17,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   // User Management
   { tab: 'users', label: 'Users', icon: Users, group: 'users' },
   { tab: 'kyc', label: 'KYC Verification', icon: ShieldCheck, group: 'users' },
+  { tab: 'duplicates', label: 'Duplicate Check', icon: AlertCircle, group: 'users' },
   { tab: 'fakeProfiles', label: 'Fake Profiles', icon: UserPlus, group: 'users' },
   { tab: 'bulkOps', label: 'Bulk Operations', icon: Zap, group: 'users' },
   
