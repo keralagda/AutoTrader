@@ -64,6 +64,9 @@ export function UsersTab() {
   const [balanceAdjustUserId, setBalanceAdjustUserId] = useState<string | null>(null)
   const [balanceAdjustAmount, setBalanceAdjustAmount] = useState('')
   const [balanceAdjustLoading, setBalanceAdjustLoading] = useState(false)
+  const [balanceAdjustWallet, setBalanceAdjustWallet] = useState<'trading' | 'withdrawal'>('trading')
+  const [balanceAdjustRemarks, setBalanceAdjustRemarks] = useState('')
+  const [balanceAdjustType, setBalanceAdjustType] = useState<'add' | 'subtract'>('add')
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -97,23 +100,37 @@ export function UsersTab() {
 
   const handleAdjustBalance = async () => {
     if (!balanceAdjustUserId || !balanceAdjustAmount) return
+    const amount = parseFloat(balanceAdjustAmount)
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: 'Enter a valid positive amount', variant: 'destructive' })
+      return
+    }
+
     setBalanceAdjustLoading(true)
     try {
-      const user = users.find(u => u.id === balanceAdjustUserId)
-      if (!user) return
-      const newBalance = user.balance + parseFloat(balanceAdjustAmount)
       const res = await fetch('/api/admin/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: balanceAdjustUserId, balance: newBalance }),
+        body: JSON.stringify({
+          userId: balanceAdjustUserId,
+          adjustBalance: true,
+          amount: balanceAdjustType === 'subtract' ? -amount : amount,
+          wallet: balanceAdjustWallet,
+          remarks: balanceAdjustRemarks || `Admin ${balanceAdjustType} balance`,
+        }),
       })
-      if (!res.ok) throw new Error()
-      toast({ title: 'Balance Updated', description: `Balance adjusted by ${balanceAdjustAmount} USDC` })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed')
+      }
+      toast({ title: 'Balance Updated', description: `${balanceAdjustType === 'add' ? '+' : '-'}$${amount.toFixed(2)} to ${balanceAdjustWallet} wallet` })
       setBalanceAdjustUserId(null)
       setBalanceAdjustAmount('')
+      setBalanceAdjustRemarks('')
+      setBalanceAdjustType('add')
       fetchUsers()
-    } catch {
-      toast({ title: 'Error', description: 'Failed to adjust balance', variant: 'destructive' })
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to adjust balance', variant: 'destructive' })
     } finally {
       setBalanceAdjustLoading(false)
     }
@@ -301,14 +318,87 @@ export function UsersTab() {
       </Card>
 
       {/* Balance Adjust Dialog */}
-      <Dialog open={!!balanceAdjustUserId} onOpenChange={() => { setBalanceAdjustUserId(null); setBalanceAdjustAmount('') }}>
-        <DialogContent className="bg-card border-border/50">
+      <Dialog open={!!balanceAdjustUserId} onOpenChange={() => { setBalanceAdjustUserId(null); setBalanceAdjustAmount(''); setBalanceAdjustRemarks(''); setBalanceAdjustType('add') }}>
+        <DialogContent className="bg-card border-border/50 sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adjust Balance</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-emerald-400" />
+              Adjust User Balance
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* User info */}
+            {balanceAdjustUserId && (() => {
+              const u = users.find(x => x.id === balanceAdjustUserId)
+              return u ? (
+                <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
+                  <p className="text-sm font-medium">{u.name}</p>
+                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                  <div className="flex gap-3 mt-2 text-xs">
+                    <span className="text-emerald-400">Trading: ${(u as any).tradingBalance?.toFixed(2) || '0.00'}</span>
+                    <span className="text-cyan-400">Withdrawal: ${(u as any).withdrawalBalance?.toFixed(2) || '0.00'}</span>
+                  </div>
+                </div>
+              ) : null
+            })()}
+
+            {/* Add or Subtract */}
             <div className="space-y-2">
-              <Label>Amount (positive to add, negative to subtract)</Label>
+              <Label className="text-xs text-muted-foreground">Action</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setBalanceAdjustType('add')}
+                  className={`py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    balanceAdjustType === 'add'
+                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  ➕ Add Balance
+                </button>
+                <button
+                  onClick={() => setBalanceAdjustType('subtract')}
+                  className={`py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    balanceAdjustType === 'subtract'
+                      ? 'bg-rose-500/15 border-rose-500/30 text-rose-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  ➖ Subtract Balance
+                </button>
+              </div>
+            </div>
+
+            {/* Wallet Selection */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Wallet</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setBalanceAdjustWallet('trading')}
+                  className={`py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    balanceAdjustWallet === 'trading'
+                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  💹 Trading Wallet
+                </button>
+                <button
+                  onClick={() => setBalanceAdjustWallet('withdrawal')}
+                  className={`py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    balanceAdjustWallet === 'withdrawal'
+                      ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  💰 Withdrawal Wallet
+                </button>
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Amount (USD)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
@@ -317,19 +407,55 @@ export function UsersTab() {
                   onChange={e => setBalanceAdjustAmount(e.target.value)}
                   placeholder="0.00"
                   className="bg-muted/50 border-border/50 pl-7"
+                  min="0"
+                  step="0.01"
                 />
               </div>
+              <div className="flex gap-2">
+                {[10, 50, 100, 500, 1000].map(val => (
+                  <Button key={val} variant="outline" size="sm" className="flex-1 text-[10px] h-7" onClick={() => setBalanceAdjustAmount(val.toString())}>
+                    ${val}
+                  </Button>
+                ))}
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => { setBalanceAdjustUserId(null); setBalanceAdjustAmount('') }}>
+
+            {/* Remarks */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Remarks / Reason *</Label>
+              <Input
+                value={balanceAdjustRemarks}
+                onChange={e => setBalanceAdjustRemarks(e.target.value)}
+                placeholder="e.g. Bonus credit, Refund, Correction, Promotion reward..."
+                className="bg-muted/50 border-border/50"
+              />
+              <p className="text-[10px] text-muted-foreground">This will be recorded in the transaction log and activity history</p>
+            </div>
+
+            {/* Summary */}
+            {balanceAdjustAmount && parseFloat(balanceAdjustAmount) > 0 && (
+              <div className={`p-3 rounded-lg border ${balanceAdjustType === 'add' ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}>
+                <p className="text-sm font-medium">
+                  {balanceAdjustType === 'add' ? '➕' : '➖'} {balanceAdjustType === 'add' ? 'Adding' : 'Subtracting'}{' '}
+                  <span className={balanceAdjustType === 'add' ? 'text-emerald-400' : 'text-rose-400'}>
+                    ${parseFloat(balanceAdjustAmount).toFixed(2)}
+                  </span>{' '}
+                  {balanceAdjustType === 'add' ? 'to' : 'from'} {balanceAdjustWallet} wallet
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => { setBalanceAdjustUserId(null); setBalanceAdjustAmount(''); setBalanceAdjustRemarks('') }}>
                 Cancel
               </Button>
               <Button
                 onClick={handleAdjustBalance}
-                disabled={balanceAdjustLoading || !balanceAdjustAmount}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={balanceAdjustLoading || !balanceAdjustAmount || parseFloat(balanceAdjustAmount) <= 0}
+                className={balanceAdjustType === 'add' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-rose-600 hover:bg-rose-700 text-white'}
               >
-                {balanceAdjustLoading ? 'Adjusting...' : 'Adjust'}
+                {balanceAdjustLoading ? 'Processing...' : balanceAdjustType === 'add' ? 'Add Balance' : 'Subtract Balance'}
               </Button>
             </div>
           </div>
