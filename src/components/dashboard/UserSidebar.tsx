@@ -193,6 +193,20 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
         </div>
       </div>
 
+      {/* Admin Panel Link (only for admins) */}
+      {user?.role === 'admin' && (
+        <div className="px-4 pb-2">
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-2 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+            onClick={() => { window.location.href = '/admin' }}
+          >
+            <Shield className="size-4" />
+            Admin Panel
+          </Button>
+        </div>
+      )}
+
       {/* Logout */}
       <div className="p-4 pt-0">
         <Button

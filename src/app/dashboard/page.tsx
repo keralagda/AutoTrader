@@ -22,11 +22,6 @@ export default function DashboardPage() {
       .then(data => {
         if (data.authenticated && data.user) {
           login(data.user as UserData)
-          // If admin, redirect to admin panel
-          if (data.user.role === 'admin') {
-            router.replace('/admin')
-            return
-          }
         } else {
           throw new Error('Not authenticated')
         }
