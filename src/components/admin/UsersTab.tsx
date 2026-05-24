@@ -16,7 +16,8 @@ interface UserRecord {
   name: string
   email: string
   referralCode: string
-  balance: number
+  tradingBalance: number
+  withdrawalBalance: number
   totalEarnings: number
   totalDeposited: number
   isActive: boolean
@@ -263,7 +264,7 @@ export function UsersTab() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{user.email}</TableCell>
-                      <TableCell className="text-sm text-foreground font-medium">${user.balance.toFixed(2)}</TableCell>
+                      <TableCell className="text-sm text-foreground font-medium">${(user.tradingBalance || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-sm text-emerald-400">${user.totalEarnings.toFixed(2)}</TableCell>
                       <TableCell className="text-sm text-foreground">${user.totalDeposited.toFixed(2)}</TableCell>
                       <TableCell>
@@ -335,8 +336,8 @@ export function UsersTab() {
                   <p className="text-sm font-medium">{u.name}</p>
                   <p className="text-xs text-muted-foreground">{u.email}</p>
                   <div className="flex gap-3 mt-2 text-xs">
-                    <span className="text-emerald-400">Trading: ${(u as any).tradingBalance?.toFixed(2) || '0.00'}</span>
-                    <span className="text-cyan-400">Withdrawal: ${(u as any).withdrawalBalance?.toFixed(2) || '0.00'}</span>
+                    <span className="text-emerald-400">Trading: ${u.tradingBalance.toFixed(2) || '0.00'}</span>
+                    <span className="text-cyan-400">Withdrawal: ${u.withdrawalBalance.toFixed(2) || '0.00'}</span>
                   </div>
                 </div>
               ) : null
@@ -503,7 +504,7 @@ export function UsersTab() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-xs text-muted-foreground">Balance</p>
-                  <p className="text-lg font-bold text-foreground">${selectedUser.balance.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-foreground">${selected(user.tradingBalance || 0).toFixed(2)}</p>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-xs text-muted-foreground">Earnings</p>

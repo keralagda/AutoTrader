@@ -37,11 +37,14 @@ self.addEventListener('fetch', (event) => {
   // Skip API requests - always go to network
   if (event.request.url.includes('/api/')) return;
 
+  // Skip non-http(s) schemes (chrome-extension, etc.)
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response and cache it
-        if (response.status === 200) {
+        // Clone the response and cache it (only same-origin http/https)
+        if (response.status === 200 && event.request.url.startsWith(self.location.origin)) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone);
