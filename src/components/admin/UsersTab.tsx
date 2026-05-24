@@ -504,15 +504,15 @@ export function UsersTab() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-xs text-muted-foreground">Balance</p>
-                  <p className="text-lg font-bold text-foreground">${selected(user.tradingBalance || 0).toFixed(2)}</p>
+                  <p className="text-lg font-bold text-foreground">${((selectedUser?.tradingBalance || 0) + (selectedUser?.withdrawalBalance || 0)).toFixed(2)}</p>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-xs text-muted-foreground">Earnings</p>
-                  <p className="text-lg font-bold text-emerald-400">${selectedUser.totalEarnings.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-emerald-400">${(selectedUser?.totalEarnings || 0).toFixed(2)}</p>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-xs text-muted-foreground">Deposited</p>
-                  <p className="text-lg font-bold text-foreground">${selectedUser.totalDeposited.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-foreground">${(selectedUser?.totalDeposited || 0).toFixed(2)}</p>
                 </div>
               </div>
 
