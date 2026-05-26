@@ -51,6 +51,8 @@ export function DepositTab() {
   const [success, setSuccess] = useState(false)
   const [copied, setCopied] = useState(false)
   const [bankTransferOpen, setBankTransferOpen] = useState(false)
+  const [txHash, setTxHash] = useState('')
+  const [proofUrl, setProofUrl] = useState('')
 
   const parsedAmount = parseFloat(amount) || 0
   const tradingBalance = user?.tradingBalance || 0
@@ -98,6 +100,8 @@ export function DepositTab() {
           userId: user.id,
           amount: parsedAmount,
           method: paymentMethod,
+          txHash: txHash || undefined,
+          proofUrl: proofUrl || undefined,
         }),
       })
 
@@ -106,7 +110,14 @@ export function DepositTab() {
         updateUserWallets(data.tradingBalance, data.withdrawalBalance)
         setSuccess(true)
         setAmount('')
-        toast({ title: 'Deposit Successful!', description: `$${parsedAmount.toFixed(2)} added to your Trading Wallet` })
+        setTxHash('')
+        setProofUrl('')
+
+        if (data.status === 'pending') {
+          toast({ title: 'Deposit Submitted!', description: 'Awaiting admin approval. You will be notified once confirmed.' })
+        } else {
+          toast({ title: 'Deposit Confirmed!', description: `$${parsedAmount.toFixed(2)} added to your Trading Wallet` })
+        }
         fetchDeposits()
         setTimeout(() => setSuccess(false), 3000)
       } else {
@@ -254,6 +265,29 @@ export function DepositTab() {
                   ${val}
                 </Button>
               ))}
+            </div>
+          </div>
+
+          {/* Proof of Deposit */}
+          <div className="space-y-3 pt-2 border-t border-border/30">
+            <p className="text-xs font-medium text-muted-foreground">Proof of Deposit (Required)</p>
+            <div className="space-y-2">
+              <Label className="text-xs">Transaction Hash / Reference ID</Label>
+              <Input
+                value={txHash}
+                onChange={e => setTxHash(e.target.value)}
+                placeholder="0x... or UTR number or payment reference"
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Screenshot / Proof URL</Label>
+              <Input
+                value={proofUrl}
+                onChange={e => setProofUrl(e.target.value)}
+                placeholder="Paste image URL of payment screenshot"
+              />
+              <p className="text-[10px] text-muted-foreground">Upload screenshot to any image host and paste the URL, or use the Media Library</p>
             </div>
           </div>
 

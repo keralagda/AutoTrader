@@ -49,7 +49,10 @@ export async function PUT(request: Request) {
         const newBalance = user.tradingBalance + payment.amount
         await db.user.update({
           where: { id: user.id },
-          data: { tradingBalance: newBalance },
+          data: {
+            tradingBalance: newBalance,
+            totalDeposited: user.totalDeposited + payment.amount,
+          },
         })
 
         // Transaction log

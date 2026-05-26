@@ -23,10 +23,10 @@ export async function GET(request: Request) {
   }
 }
 
-// POST - Add funds to trading wallet
+// POST - Submit deposit with proof (requires admin approval for all users except admin)
 export async function POST(request: Request) {
   try {
-    const { userId, amount, method } = await request.json()
+    const { userId, amount, method, proofUrl, txHash, notes } = await request.json()
 
     if (!userId || !amount || amount <= 0) {
       return NextResponse.json({ error: 'User ID and valid amount required' }, { status: 400 })
@@ -35,37 +35,41 @@ export async function POST(request: Request) {
     const user = await db.user.findUnique({ where: { id: userId } })
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-    // Check if manual confirmation is required
-    const manualConfirmSetting = await db.setting.findUnique({ where: { key: 'require_deposit_confirmation' } })
-    const requireConfirmation = manualConfirmSetting?.value === 'true'
+    // Only super admin (role === 'admin') gets auto-confirmed
+    const isAdmin = user.role === 'admin'
 
-    // Admin always gets auto-confirmed
-    const autoConfirm = user.role === 'admin' || !requireConfirmation
-
-    // Create payment record
+    // Create payment record with proof
     const payment = await db.payment.create({
       data: {
         userId,
         amount,
         method: method || 'crypto_usdc',
-        status: autoConfirm ? 'confirmed' : 'pending',
+        status: isAdmin ? 'confirmed' : 'pending',
+        txHash: txHash || null,
+        gatewayRef: JSON.stringify({
+          proofUrl: proofUrl || null,
+          notes: notes || null,
+          submittedAt: new Date().toISOString(),
+        }),
       },
     })
 
-    if (autoConfirm) {
-      // Immediately credit trading wallet
+    if (isAdmin) {
+      // Admin: auto-confirm immediately
       const newBalance = user.tradingBalance + amount
       await db.user.update({
         where: { id: userId },
-        data: { tradingBalance: newBalance },
+        data: {
+          tradingBalance: newBalance,
+          totalDeposited: user.totalDeposited + amount,
+        },
       })
 
-      // Transaction log
       await db.transactionLog.create({
         data: {
           userId, type: 'deposit', amount,
           balanceBefore: user.tradingBalance, balanceAfter: newBalance,
-          wallet: 'trading', description: `Deposit via ${method || 'crypto_usdc'}`,
+          wallet: 'trading', description: `Admin deposit via ${method || 'crypto_usdc'}`,
           referenceId: payment.id, status: 'completed',
         },
       })
@@ -74,24 +78,50 @@ export async function POST(request: Request) {
         tradingBalance: newBalance,
         withdrawalBalance: user.withdrawalBalance,
         status: 'confirmed',
+        paymentId: payment.id,
       }, { status: 201 })
-    } else {
-      // Pending - admin needs to confirm
+    }
+
+    // Regular user: pending admin approval
+    // Notify user
+    await db.notification.create({
+      data: {
+        userId,
+        title: 'Deposit Submitted',
+        message: `Your deposit of $${amount.toFixed(2)} has been submitted and is awaiting admin verification. You'll be notified once approved.`,
+        type: 'info',
+      },
+    })
+
+    // Notify all admins
+    const admins = await db.user.findMany({ where: { role: 'admin' } })
+    for (const admin of admins) {
       await db.notification.create({
         data: {
-          userId, title: 'Deposit Pending',
-          message: `Your deposit of $${amount.toFixed(2)} is pending admin confirmation.`,
+          userId: admin.id,
+          title: 'New Deposit Pending',
+          message: `${user.name} submitted a deposit of $${amount.toFixed(2)} via ${method || 'crypto'}. Proof attached. Review required.`,
           type: 'info',
         },
       })
-
-      return NextResponse.json({
-        tradingBalance: user.tradingBalance,
-        withdrawalBalance: user.withdrawalBalance,
-        status: 'pending',
-        message: 'Deposit submitted. Awaiting admin confirmation.',
-      }, { status: 201 })
     }
+
+    // Activity log
+    await db.activityLog.create({
+      data: {
+        userId,
+        action: 'deposit_submitted',
+        details: JSON.stringify({ amount, method, txHash, proofUrl, paymentId: payment.id }),
+      },
+    })
+
+    return NextResponse.json({
+      tradingBalance: user.tradingBalance,
+      withdrawalBalance: user.withdrawalBalance,
+      status: 'pending',
+      paymentId: payment.id,
+      message: 'Deposit submitted successfully. Awaiting admin approval.',
+    }, { status: 201 })
   } catch (error) {
     console.error('Fund deposit error:', error)
     return NextResponse.json({ error: 'Failed to process deposit' }, { status: 500 })
