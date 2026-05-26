@@ -73,6 +73,7 @@ export function UserDashboard() {
   const [transferModalOpen, setTransferModalOpen] = useState(false)
   const [transferAmount, setTransferAmount] = useState('')
   const [transferring, setTransferring] = useState(false)
+  const [transferDirection, setTransferDirection] = useState<'trading_to_withdrawal' | 'withdrawal_to_trading'>('trading_to_withdrawal')
   const [unreadNotifs, setUnreadNotifs] = useState(0)
   const { toast } = useToast()
 
@@ -98,8 +99,9 @@ export function UserDashboard() {
       toast({ title: 'Invalid amount', variant: 'destructive' })
       return
     }
-    if (amount > tradingBalance) {
-      toast({ title: 'Insufficient trading balance', variant: 'destructive' })
+    const sourceBalance = transferDirection === 'trading_to_withdrawal' ? tradingBalance : withdrawalBalance
+    if (amount > sourceBalance) {
+      toast({ title: 'Insufficient balance', variant: 'destructive' })
       return
     }
 
@@ -111,7 +113,7 @@ export function UserDashboard() {
         body: JSON.stringify({
           userId: user.id,
           amount,
-          direction: 'trading_to_withdrawal',
+          direction: transferDirection,
         }),
       })
 
@@ -120,7 +122,9 @@ export function UserDashboard() {
         updateUserWallets(data.tradingBalance, data.withdrawalBalance)
         toast({
           title: 'Transfer Successful',
-          description: `$${amount.toFixed(2)} moved to Withdrawal Wallet`,
+          description: transferDirection === 'trading_to_withdrawal'
+            ? `$${amount.toFixed(2)} moved to Withdrawal Wallet`
+            : `$${amount.toFixed(2)} moved to Trading Wallet`,
         })
         setTransferAmount('')
         setTransferModalOpen(false)
@@ -227,7 +231,7 @@ export function UserDashboard() {
               Transfer Funds
             </DialogTitle>
             <DialogDescription>
-              Move funds from your Trading Wallet to your Withdrawal Wallet
+              Move funds between your wallets
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -242,10 +246,28 @@ export function UserDashboard() {
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <span className="text-emerald-400 font-medium">Trading</span>
-              <ArrowRightLeft className="size-4" />
-              <span className="text-cyan-400 font-medium">Withdrawal</span>
+            {/* Direction Toggle */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setTransferDirection('trading_to_withdrawal')}
+                className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                  transferDirection === 'trading_to_withdrawal'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                    : 'border-border/50 text-muted-foreground'
+                }`}
+              >
+                Trading → Withdrawal
+              </button>
+              <button
+                onClick={() => setTransferDirection('withdrawal_to_trading')}
+                className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                  transferDirection === 'withdrawal_to_trading'
+                    ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
+                    : 'border-border/50 text-muted-foreground'
+                }`}
+              >
+                Withdrawal → Trading
+              </button>
             </div>
 
             <div className="space-y-2">

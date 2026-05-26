@@ -41,12 +41,12 @@ export async function POST() {
     const existingGateways = await db.paymentGateway.count()
     if (existingGateways === 0) {
       const defaultGateways = [
-        { name: 'USDC (Polygon)', type: 'crypto', network: 'polygon', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 1 },
-        { name: 'Bitcoin (BTC)', type: 'crypto', network: 'bitcoin', minAmount: 50, maxAmount: 100000, feePercent: 0.5, isActive: false, sortOrder: 2 },
-        { name: 'Ethereum (ETH)', type: 'crypto', network: 'ethereum', minAmount: 25, maxAmount: 100000, feePercent: 0.3, isActive: false, sortOrder: 3 },
-        { name: 'UPI', type: 'indian', minAmount: 100, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 4 },
-        { name: 'Bank Transfer (NEFT/IMPS)', type: 'indian', minAmount: 500, maxAmount: 500000, feePercent: 0, isActive: false, sortOrder: 5 },
-        { name: 'Razorpay (Cards/Wallets)', type: 'indian', minAmount: 100, maxAmount: 200000, feePercent: 2, isActive: false, sortOrder: 6 },
+        { name: 'MetaMask', type: 'crypto', network: 'ethereum', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 1 },
+        { name: 'CoinPayments', type: 'crypto', network: 'multi', minAmount: 10, maxAmount: 500000, feePercent: 0.5, isActive: true, sortOrder: 2 },
+        { name: 'NOWPayments', type: 'crypto', network: 'multi', minAmount: 5, maxAmount: 100000, feePercent: 0.5, isActive: true, sortOrder: 3 },
+        { name: 'USDT (TRC-20)', type: 'crypto', network: 'tron', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 4 },
+        { name: 'USDC (ERC-20)', type: 'crypto', network: 'ethereum', minAmount: 25, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 5 },
+        { name: 'Bitcoin (BTC)', type: 'crypto', network: 'bitcoin', minAmount: 50, maxAmount: 100000, feePercent: 0, isActive: false, sortOrder: 6 },
       ]
       for (const gw of defaultGateways) {
         await db.paymentGateway.create({ data: gw })

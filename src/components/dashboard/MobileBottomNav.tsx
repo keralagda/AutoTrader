@@ -17,6 +17,7 @@ import {
   Shield,
   Users,
   X,
+  LogOut,
 } from 'lucide-react'
 
 const mainNavItems: { id: DashboardTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -39,13 +40,12 @@ const moreNavItems: { id: DashboardTab; label: string; icon: React.ComponentType
 ]
 
 export function MobileBottomNav() {
-  const { dashboardTab, setDashboardTab } = useAppStore()
+  const { dashboardTab, setDashboardTab, logout } = useAppStore()
   const [showMore, setShowMore] = useState(false)
 
   const handleNav = (id: DashboardTab) => {
     setDashboardTab(id)
     setShowMore(false)
-    // Haptic feedback on supported devices
     if (navigator.vibrate) navigator.vibrate(10)
   }
 
@@ -81,6 +81,14 @@ export function MobileBottomNav() {
                   </button>
                 )
               })}
+              {/* Logout */}
+              <button
+                onClick={() => { setShowMore(false); logout() }}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all active:scale-95 text-rose-400 hover:bg-rose-500/10"
+              >
+                <LogOut className="size-5" />
+                <span className="text-[10px] font-medium">Logout</span>
+              </button>
             </div>
           </div>
         </div>
