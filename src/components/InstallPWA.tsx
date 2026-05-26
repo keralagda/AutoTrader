@@ -35,7 +35,8 @@ export function InstallPWA() {
     const handler = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setShowBanner(true)
+      // Delay showing the banner by 30 seconds
+      setTimeout(() => setShowBanner(true), 30000)
     }
 
     window.addEventListener('beforeinstallprompt', handler)

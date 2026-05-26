@@ -134,8 +134,35 @@ export function WithdrawTab() {
       return
     }
     if (!walletAddress.trim()) {
-      toast({ title: 'Wallet address / UPI ID required', variant: 'destructive' })
+      toast({ title: 'Wallet address required', variant: 'destructive' })
       return
+    }
+
+    // Basic wallet address validation
+    const addr = walletAddress.trim()
+    const isCrypto = paymentMethod.startsWith('crypto_') || paymentMethod === 'metamask'
+    if (isCrypto) {
+      // Ethereum/ERC-20 address validation
+      if (paymentMethod.includes('ethereum') || paymentMethod.includes('erc') || paymentMethod === 'metamask') {
+        if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+          toast({ title: 'Invalid Ethereum address', description: 'Must start with 0x followed by 40 hex characters', variant: 'destructive' })
+          return
+        }
+      }
+      // Bitcoin address validation (basic)
+      if (paymentMethod.includes('bitcoin') || paymentMethod.includes('btc')) {
+        if (!/^(1|3|bc1)[a-zA-Z0-9]{25,62}$/.test(addr)) {
+          toast({ title: 'Invalid Bitcoin address', variant: 'destructive' })
+          return
+        }
+      }
+      // TRON/TRC-20 validation
+      if (paymentMethod.includes('tron') || paymentMethod.includes('trc')) {
+        if (!/^T[a-zA-Z0-9]{33}$/.test(addr)) {
+          toast({ title: 'Invalid TRON address', description: 'Must start with T followed by 33 characters', variant: 'destructive' })
+          return
+        }
+      }
     }
 
     try {
