@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useLandingContent } from './LandingPage'
 
 const quickLinks = [
   { label: 'Home', href: '#home' },
@@ -48,6 +49,8 @@ const socialLinks = [
 ]
 
 export default function Footer() {
+  const content = useLandingContent()
+  const footerContent = content.footer || {}
   const [legalModal, setLegalModal] = useState<{ open: boolean; type: string; title: string; content: string }>({
     open: false,
     type: '',
@@ -89,7 +92,7 @@ export default function Footer() {
               <div className="flex items-center gap-2">
                 <Diamond className="size-6 text-emerald-400 fill-emerald-400/30" />
                 <span className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
-                  BNFX
+                  {footerContent.companyName || 'BNFX'}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground max-w-xs">
@@ -156,10 +159,10 @@ export default function Footer() {
           {/* Bottom Bar */}
           <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} BNFX. All rights reserved.
+              &copy; {new Date().getFullYear()} {footerContent.companyName || 'BNFX'}. {footerContent.copyright || 'All rights reserved.'}
             </p>
             <p className="text-xs text-muted-foreground">
-              Powered by <span className="text-emerald-400 font-medium">BNFX Protocol</span>
+              {footerContent.tagline || <>Powered by <span className="text-emerald-400 font-medium">BNFX Protocol</span></>}
             </p>
           </div>
         </div>

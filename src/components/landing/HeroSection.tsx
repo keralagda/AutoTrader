@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowRight, TrendingUp, Users, DollarSign, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/lib/store'
+import { useLandingContent } from './LandingPage'
 
 // Floating particles component
 function Particles() {
@@ -82,6 +83,8 @@ const stats = [
 
 export default function HeroSection() {
   const { setShowAuthModal, setAuthMode } = useAppStore()
+  const content = useLandingContent()
+  const heroContent = content.hero || {}
   const userCount = useCounter(stats[0].value, 2500)
   const earnedCount = useCounter(stats[1].value, 2500)
   const plansCount = useCounter(stats[2].value, 2500)
@@ -127,13 +130,12 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.2 }}
         >
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight mb-6">
-            <span className="block mb-2">🔥 Start Now</span>
-            <span className="block mb-2">Join{' '}</span>
+            <span className="block mb-2">{heroContent.title?.split('\n')[0] || '🔥 Start Now'}</span>
             <span className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-amber-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_200%]">
-              BNFX!
+              {heroContent.title?.split('\n')[1] || 'Join BNFX!'}
             </span>
             <span className="block mt-2 text-3xl sm:text-4xl md:text-5xl">
-              Enable Your USDC Auto-Earning Mode!
+              {heroContent.subtitle || 'Enable Your USDC Auto-Earning Mode!'}
             </span>
           </h1>
         </motion.div>
@@ -145,8 +147,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
         >
-          Automated crypto trading with daily returns up to 15%.
-          Join thousands of investors earning passive income with our AI-powered platform.
+          {heroContent.description || 'Automated crypto trading with daily returns up to 15%. Join thousands of investors earning passive income with our AI-powered platform.'}
         </motion.p>
 
         {/* CTA Buttons */}
@@ -162,7 +163,7 @@ export default function HeroSection() {
             className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-8 py-6 animate-pulse-glow"
           >
             <Zap className="mr-2 size-5" />
-            Start Earning
+            {heroContent.ctaPrimary || 'Start Earning'}
             <ArrowRight className="ml-2 size-5" />
           </Button>
           <Button
