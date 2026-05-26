@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifyPassword, setSessionCookie, createToken } from '@/lib/auth'
+import { verifyPassword, setSessionCookie, createToken, hashPassword } from '@/lib/auth'
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +20,12 @@ export async function POST(request: Request) {
     const isValid = await verifyPassword(password, user.password)
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+    }
+
+    // Auto-migrate plain-text/SHA-256 passwords to bcrypt on successful login
+    if (!user.password.startsWith('$2')) {
+      const hashed = await hashPassword(password)
+      await db.user.update({ where: { id: user.id }, data: { password: hashed } })
     }
 
     if (!user.isActive) {

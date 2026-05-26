@@ -38,6 +38,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   
   // Trading Configuration
   { tab: 'tradingConfig', label: 'Trading Config', icon: Activity, group: 'trading' },
+  { tab: 'riskCategories', label: 'Risk Categories', icon: Shield, group: 'trading' },
   
   // Support & Analytics
   { tab: 'tickets', label: 'Support Tickets', icon: LifeBuoy, group: 'support' },

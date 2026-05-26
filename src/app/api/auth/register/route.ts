@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { hashPassword, setSessionCookie } from '@/lib/auth'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
   try {
@@ -56,6 +57,9 @@ export async function POST(request: Request) {
 
     // Create session cookie
     const token = await setSessionCookie({ userId: user.id, email: user.email, role: user.role })
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(user.email, user.name).catch(() => {})
 
     return NextResponse.json({
       token,

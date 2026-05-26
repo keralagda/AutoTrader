@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { sendDepositConfirmation } from '@/lib/email'
 
 // GET - List all fund deposits (payments) for admin review
 export async function GET(request: Request) {
@@ -73,6 +74,26 @@ export async function PUT(request: Request) {
             type: 'success',
           },
         })
+
+        // Send email (non-blocking)
+        sendDepositConfirmation(user.email, user.name, payment.amount).catch(() => {})
+
+        // Referral bonus: credit upline on deposit
+        const REFERRAL_DEPOSIT_PERCENTS = [5, 3, 2, 1, 1, 0.5, 0.5] // 7 levels
+        let currentReferrerId = user.referredById
+        let level = 0
+        while (currentReferrerId && level < 7) {
+          const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+          if (!referrer) break
+          const bonus = (payment.amount * REFERRAL_DEPOSIT_PERCENTS[level]) / 100
+          if (bonus > 0) {
+            await db.user.update({ where: { id: referrer.id }, data: { tradingBalance: referrer.tradingBalance + bonus, totalEarnings: referrer.totalEarnings + bonus } })
+            await db.earning.create({ data: { userId: referrer.id, amount: bonus, type: 'referral', level: level + 1, walletTarget: 'trading' } })
+            await db.notification.create({ data: { userId: referrer.id, title: 'Referral Bonus!', message: `You earned $${bonus.toFixed(2)} from ${user.name}'s deposit (Level ${level + 1})`, type: 'referral' } })
+          }
+          currentReferrerId = referrer.referredById
+          level++
+        }
       }
 
       // Activity log
