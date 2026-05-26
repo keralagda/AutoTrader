@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/lib/store'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { useLandingContent } from './LandingPage'
+import { t } from '@/lib/i18n'
 
 const navLinks = [
-  { label: 'Home', href: '#home' },
-  { label: 'Plans', href: '#plans' },
-  { label: 'About', href: '#about' },
-  { label: 'Referral', href: '#referral' },
+  { key: 'nav.home' as const, href: '#home' },
+  { key: 'nav.plans' as const, href: '#plans' },
+  { key: 'nav.about' as const, href: '#about' },
 ]
 
 export default function Navbar() {
@@ -21,6 +21,13 @@ export default function Navbar() {
   const content = useLandingContent()
   const navContent = content.navbar || {}
   const { setShowAuthModal, setAuthMode } = useAppStore()
+  const [, forceUpdate] = useState(0)
+
+  useEffect(() => {
+    const handleLocaleChange = () => forceUpdate(n => n + 1)
+    window.addEventListener('locale-changed', handleLocaleChange)
+    return () => window.removeEventListener('locale-changed', handleLocaleChange)
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -77,7 +84,7 @@ export default function Navbar() {
                 onClick={() => handleNavClick(link.href)}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer"
               >
-                {link.label}
+                {t(link.key)}
               </button>
             ))}
           </div>
@@ -91,15 +98,13 @@ export default function Navbar() {
               onClick={handleLogin}
               className="text-muted-foreground hover:text-foreground"
             >
-              Login
+              {t('nav.login')}
             </Button>
             <Button
               size="sm"
               onClick={handleRegister}
               className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
-            >
-              Register
-            </Button>
+            >{t('nav.register')}</Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -129,7 +134,7 @@ export default function Navbar() {
                   onClick={() => handleNavClick(link.href)}
                   className="block w-full text-left text-sm text-muted-foreground hover:text-foreground py-2 transition-colors"
                 >
-                  {link.label}
+                  {t(link.key)}
                 </button>
               ))}
               <div className="flex items-center justify-between pt-2 pb-1">
@@ -143,15 +148,13 @@ export default function Navbar() {
                   onClick={handleLogin}
                   className="flex-1"
                 >
-                  Login
+                  {t('nav.login')}
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleRegister}
                   className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
-                >
-                  Register
-                </Button>
+                >{t('nav.register')}</Button>
               </div>
             </div>
           </motion.div>
