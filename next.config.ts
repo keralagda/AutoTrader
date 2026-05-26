@@ -19,6 +19,28 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Global headers for all routes - helps with GCC ISP access
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
+      {
         source: '/sw.js',
         headers: [
           {

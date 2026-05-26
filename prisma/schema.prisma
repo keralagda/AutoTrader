@@ -29,6 +29,9 @@ model User {
   kycStatus        String    @default("none") // "none", "pending", "approved", "rejected"
   twoFactorSecret  String?
   twoFactorEnabled Boolean   @default(false)
+  riskCategory     String    @default("medium") // "low", "medium", "high" - determines earning variation
+  customWinMin     Float?    // Admin override: minimum daily % for this user (null = use category default)
+  customWinMax     Float?    // Admin override: maximum daily % for this user (null = use category default)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

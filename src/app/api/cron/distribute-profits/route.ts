@@ -111,15 +111,44 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Calculate profit amount for this period
+      // Calculate profit amount for this period using VARIABLE percentages
+      // Based on user's risk category (low/medium/high) with randomized daily returns
       let profitAmount: number
+
       if (plan.totalReturnPercent > 0 && plan.repeatCount > 0) {
-        // Fixed total return divided by number of payouts
+        // Fixed total return divided by number of payouts (for fixed-return plans)
         profitAmount = (deposit.amount * plan.totalReturnPercent / 100) / plan.repeatCount
       } else {
-        // Use daily earning percent, scaled to the return period
+        // VARIABLE PERCENTAGE: Use user's risk category to determine daily %
+        const riskCategory = (user as any).riskCategory || 'medium'
+        const customWinMin = (user as any).customWinMin
+        const customWinMax = (user as any).customWinMax
+
+        let minPercent: number
+        let maxPercent: number
+
+        // Use custom per-user overrides if set, otherwise use category defaults
+        if (customWinMin !== null && customWinMax !== null && customWinMin !== undefined && customWinMax !== undefined) {
+          minPercent = customWinMin
+          maxPercent = customWinMax
+        } else {
+          // Get category settings from DB (cached in this run)
+          const categoryDefaults: Record<string, { minPercent: number; maxPercent: number }> = {
+            low: { minPercent: 0.5, maxPercent: 2.0 },
+            medium: { minPercent: 2.0, maxPercent: 5.0 },
+            high: { minPercent: 5.0, maxPercent: 15.0 },
+          }
+          const cat = categoryDefaults[riskCategory] || categoryDefaults.medium
+          minPercent = cat.minPercent
+          maxPercent = cat.maxPercent
+        }
+
+        // Generate random percentage within the user's range
+        const dailyPercent = minPercent + (Math.random() * (maxPercent - minPercent))
+
+        // Scale to the return period
         const periodsPerDay = 24 / plan.returnPeriodHours
-        profitAmount = (deposit.amount * plan.dailyEarningPercent / 100) / periodsPerDay
+        profitAmount = (deposit.amount * dailyPercent / 100) / periodsPerDay
       }
 
       // Apply stacking bonus
