@@ -314,3 +314,36 @@ html, body {
 .animate-slide-up {
   animation: slideInFromBottom 0.25s ease-out;
 }
+
+/* ─── RTL Support (Arabic, Hebrew) ──────────────────────────────── */
+
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .flex-row-reverse {
+  flex-direction: row;
+}
+
+/* Keep specific elements LTR even in RTL mode */
+[dir="rtl"] .ltr-always {
+  direction: ltr;
+  text-align: left;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] .font-mono {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Fix sidebar in RTL */
+[dir="rtl"] aside {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
