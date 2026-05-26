@@ -85,7 +85,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
 
   const fetchGateways = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/payment-gateways')
+      const res = await fetch('/api/payment-gateways')
       if (res.ok) {
         const data = await res.json()
         setGateways(data.filter((g: PaymentGatewayType) => g.isActive))

@@ -111,7 +111,7 @@ export function TradingSimulator({ deposit }: { deposit: Deposit }) {
 
   // Load config
   useEffect(() => {
-    fetch('/api/admin/trading-config')
+    fetch('/api/trading-config')
       .then(r => r.json())
       .then(setConfig)
       .catch(() => {})
