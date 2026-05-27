@@ -96,6 +96,17 @@ model Plan {
   withdrawalRule        String?
   stackingRule          String?
 
+  // Risk Level Configuration
+  riskLevels            String    @default("low,medium,high") // Comma-separated: which risk levels this plan supports
+  lowRiskMin            Float     @default(0.5)  // Min daily % for low risk
+  lowRiskMax            Float     @default(2.0)  // Max daily % for low risk
+  mediumRiskMin         Float     @default(2.0)  // Min daily % for medium risk
+  mediumRiskMax         Float     @default(5.0)  // Max daily % for medium risk
+  highRiskMin           Float     @default(5.0)  // Min daily % for high risk
+  highRiskMax           Float     @default(15.0) // Max daily % for high risk
+  rotateWinPercent      Boolean   @default(true) // Rotate win % with each stack
+  rotationIncrement     Float     @default(0.5)  // % increment per stack rotation
+
   isActive              Boolean  @default(true)
   sortOrder             Int      @default(0)
   createdAt             DateTime @default(now())
@@ -112,6 +123,7 @@ model Deposit {
   status        String   @default("active") // "active", "completed", "cancelled", "locked", "ended"
   earnedSoFar   Float    @default(0)
   stackIndex    Int      @default(1)
+  riskLevel     String   @default("medium") // "low", "medium", "high" - chosen at investment time
   lockedUntil   DateTime?
   nextProfitAt  DateTime? // When the next scheduled profit will be credited
   profitCount   Int      @default(0) // How many times profit has been paid out

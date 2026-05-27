@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
 import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight } from 'lucide-react'
+import { UserDetailView } from './UserDetailView'
 
 interface UserRecord {
   id: string
@@ -61,6 +62,7 @@ export function UsersTab() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [balanceAdjustUserId, setBalanceAdjustUserId] = useState<string | null>(null)
   const [balanceAdjustAmount, setBalanceAdjustAmount] = useState('')
@@ -187,6 +189,11 @@ export function UsersTab() {
     return matchSearch && matchStatus
   })
 
+  // Show full-page user detail view
+  if (viewingUserId) {
+    return <UserDetailView userId={viewingUserId} onBack={() => setViewingUserId(null)} />
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -283,7 +290,7 @@ export function UsersTab() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleViewDetails(user)}
+                            onClick={() => setViewingUserId(user.id)}
                             className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
                             title="View Details"
                           >

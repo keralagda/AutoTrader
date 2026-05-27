@@ -1,8 +1,32 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+
+    // Single user detail view
+    if (userId) {
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        include: {
+          deposits: {
+            include: { plan: { select: { name: true, dailyEarningPercent: true } } },
+            orderBy: { createdAt: 'desc' },
+            take: 20,
+          },
+          earnings: { orderBy: { createdAt: 'desc' }, take: 20 },
+          withdrawals: { orderBy: { createdAt: 'desc' }, take: 10 },
+          referrals: { select: { id: true, name: true, email: true, totalDeposited: true } },
+          _count: { select: { deposits: true, referrals: true, withdrawals: true } },
+        },
+      })
+      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json(user)
+    }
+
+    // List all users
     const users = await db.user.findMany({
       where: { role: 'user' },
       select: {
@@ -18,6 +42,7 @@ export async function GET() {
         isFake: true,
         createdAt: true,
         referredById: true,
+        riskCategory: true,
         _count: {
           select: {
             deposits: true,
