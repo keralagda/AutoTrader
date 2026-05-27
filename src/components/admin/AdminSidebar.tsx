@@ -59,7 +59,7 @@ export function AdminSidebar() {
   const { adminTab, setAdminTab, user, logout, setView } = useAppStore()
 
   return (
-    <aside className="w-64 min-h-screen bg-card/80 border-r border-border/50 flex flex-col backdrop-blur-sm">
+    <aside className="w-64 min-h-screen cyber-sidebar flex flex-col">
       {/* Admin Header */}
       <div className="p-6">
         <div className="flex items-center gap-3">
@@ -104,10 +104,10 @@ export function AdminSidebar() {
                     key={tab}
                     onClick={() => setAdminTab(tab)}
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                      'w-full flex items-center gap-3 px-3 py-2 text-sm font-medium cyber-nav-item',
                       adminTab === tab
-                        ? 'bg-emerald-500/15 text-emerald-400 shadow-sm shadow-emerald-500/10'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        ? 'active text-emerald-400'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.02]'
                     )}
                   >
                     <Icon className={cn('h-4 w-4', adminTab === tab ? 'text-emerald-400' : 'text-muted-foreground')} />

@@ -154,7 +154,7 @@ export function AdminDashboard() {
   ]
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-background cyber-mesh">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -192,7 +192,7 @@ export function AdminDashboard() {
             {statCards.map(stat => {
               const Icon = stat.icon
               return (
-                <Card key={stat.label} className="bg-card/50 border-border/50 hover:border-emerald-500/20 transition-colors">
+                <Card key={stat.label} className="cyber-card hover:border-emerald-500/20">
                   <CardContent className="p-4 lg:p-6">
                     <div className="flex items-center gap-3">
                       <div className={`h-10 w-10 rounded-lg ${stat.bgColor} flex items-center justify-center shrink-0`}>

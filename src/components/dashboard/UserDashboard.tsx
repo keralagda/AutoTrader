@@ -160,12 +160,12 @@ export function UserDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background cyber-mesh">
       <UserSidebar />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile App Header */}
-        <header className="shrink-0 border-b border-border/50 bg-card/80 backdrop-blur-xl px-4 md:px-6 py-3 sticky top-0 z-30">
+        <header className="shrink-0 cyber-header sticky top-0 z-30 px-4 md:px-6 py-3">
           <div className="flex items-center justify-between">
             {/* Left: Page title */}
             <div className="flex items-center gap-2.5 pl-10 md:pl-0">

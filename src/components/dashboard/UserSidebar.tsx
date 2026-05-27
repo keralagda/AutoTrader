@@ -147,10 +147,10 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium cyber-nav-item ${
                   isActive
-                    ? 'bg-primary/15 text-primary border border-primary/30'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent'
+                    ? 'active text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.02]'
                 }`}
               >
                 <Icon className={`size-4 ${isActive ? 'text-primary' : ''}`} />
@@ -228,7 +228,7 @@ export function UserSidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border/50 bg-card/50 backdrop-blur-sm h-full">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col cyber-sidebar h-full">
         <SidebarContent />
       </aside>
 
