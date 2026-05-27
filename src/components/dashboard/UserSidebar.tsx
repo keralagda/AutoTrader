@@ -138,8 +138,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
       <Separator />
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-2 py-2">
-        <nav className="space-y-1">
+      <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
           {navItems.map((item) => {
             const isActive = dashboardTab === item.id
             const Icon = item.icon
@@ -166,8 +165,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
               </button>
             )
           })}
-        </nav>
-      </ScrollArea>
+      </nav>
 
       <Separator />
 
