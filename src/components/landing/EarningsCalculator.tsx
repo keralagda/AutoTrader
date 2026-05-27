@@ -8,10 +8,10 @@ import { Badge } from '@/components/ui/badge'
 import { Calculator, TrendingUp, Calendar, Wallet } from 'lucide-react'
 
 const PLANS = [
-  { name: 'Starter', dailyPercent: 6, maxEarning: 1000, color: 'text-gray-300' },
-  { name: 'Silver', dailyPercent: 8, maxEarning: 2500, color: 'text-slate-300' },
-  { name: 'Gold', dailyPercent: 10, maxEarning: 5000, color: 'text-amber-400' },
-  { name: 'Platinum', dailyPercent: 15, maxEarning: 25000, color: 'text-violet-400' },
+  { name: 'Starter', dailyPercent: 6, maxEarning: 1000, color: 'text-gray-300', range: '0.5-6%' },
+  { name: 'Silver', dailyPercent: 8, maxEarning: 2500, color: 'text-slate-300', range: '2-8%' },
+  { name: 'Gold', dailyPercent: 10, maxEarning: 5000, color: 'text-amber-400', range: '2-10%' },
+  { name: 'Platinum', dailyPercent: 15, maxEarning: 25000, color: 'text-violet-400', range: '5-15%' },
 ]
 
 export function EarningsCalculator() {
@@ -59,7 +59,7 @@ export function EarningsCalculator() {
                     }`}
                   >
                     <p className={`text-sm font-bold ${p.color}`}>{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.dailyPercent}% daily</p>
+                    <p className="text-xs text-muted-foreground">{p.range} daily</p>
                   </button>
                 ))}
               </div>

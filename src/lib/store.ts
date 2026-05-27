@@ -65,18 +65,15 @@ export const useAppStore = create<AppState>((set) => ({
     showAuthModal: false,
   }),
   logout: () => {
-    // Clear session cookie via API
-    fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {})
-    localStorage.removeItem('bnfx_user')
-    set({
-      isAuthenticated: false,
-      user: null,
-      currentView: 'landing',
-    })
-    // Redirect to home
-    if (typeof window !== 'undefined') {
-      window.location.href = '/'
-    }
+    // Clear session cookie via API then redirect
+    fetch('/api/auth/session', { method: 'DELETE' })
+      .catch(() => {})
+      .finally(() => {
+        localStorage.removeItem('bnfx_user')
+        document.cookie = 'bnfx_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+        window.location.href = '/'
+      })
+    set({ isAuthenticated: false, user: null, currentView: 'landing' })
   },
   setShowAuthModal: (show) => set({ showAuthModal: show }),
   setAuthMode: (mode) => set({ authMode: mode }),

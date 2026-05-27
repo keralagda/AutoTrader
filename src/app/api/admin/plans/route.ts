@@ -62,7 +62,8 @@ export async function POST(request: Request) {
   try {
     const data = await request.json()
 
-    const createData: any = { ...data }
+    // Remove fields that shouldn't be in create
+    const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, ...createData } = data as any
 
     // Auto-generate plain English descriptions as fallback
     const daily = data.dailyEarningPercent ?? 0
@@ -102,8 +103,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 })
     }
 
-    await db.plan.delete({ where: { id } })
+    // Check if plan has active deposits
+    const depositCount = await db.deposit.count({ where: { planId: id } })
+    if (depositCount > 0) {
+      // Soft delete: just deactivate
+      await db.plan.update({ where: { id }, data: { isActive: false } })
+      return NextResponse.json({ message: 'Plan deactivated (has existing deposits)' })
+    }
 
+    await db.plan.delete({ where: { id } })
     return NextResponse.json({ message: 'Plan deleted' })
   } catch (error) {
     console.error('Delete plan error:', error)
