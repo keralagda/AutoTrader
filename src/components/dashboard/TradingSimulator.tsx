@@ -203,42 +203,106 @@ export function TradingSimulator({ deposit }: { deposit: Deposit }) {
       })
   }, [config, deposit.id])
 
-  // Generate candle data
+  // Generate candle data from real Binance prices
   useEffect(() => {
-    const basePrice = BASE_PRICES[selectedPair] || 67500
-    const initialCandles: CandleData[] = []
-    let price = basePrice
-    for (let i = 60; i >= 0; i--) {
-      const volatility = price * 0.003
-      const open = price
-      const close = open + (Math.random() - 0.45) * volatility
-      const high = Math.max(open, close) + Math.random() * volatility * 0.5
-      const low = Math.min(open, close) - Math.random() * volatility * 0.5
-      initialCandles.push({ time: Date.now() - i * 60000, open, high, low, close })
-      price = close
-    }
-    setCandles(initialCandles)
-    setCurrentPrice(price)
+    const symbol = selectedPair.replace('/', '')
+    fetch(`/api/crypto-price?symbol=${symbol}&interval=1m&limit=60`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.candles && data.candles.length > 0) {
+          setCandles(data.candles.map((c: any) => ({
+            time: c.time,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+          })))
+          setCurrentPrice(data.currentPrice)
+        } else if (data.price) {
+          // Fallback: single price, generate candles around it
+          const basePrice = data.price
+          const initialCandles: CandleData[] = []
+          let price = basePrice
+          for (let i = 60; i >= 0; i--) {
+            const volatility = price * 0.002
+            const open = price
+            const close = open + (Math.random() - 0.45) * volatility
+            const high = Math.max(open, close) + Math.random() * volatility * 0.5
+            const low = Math.min(open, close) - Math.random() * volatility * 0.5
+            initialCandles.push({ time: Date.now() - i * 60000, open, high, low, close })
+            price = close
+          }
+          setCandles(initialCandles)
+          setCurrentPrice(basePrice)
+        }
+      })
+      .catch(() => {
+        // Fallback: use BASE_PRICES for offline
+        const basePrice = BASE_PRICES[selectedPair] || 67500
+        const initialCandles: CandleData[] = []
+        let price = basePrice
+        for (let i = 60; i >= 0; i--) {
+          const volatility = price * 0.003
+          const open = price
+          const close = open + (Math.random() - 0.45) * volatility
+          const high = Math.max(open, close) + Math.random() * volatility * 0.5
+          const low = Math.min(open, close) - Math.random() * volatility * 0.5
+          initialCandles.push({ time: Date.now() - i * 60000, open, high, low, close })
+          price = close
+        }
+        setCandles(initialCandles)
+        setCurrentPrice(price)
+      })
   }, [selectedPair])
 
-  // Real-time price updates
+  // Real-time price updates from Binance
   useEffect(() => {
-    const interval = setInterval(() => {
+    const symbol = selectedPair.replace('/', '')
+
+    // Fetch fresh price every 10 seconds
+    const fetchPrice = () => {
+      fetch(`/api/crypto-price?symbol=${symbol}&interval=1m&limit=1`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.currentPrice) {
+            const newPrice = data.currentPrice
+            setCurrentPrice(newPrice)
+            setCandles(prev => {
+              if (prev.length === 0) return prev
+              const last = prev[prev.length - 1]
+              if (Date.now() - last.time > 60000) {
+                // New candle
+                return [...prev.slice(-59), { time: Date.now(), open: newPrice, high: newPrice, low: newPrice, close: newPrice }]
+              }
+              // Update current candle
+              return [...prev.slice(0, -1), { ...last, close: newPrice, high: Math.max(last.high, newPrice), low: Math.min(last.low, newPrice) }]
+            })
+          }
+        })
+        .catch(() => {})
+    }
+
+    // Also do micro-updates between fetches for smooth animation
+    const microInterval = setInterval(() => {
       setCandles(prev => {
         if (prev.length === 0) return prev
         const last = prev[prev.length - 1]
-        const volatility = last.close * 0.002
-        const change = (Math.random() - 0.45) * volatility
+        const volatility = last.close * 0.0005
+        const change = (Math.random() - 0.48) * volatility
         const newClose = last.close + change
-        if (Date.now() - last.time > 10000) {
-          return [...prev.slice(-59), { time: Date.now(), open: newClose, high: newClose, low: newClose, close: newClose }]
-        }
+        setCurrentPrice(newClose)
         return [...prev.slice(0, -1), { ...last, close: newClose, high: Math.max(last.high, newClose), low: Math.min(last.low, newClose) }]
       })
-      setCurrentPrice(prev => prev + (Math.random() - 0.45) * prev * 0.001)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [])
+    }, 2000)
+
+    const priceInterval = setInterval(fetchPrice, 10000)
+    fetchPrice() // Initial fetch
+
+    return () => {
+      clearInterval(priceInterval)
+      clearInterval(microInterval)
+    }
+  }, [selectedPair])
 
   // Signal generation - consumes from pattern API queue
   useEffect(() => {
