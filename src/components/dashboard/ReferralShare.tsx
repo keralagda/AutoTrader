@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,22 +13,22 @@ export function ReferralShare() {
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
-  const qrRef = useRef<HTMLCanvasElement>(null)
+  const [qrDataUrl, setQrDataUrl] = useState('')
 
   const referralCode = user?.referralCode || ''
   const referralLink = typeof window !== 'undefined'
     ? `${window.location.origin}?ref=${referralCode}`
     : `https://bnfx.app?ref=${referralCode}`
 
-  // Generate QR code
+  // Generate QR code as data URL
   useEffect(() => {
-    if (!showQR || !qrRef.current) return
+    if (!showQR || !referralLink) return
     import('qrcode').then(QRCode => {
-      QRCode.toCanvas(qrRef.current, referralLink, {
+      QRCode.toDataURL(referralLink, {
         width: 200,
         margin: 2,
-        color: { dark: '#10b981', light: '#0a0a0a' },
-      })
+        color: { dark: '#10b981', light: '#111111' },
+      }).then((url: string) => setQrDataUrl(url))
     }).catch(() => {})
   }, [showQR, referralLink])
 
@@ -134,8 +134,13 @@ export function ReferralShare() {
 
         {/* QR Code */}
         {showQR && (
-          <div className="flex justify-center p-4 rounded-lg bg-muted/20 border border-border/30">
-            <canvas ref={qrRef} className="rounded-lg" />
+          <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/20 border border-border/30">
+            {qrDataUrl ? (
+              <img src={qrDataUrl} alt="Referral QR Code" className="rounded-lg w-48 h-48" />
+            ) : (
+              <div className="w-48 h-48 flex items-center justify-center text-muted-foreground text-xs">Generating...</div>
+            )}
+            <p className="text-[10px] text-muted-foreground">Scan to join with your referral</p>
           </div>
         )}
       </CardContent>
