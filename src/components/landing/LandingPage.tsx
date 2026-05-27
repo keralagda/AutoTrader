@@ -14,6 +14,7 @@ import { FakeNotificationToast } from './FakeNotificationToast'
 import { PromotionBanner } from './PromotionBanner'
 import { AnnouncementBanner } from './AnnouncementBanner'
 import { WithdrawalProofTicker } from './WithdrawalProofTicker'
+import { ReferralCalculator } from './ReferralCalculator'
 
 // Context to share landing content across all sections
 interface LandingContent {
@@ -66,6 +67,7 @@ export default function LandingPage() {
           <EarningsCalculator />
           <DistributionSection />
           <ReferralSection />
+          <ReferralCalculator />
           <TestimonialsSection />
           <StatsSection />
         </main>
