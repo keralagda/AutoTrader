@@ -1,80 +1,93 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Indian first names (male & female)
-const INDIAN_FIRST_NAMES_MALE = [
-  'Aarav', 'Vivaan', 'Aditya', 'Vihaan', 'Arjun', 'Sai', 'Reyansh', 'Ayaan',
-  'Krishna', 'Ishaan', 'Shaurya', 'Atharv', 'Advik', 'Pranav', 'Advaith',
-  'Dhruv', 'Kabir', 'Ritvik', 'Aarush', 'Kayaan', 'Darsh', 'Veer', 'Sahil',
-  'Rohan', 'Arnav', 'Laksh', 'Daksh', 'Rishi', 'Ansh', 'Nikhil',
-  'Rahul', 'Amit', 'Vikram', 'Suresh', 'Rajesh', 'Deepak', 'Manish',
-  'Karan', 'Gaurav', 'Harsh', 'Yash', 'Prateek', 'Akash', 'Varun',
-  'Siddharth', 'Kunal', 'Mohit', 'Neeraj', 'Pankaj', 'Tushar',
-]
+// International name pools by region
+const NAMES_BY_REGION: Record<string, { male: string[]; female: string[]; lastNames: string[] }> = {
+  'Middle East': {
+    male: ['Mohammed', 'Ahmed', 'Ali', 'Omar', 'Khalid', 'Hassan', 'Ibrahim', 'Youssef', 'Faisal', 'Tariq', 'Saeed', 'Rashid', 'Hamad', 'Sultan', 'Nasser'],
+    female: ['Fatima', 'Aisha', 'Maryam', 'Noura', 'Layla', 'Sara', 'Hana', 'Reem', 'Dana', 'Lina', 'Amira', 'Yasmin', 'Salma', 'Noor', 'Huda'],
+    lastNames: ['Al-Rashid', 'Al-Maktoum', 'Al-Saud', 'Al-Thani', 'Al-Nahyan', 'Al-Sabah', 'Bin Zayed', 'Al-Falasi', 'Al-Mansouri', 'Al-Hashimi', 'Al-Qasimi', 'Al-Shamsi'],
+  },
+  'Europe': {
+    male: ['James', 'Oliver', 'William', 'Lucas', 'Thomas', 'Alexander', 'Daniel', 'Sebastian', 'Maximilian', 'Felix', 'Hugo', 'Arthur', 'Leo', 'Oscar', 'Noah'],
+    female: ['Emma', 'Olivia', 'Sophie', 'Isabella', 'Charlotte', 'Amelia', 'Mia', 'Elena', 'Clara', 'Victoria', 'Alice', 'Julia', 'Anna', 'Marie', 'Lena'],
+    lastNames: ['Smith', 'Johnson', 'Williams', 'Brown', 'Wilson', 'Taylor', 'Anderson', 'Mueller', 'Schmidt', 'Fischer', 'Weber', 'Dubois', 'Martin', 'Bernard', 'Rossi'],
+  },
+  'Americas': {
+    male: ['Liam', 'Ethan', 'Mason', 'Logan', 'Jackson', 'Mateo', 'Santiago', 'Diego', 'Carlos', 'Miguel', 'Rafael', 'Gabriel', 'Andre', 'Marcus', 'Tyler'],
+    female: ['Sophia', 'Ava', 'Luna', 'Camila', 'Valentina', 'Gabriela', 'Mariana', 'Isabella', 'Nicole', 'Ashley', 'Brianna', 'Madison', 'Taylor', 'Aaliyah', 'Jade'],
+    lastNames: ['Garcia', 'Rodriguez', 'Martinez', 'Lopez', 'Hernandez', 'Davis', 'Miller', 'Moore', 'Jackson', 'White', 'Harris', 'Thompson', 'Clark', 'Lewis', 'Walker'],
+  },
+  'Africa': {
+    male: ['Kwame', 'Chidi', 'Amara', 'Kofi', 'Tendai', 'Oluwaseun', 'Emeka', 'Jabari', 'Mandla', 'Thabo', 'Sipho', 'Adebayo', 'Chibueze', 'Nnamdi', 'Obinna'],
+    female: ['Amina', 'Zainab', 'Chioma', 'Adaeze', 'Ngozi', 'Thandiwe', 'Naledi', 'Aisha', 'Fatou', 'Nneka', 'Oluchi', 'Blessing', 'Grace', 'Precious', 'Favour'],
+    lastNames: ['Okafor', 'Adeyemi', 'Mensah', 'Nkosi', 'Dlamini', 'Osei', 'Kamau', 'Mwangi', 'Banda', 'Moyo', 'Diallo', 'Toure', 'Traore', 'Kone', 'Sow'],
+  },
+  'South Asia': {
+    male: ['Aarav', 'Vivaan', 'Aditya', 'Arjun', 'Krishna', 'Ishaan', 'Dhruv', 'Kabir', 'Rohan', 'Arnav', 'Rahul', 'Vikram', 'Karan', 'Yash', 'Siddharth'],
+    female: ['Aadhya', 'Diya', 'Saanvi', 'Ananya', 'Isha', 'Kiara', 'Riya', 'Meera', 'Priya', 'Shreya', 'Neha', 'Divya', 'Anjali', 'Sakshi', 'Aishwarya'],
+    lastNames: ['Sharma', 'Patel', 'Singh', 'Kumar', 'Gupta', 'Reddy', 'Nair', 'Shah', 'Mehta', 'Joshi', 'Rao', 'Pillai', 'Chopra', 'Malhotra', 'Kapoor'],
+  },
+  'East Asia': {
+    male: ['Wei', 'Hiroshi', 'Joon', 'Takeshi', 'Min-jun', 'Yuki', 'Kenji', 'Ryu', 'Hao', 'Jun', 'Tao', 'Kai', 'Ren', 'Shin', 'Akira'],
+    female: ['Yuki', 'Sakura', 'Mei', 'Hana', 'Soo-jin', 'Aiko', 'Ling', 'Xia', 'Yuna', 'Mina', 'Haruka', 'Nanami', 'Jia', 'Zhi', 'Emi'],
+    lastNames: ['Wang', 'Li', 'Zhang', 'Chen', 'Tanaka', 'Suzuki', 'Kim', 'Park', 'Lee', 'Nguyen', 'Tran', 'Yamamoto', 'Sato', 'Watanabe', 'Nakamura'],
+  },
+  'Southeast Asia': {
+    male: ['Arif', 'Rizky', 'Budi', 'Dimas', 'Fajar', 'Gilang', 'Hendra', 'Irfan', 'Joko', 'Rafi', 'Surya', 'Wira', 'Andi', 'Bayu', 'Cahya'],
+    female: ['Siti', 'Dewi', 'Putri', 'Ayu', 'Bunga', 'Citra', 'Dian', 'Eka', 'Fitri', 'Indah', 'Kartika', 'Lestari', 'Maya', 'Nadia', 'Ratna'],
+    lastNames: ['Wijaya', 'Susanto', 'Pratama', 'Hidayat', 'Santoso', 'Kurniawan', 'Saputra', 'Nugroho', 'Wibowo', 'Setiawan', 'Putra', 'Utama', 'Rahman', 'Hakim', 'Siregar'],
+  },
+}
 
-const INDIAN_FIRST_NAMES_FEMALE = [
-  'Aadhya', 'Diya', 'Saanvi', 'Ananya', 'Isha', 'Aanya', 'Pari', 'Myra',
-  'Sara', 'Anika', 'Navya', 'Kiara', 'Avni', 'Prisha', 'Riya', 'Aarohi',
-  'Anvi', 'Kavya', 'Siya', 'Tara', 'Meera', 'Zara', 'Nisha', 'Pooja',
-  'Shreya', 'Neha', 'Priya', 'Divya', 'Anjali', 'Swati', 'Komal',
-  'Sneha', 'Tanvi', 'Pallavi', 'Ritika', 'Simran', 'Aishwarya', 'Deepika',
-  'Sakshi', 'Nikita', 'Megha', 'Jyoti', 'Kriti', 'Bhavna', 'Rashmi',
-]
+const ALL_REGIONS = Object.keys(NAMES_BY_REGION)
 
-const INDIAN_LAST_NAMES = [
-  'Sharma', 'Verma', 'Gupta', 'Singh', 'Kumar', 'Patel', 'Reddy', 'Nair',
-  'Joshi', 'Mehta', 'Shah', 'Iyer', 'Rao', 'Pillai', 'Menon', 'Chopra',
-  'Malhotra', 'Kapoor', 'Bhatia', 'Agarwal', 'Mishra', 'Pandey', 'Tiwari',
-  'Chauhan', 'Yadav', 'Thakur', 'Saxena', 'Srivastava', 'Banerjee', 'Mukherjee',
-  'Das', 'Ghosh', 'Bose', 'Sen', 'Dutta', 'Chatterjee', 'Roy', 'Patil',
-  'Deshmukh', 'Kulkarni', 'Jain', 'Goyal', 'Mittal', 'Arora', 'Khanna',
-  'Sethi', 'Bajaj', 'Dhawan', 'Gill', 'Kaur',
-]
-
-const INDIAN_CITIES = [
-  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune',
-  'Ahmedabad', 'Jaipur', 'Lucknow', 'Surat', 'Chandigarh', 'Indore', 'Nagpur',
-  'Kochi', 'Coimbatore', 'Vadodara', 'Bhopal', 'Noida', 'Gurgaon',
-]
-
-function generateIndianName(): { name: string; gender: 'male' | 'female' } {
+function generateName(region?: string): { name: string; gender: 'male' | 'female'; region: string } {
+  const selectedRegion = region || ALL_REGIONS[Math.floor(Math.random() * ALL_REGIONS.length)]
+  const pool = NAMES_BY_REGION[selectedRegion] || NAMES_BY_REGION['Europe']
   const gender = Math.random() > 0.5 ? 'male' : 'female'
-  const firstNames = gender === 'male' ? INDIAN_FIRST_NAMES_MALE : INDIAN_FIRST_NAMES_FEMALE
+  const firstNames = gender === 'male' ? pool.male : pool.female
   const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
-  const lastName = INDIAN_LAST_NAMES[Math.floor(Math.random() * INDIAN_LAST_NAMES.length)]
-  return { name: `${firstName} ${lastName}`, gender }
+  const lastName = pool.lastNames[Math.floor(Math.random() * pool.lastNames.length)]
+  return { name: `${firstName} ${lastName}`, gender, region: selectedRegion }
 }
 
 function generateEmail(name: string): string {
-  const domains = ['gmail.com', 'yahoo.co.in', 'outlook.com', 'hotmail.com', 'rediffmail.com']
-  const clean = name.toLowerCase().replace(/\s+/g, '.')
+  const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'protonmail.com', 'icloud.com']
+  const clean = name.toLowerCase().replace(/[^a-z]/g, '.').replace(/\.+/g, '.')
   const num = Math.floor(Math.random() * 999)
   const domain = domains[Math.floor(Math.random() * domains.length)]
   return `${clean}${num}@${domain}`
 }
 
-function generatePhone(): string {
-  const prefixes = ['91', '92', '93', '94', '95', '96', '97', '98', '99', '70', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89']
-  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
-  const rest = Math.floor(Math.random() * 100000000).toString().padStart(8, '0')
-  return `+91 ${prefix}${rest}`
+function generatePhone(region: string): string {
+  const codes: Record<string, string> = {
+    'Middle East': '+971', 'Europe': '+44', 'Americas': '+1', 'Africa': '+234',
+    'South Asia': '+91', 'East Asia': '+86', 'Southeast Asia': '+62',
+  }
+  const code = codes[region] || '+1'
+  const num = Math.floor(Math.random() * 9000000000 + 1000000000)
+  return `${code} ${num}`
 }
 
 function generateReferralCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   let code = 'FK'
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)]
-  }
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
   return code
 }
 
-function generateAvatar(name: string, gender: string): string {
-  // Return initials-based avatar identifier with skin tone
-  const skinTones = ['🏽', '🏾', '🏻', '🏼']
-  const tone = skinTones[Math.floor(Math.random() * skinTones.length)]
-  const emoji = gender === 'male' ? `👨${tone}` : `👩${tone}`
-  return emoji
+function generateAvatar(gender: string, region: string): string {
+  const maleEmojis: Record<string, string[]> = {
+    'Middle East': ['👨🏽', '👨🏾'], 'Europe': ['👨🏻', '👨🏼'], 'Americas': ['👨🏽', '👨🏻', '👨🏿'],
+    'Africa': ['👨🏿', '👨🏾'], 'South Asia': ['👨🏽', '👨🏾'], 'East Asia': ['👨🏻', '👨🏼'], 'Southeast Asia': ['👨🏽', '👨🏼'],
+  }
+  const femaleEmojis: Record<string, string[]> = {
+    'Middle East': ['👩🏽', '👩🏾'], 'Europe': ['👩🏻', '👩🏼'], 'Americas': ['👩🏽', '👩🏻', '👩🏿'],
+    'Africa': ['👩🏿', '👩🏾'], 'South Asia': ['👩🏽', '👩🏾'], 'East Asia': ['👩🏻', '👩🏼'], 'Southeast Asia': ['👩🏽', '👩🏼'],
+  }
+  const pool = gender === 'male' ? (maleEmojis[region] || ['👨']) : (femaleEmojis[region] || ['👩'])
+  return pool[Math.floor(Math.random() * pool.length)]
 }
 
 // GET - List all fake profiles
@@ -118,9 +131,9 @@ export async function GET(request: Request) {
 // POST - Mass generate fake profiles
 export async function POST(request: Request) {
   try {
-    const { count, minBalance, maxBalance, minEarnings, maxEarnings, minDeposited, maxDeposited } = await request.json()
+    const { count, minBalance, maxBalance, minEarnings, maxEarnings, minDeposited, maxDeposited, region } = await request.json()
 
-    const numProfiles = Math.min(Math.max(count || 10, 1), 500) // 1-500 at a time
+    const numProfiles = Math.min(Math.max(count || 10, 1), 500)
     const balMin = minBalance || 100
     const balMax = maxBalance || 50000
     const earnMin = minEarnings || 50
@@ -131,12 +144,11 @@ export async function POST(request: Request) {
     const created: any[] = []
 
     for (let i = 0; i < numProfiles; i++) {
-      const { name, gender } = generateIndianName()
+      const { name, gender, region: selectedRegion } = generateName(region || undefined)
       const email = generateEmail(name)
-      const phone = generatePhone()
-      const avatar = generateAvatar(name, gender)
+      const phone = generatePhone(selectedRegion)
+      const avatar = generateAvatar(gender, selectedRegion)
 
-      // Generate unique referral code
       let referralCode = generateReferralCode()
       let attempts = 0
       while (attempts < 10) {
@@ -146,9 +158,8 @@ export async function POST(request: Request) {
         attempts++
       }
 
-      // Check email uniqueness
       const existingEmail = await db.user.findUnique({ where: { email } })
-      if (existingEmail) continue // Skip duplicates
+      if (existingEmail) continue
 
       const tradingBalance = balMin + Math.random() * (balMax - balMin)
       const withdrawalBalance = Math.random() * tradingBalance * 0.3
