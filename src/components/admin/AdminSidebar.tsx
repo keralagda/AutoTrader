@@ -59,7 +59,7 @@ export function AdminSidebar() {
   const { adminTab, setAdminTab, user, logout, setView } = useAppStore()
 
   return (
-    <aside className="w-64 min-h-screen cyber-sidebar flex flex-col">
+    <aside className="w-64 min-h-screen cyber-sidebar flex flex-col h-screen sticky top-0 overflow-hidden">
       {/* Admin Header */}
       <div className="p-6">
         <div className="flex items-center gap-3">
