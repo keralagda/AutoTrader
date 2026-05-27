@@ -464,8 +464,57 @@ function PlanEditor({
             <NumberField label="Entry Fee" prefix="$" value={plan.entryFee} onChange={v => ch('entryFee', v)} />
             <NumberField label="Min Deposit" prefix="$" value={plan.minDeposit} onChange={v => ch('minDeposit', v)} />
             <NumberField label="Max Deposit" prefix="$" value={plan.maxDeposit} onChange={v => ch('maxDeposit', v)} />
-            <NumberField label="Daily Earning" suffix="%" value={plan.dailyEarningPercent} onChange={v => ch('dailyEarningPercent', v)} />
+            <NumberField label="Base Daily % (display)" suffix="%" value={plan.dailyEarningPercent} onChange={v => ch('dailyEarningPercent', v)} />
             <NumberField label="Max Earning Limit" prefix="$" value={plan.maxEarningLimit} onChange={v => ch('maxEarningLimit', v)} />
+          </div>
+
+          {/* Variable Win % Configuration */}
+          <div className="mt-4 pt-4 border-t border-border/30 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Variable Win Percentage</p>
+                <p className="text-[10px] text-muted-foreground">Actual daily returns vary within these ranges per risk level</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Low Risk */}
+              <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-2">
+                <p className="text-xs font-medium text-emerald-400">🟢 Low Risk</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <NumberField label="Min %" suffix="%" value={(plan as any).lowRiskMin || 0.5} onChange={v => ch('lowRiskMin' as any, v)} />
+                  <NumberField label="Max %" suffix="%" value={(plan as any).lowRiskMax || 2.0} onChange={v => ch('lowRiskMax' as any, v)} />
+                </div>
+              </div>
+              {/* Medium Risk */}
+              <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 space-y-2">
+                <p className="text-xs font-medium text-amber-400">🟡 Medium Risk</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <NumberField label="Min %" suffix="%" value={(plan as any).mediumRiskMin || 2.0} onChange={v => ch('mediumRiskMin' as any, v)} />
+                  <NumberField label="Max %" suffix="%" value={(plan as any).mediumRiskMax || 5.0} onChange={v => ch('mediumRiskMax' as any, v)} />
+                </div>
+              </div>
+              {/* High Risk */}
+              <div className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 space-y-2">
+                <p className="text-xs font-medium text-rose-400">🔴 High Risk</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <NumberField label="Min %" suffix="%" value={(plan as any).highRiskMin || 5.0} onChange={v => ch('highRiskMin' as any, v)} />
+                  <NumberField label="Max %" suffix="%" value={(plan as any).highRiskMax || 15.0} onChange={v => ch('highRiskMax' as any, v)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Rotation with Stacking */}
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+                <div>
+                  <p className="text-xs font-medium">Rotate Win % with Stacks</p>
+                  <p className="text-[9px] text-muted-foreground">Increase % range per stack level</p>
+                </div>
+                <Switch checked={(plan as any).rotateWinPercent !== false} onCheckedChange={v => ch('rotateWinPercent' as any, v)} />
+              </div>
+              <NumberField label="Rotation Increment per Stack" suffix="%" value={(plan as any).rotationIncrement || 0.5} onChange={v => ch('rotationIncrement' as any, v)} />
+            </div>
           </div>
         </SectionCard>
 
@@ -570,8 +619,8 @@ function PlanEditor({
               <p className="text-muted-foreground">
                 <span className="font-medium text-foreground">Current config:</span>{' '}
                 {plan.returnType === 'after_end' 
-                  ? `One-time ${plan.totalReturnPercent > 0 ? `${plan.totalReturnPercent}%` : `${plan.dailyEarningPercent}% daily compounded`} return after ${plan.durationDays || 'unlimited'} days`
-                  : `Pays ${plan.dailyEarningPercent}% every ${plan.returnPeriodHours === 1 ? 'hour' : `${plan.returnPeriodHours} hours`}`}
+                  ? `One-time ${plan.totalReturnPercent > 0 ? `${plan.totalReturnPercent}%` : `variable daily`} return after ${plan.durationDays || 'unlimited'} days`
+                  : `Variable ${(plan as any).lowRiskMin || 0.5}%-${(plan as any).highRiskMax || 15}% every ${plan.returnPeriodHours === 1 ? 'hour' : `${plan.returnPeriodHours} hours`}`}
                 {plan.durationDays > 0 && ` for ${plan.durationDays} days`}
                 {plan.capitalReturn === 'end' && '. Principal returned at end.'}
                 {plan.capitalReturn === 'none' && '. Principal not returned.'}
@@ -922,7 +971,7 @@ function PlanSummary({
         {/* Compact Summary Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <StatBadge label="Entry Fee" value={`$${plan.entryFee.toLocaleString()}`} icon={<DollarSign className="h-3 w-3" />} />
-          <StatBadge label="Daily Rate" value={`${plan.dailyEarningPercent}%`} icon={<Percent className="h-3 w-3" />} />
+          <StatBadge label="Daily Rate" value={`${(plan as any).lowRiskMin || 0.5}-${(plan as any).highRiskMax || 15}%`} icon={<Percent className="h-3 w-3" />} />
           <StatBadge label="Deposit Range" value={`$${plan.minDeposit.toLocaleString()} - $${plan.maxDeposit.toLocaleString()}`} />
           <StatBadge label="Max Earning" value={`$${plan.maxEarningLimit.toLocaleString()}`} />
           <StatBadge label="Lock Period" value={plan.lockPeriodDays > 0 ? `${plan.lockPeriodDays} days` : 'None'} />
