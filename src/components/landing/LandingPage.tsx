@@ -13,6 +13,7 @@ import Footer from './Footer'
 import { FakeNotificationToast } from './FakeNotificationToast'
 import { PromotionBanner } from './PromotionBanner'
 import { AnnouncementBanner } from './AnnouncementBanner'
+import { WithdrawalProofTicker } from './WithdrawalProofTicker'
 
 // Context to share landing content across all sections
 interface LandingContent {
@@ -71,6 +72,7 @@ export default function LandingPage() {
         <Footer />
         <FakeNotificationToast />
         <PromotionBanner />
+        <WithdrawalProofTicker />
       </div>
     </LandingContentContext.Provider>
   )

@@ -268,6 +268,10 @@ export default function PlansSection() {
                       >
                         Join Now
                       </Button>
+                      <p className="text-[10px] text-muted-foreground text-center mt-2 flex items-center justify-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        {Math.floor(Math.random() * 30) + 12} people viewing
+                      </p>
                     </CardContent>
                   </Card>
                 </motion.div>

@@ -457,6 +457,14 @@ function RegisterForm() {
           </motion.p>
         )}
 
+        {/* Terms Agreement */}
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input type="checkbox" required className="mt-1 rounded border-border accent-emerald-500" />
+          <span className="text-xs text-muted-foreground">
+            I agree to the <button type="button" className="text-emerald-400 hover:underline" onClick={(e) => { e.preventDefault() }}>Terms of Service</button> and <button type="button" className="text-emerald-400 hover:underline" onClick={(e) => { e.preventDefault() }}>Risk Disclosure</button>
+          </span>
+        </label>
+
         {/* Submit */}
         <Button
           type="submit"

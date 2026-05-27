@@ -1,22 +1,36 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { Copy, Check, Share2, MessageCircle, Send } from 'lucide-react'
+import { Copy, Check, Share2, MessageCircle, Send, QrCode } from 'lucide-react'
 
 export function ReferralShare() {
   const { user } = useAppStore()
   const { toast } = useToast()
   const [copied, setCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
+  const qrRef = useRef<HTMLCanvasElement>(null)
 
   const referralCode = user?.referralCode || ''
   const referralLink = typeof window !== 'undefined'
     ? `${window.location.origin}?ref=${referralCode}`
     : `https://bnfx.app?ref=${referralCode}`
+
+  // Generate QR code
+  useEffect(() => {
+    if (!showQR || !qrRef.current) return
+    import('qrcode').then(QRCode => {
+      QRCode.toCanvas(qrRef.current, referralLink, {
+        width: 200,
+        margin: 2,
+        color: { dark: '#10b981', light: '#0a0a0a' },
+      })
+    }).catch(() => {})
+  }, [showQR, referralLink])
 
   const shareMessage = `Join BNFX and start earning daily returns on your USDC investments! Use my referral code: ${referralCode}\n\n${referralLink}`
 
@@ -79,7 +93,7 @@ export function ReferralShare() {
         </div>
 
         {/* Share Buttons */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -107,7 +121,23 @@ export function ReferralShare() {
             <Share2 className="h-3.5 w-3.5" />
             Share
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowQR(!showQR)}
+            className="gap-1.5 text-xs"
+          >
+            <QrCode className="h-3.5 w-3.5" />
+            QR
+          </Button>
         </div>
+
+        {/* QR Code */}
+        {showQR && (
+          <div className="flex justify-center p-4 rounded-lg bg-muted/20 border border-border/30">
+            <canvas ref={qrRef} className="rounded-lg" />
+          </div>
+        )}
       </CardContent>
     </Card>
   )

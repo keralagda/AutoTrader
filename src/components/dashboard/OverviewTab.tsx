@@ -11,6 +11,7 @@ import { PortfolioChart } from './PortfolioChart'
 import { CopyTradingSection } from './CopyTradingSection'
 import { AITradingSignal } from './AITradingSignal'
 import { AIMarketCommentary } from './AIMarketCommentary'
+import { LiveEarningsCounter } from './LiveEarningsCounter'
 
 interface ProfileData {
   activePlan: string | null
@@ -104,6 +105,9 @@ export function OverviewTab() {
         <h2 className="text-2xl font-bold">Welcome back, {user?.name?.split(' ')[0]}!</h2>
         <p className="text-muted-foreground text-sm mt-1">Here&apos;s your account overview</p>
       </div>
+
+      {/* Live Earnings Counter */}
+      <LiveEarningsCounter />
 
       {/* Daily Check-in */}
       <DailyCheckIn />
