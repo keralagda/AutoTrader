@@ -329,3 +329,18 @@ html, body {
   direction: ltr;
   text-align: left;
 }
+
+/* ─── Template Color Overrides ──────────────────────────────────── */
+/* When a template is applied, these CSS variables override the theme */
+
+:root {
+  --template-primary: #10b981;
+  --template-accent: #06b6d4;
+  --template-bg: ;
+  --template-card: ;
+}
+
+/* Apply template background if set */
+body {
+  background-color: var(--template-bg, var(--background));
+}

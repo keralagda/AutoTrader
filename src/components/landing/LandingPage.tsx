@@ -33,9 +33,24 @@ export default function LandingPage() {
   const [content, setContent] = useState<LandingContent>({})
 
   useEffect(() => {
+    // Fetch landing content
     fetch('/api/landing-content')
       .then(r => r.json())
       .then(setContent)
+      .catch(() => {})
+
+    // Fetch and apply active template colors
+    fetch('/api/active-template')
+      .then(r => r.json())
+      .then(template => {
+        if (template?.colors) {
+          const root = document.documentElement
+          root.style.setProperty('--template-primary', template.colors.primary || '#10b981')
+          root.style.setProperty('--template-accent', template.colors.accent || '#06b6d4')
+          root.style.setProperty('--template-bg', template.colors.background || '')
+          root.style.setProperty('--template-card', template.colors.card || '')
+        }
+      })
       .catch(() => {})
   }, [])
 
