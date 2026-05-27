@@ -228,7 +228,7 @@ export function UserSidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col cyber-sidebar h-full">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col cyber-sidebar h-screen sticky top-0">
         <SidebarContent />
       </aside>
 
