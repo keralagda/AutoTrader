@@ -63,7 +63,7 @@ export function DepositTab() {
       const res = await fetch('/api/payment-gateways')
       if (res.ok) {
         const data = await res.json()
-        setGateways(data.filter((g: PaymentGatewayType) => g.isActive))
+        setGateways(data)
       }
     } catch {}
   }, [])
@@ -184,36 +184,40 @@ export function DepositTab() {
             <Label>Payment Method</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {gateways.length > 0 ? gateways.map(gw => {
-                const gwKey = gw.type === 'crypto' ? `crypto_${gw.network || 'usdc'}` : gw.name.toLowerCase().replace(/\s+/g, '_')
+                const gwKey = gw.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
                 return (
                   <button
                     key={gw.id}
                     onClick={() => setPaymentMethod(gwKey)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${
                       paymentMethod === gwKey
-                        ? gw.type === 'crypto'
-                          ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                          : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
+                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                         : 'border-border/50 text-muted-foreground hover:border-border'
                     }`}
                   >
-                    {gw.type === 'crypto' ? <Bitcoin className="size-4" /> : <Landmark className="size-4" />}
+                    <Bitcoin className="size-4" />
                     <span className="truncate">{gw.name}</span>
                   </button>
                 )
               }) : (
                 <>
                   <button
-                    onClick={() => setPaymentMethod('crypto_usdc')}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'crypto_usdc' ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}
+                    onClick={() => setPaymentMethod('metamask')}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'metamask' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'}`}
                   >
-                    <Bitcoin className="size-4" /> USDC (Polygon)
+                    <Bitcoin className="size-4" /> MetaMask
                   </button>
                   <button
-                    onClick={() => setPaymentMethod('upi')}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'upi' ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400' : 'border-border/50 text-muted-foreground'}`}
+                    onClick={() => setPaymentMethod('coinpayments')}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'coinpayments' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'}`}
                   >
-                    <Landmark className="size-4" /> UPI
+                    <Bitcoin className="size-4" /> CoinPayments
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod('nowpayments')}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'nowpayments' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'}`}
+                  >
+                    <Bitcoin className="size-4" /> NOWPayments
                   </button>
                 </>
               )}

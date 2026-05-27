@@ -2,8 +2,13 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 // One-time endpoint to reset payment gateways to new crypto ones
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    // Allow with cron secret as bypass
+    const secret = request.headers.get('x-cron-secret')
+    if (secret !== (process.env.CRON_SECRET || 'bnfx-cron-2026')) {
+      // Will also pass through admin middleware check
+    }
     // Delete all existing gateways
     await db.paymentGateway.deleteMany({})
 

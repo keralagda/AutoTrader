@@ -95,7 +95,7 @@ export function WithdrawTab() {
       const res = await fetch('/api/payment-gateways')
       if (res.ok) {
         const data = await res.json()
-        setGateways(data.filter((g: PaymentGatewayType) => g.isActive))
+        setGateways(data)
       }
     } catch {}
   }, [])
