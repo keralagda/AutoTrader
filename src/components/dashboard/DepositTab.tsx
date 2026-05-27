@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { BankTransferModal } from './BankTransferModal'
+import { MetaMaskConnect } from './MetaMaskConnect'
 import {
   Table,
   TableBody,
@@ -240,6 +241,11 @@ export function DepositTab() {
                 <p className="text-[10px] text-amber-400">Network: {selectedGateway.network.toUpperCase()}</p>
               )}
             </div>
+          )}
+
+          {/* MetaMask Connect (when MetaMask is selected) */}
+          {paymentMethod === 'metamask' && (
+            <MetaMaskConnect />
           )}
 
           {/* Amount */}
