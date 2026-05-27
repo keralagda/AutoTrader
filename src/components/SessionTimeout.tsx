@@ -13,6 +13,7 @@ export function SessionTimeout() {
   const { isAuthenticated, logout } = useAppStore()
   const [showWarning, setShowWarning] = useState(false)
   const [lastActivity, setLastActivity] = useState(Date.now())
+  const [mounted, setMounted] = useState(false)
 
   const resetTimer = useCallback(() => {
     setLastActivity(Date.now())
@@ -20,7 +21,13 @@ export function SessionTimeout() {
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated) return
+    // Don't start tracking until component is mounted for 5 seconds
+    const timer = setTimeout(() => setMounted(true), 5000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated || !mounted) return
 
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
     events.forEach(e => window.addEventListener(e, resetTimer))

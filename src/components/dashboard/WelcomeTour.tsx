@@ -58,10 +58,11 @@ export function WelcomeTour() {
 
   useEffect(() => {
     if (!user?.id) return
+    // Don't show for admin users
+    if (user.role === 'admin') return
     // Show tour only for new users (check localStorage)
     const tourSeen = localStorage.getItem(`tour_seen_${user.id}`)
     if (!tourSeen) {
-      // Delay showing tour slightly
       const timer = setTimeout(() => setShowTour(true), 1500)
       return () => clearTimeout(timer)
     }
