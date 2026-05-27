@@ -12,6 +12,7 @@ import { CopyTradingSection } from './CopyTradingSection'
 import { AITradingSignal } from './AITradingSignal'
 import { AIMarketCommentary } from './AIMarketCommentary'
 import { LiveEarningsCounter } from './LiveEarningsCounter'
+import { VIPTierCard } from './VIPTierCard'
 
 interface ProfileData {
   activePlan: string | null
@@ -108,6 +109,9 @@ export function OverviewTab() {
 
       {/* Live Earnings Counter */}
       <LiveEarningsCounter />
+
+      {/* VIP Tier */}
+      <VIPTierCard />
 
       {/* Daily Check-in */}
       <DailyCheckIn />

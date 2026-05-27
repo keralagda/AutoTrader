@@ -51,11 +51,24 @@ export async function POST(request: Request) {
       },
     })
 
-    // Deduct from trading balance
-    const newBalance = user.role === 'admin' ? user.tradingBalance : user.tradingBalance - amount
+    // Reinvestment Bonus: +2% of reinvested amount credited immediately
+    const REINVEST_BONUS_PERCENT = 2
+    const reinvestBonus = (amount * REINVEST_BONUS_PERCENT) / 100
+
+    // Deduct from trading balance + add reinvest bonus
+    const newBalance = user.role === 'admin' ? user.tradingBalance : user.tradingBalance - amount + reinvestBonus
     await db.user.update({
       where: { id: userId },
-      data: { tradingBalance: newBalance, totalDeposited: user.totalDeposited + amount },
+      data: {
+        tradingBalance: newBalance,
+        totalDeposited: user.totalDeposited + amount,
+        totalEarnings: user.totalEarnings + reinvestBonus,
+      },
+    })
+
+    // Bonus earning record
+    await db.earning.create({
+      data: { userId, depositId: deposit.id, amount: reinvestBonus, type: 'bonus', walletTarget: 'trading' },
     })
 
     // Transaction log
@@ -63,14 +76,25 @@ export async function POST(request: Request) {
       data: {
         userId, type: 'reinvest', amount: -amount,
         balanceBefore: user.tradingBalance, balanceAfter: newBalance,
-        wallet: 'trading', description: `Reinvested $${amount.toFixed(2)} into ${plan.name} plan`,
+        wallet: 'trading', description: `Reinvested $${amount.toFixed(2)} into ${plan.name} plan (+$${reinvestBonus.toFixed(2)} bonus)`,
         referenceId: deposit.id,
+      },
+    })
+
+    // Notification
+    await db.notification.create({
+      data: {
+        userId,
+        title: 'Reinvestment Successful! 🔄',
+        message: `$${amount.toFixed(2)} reinvested into ${plan.name}. Bonus: +$${reinvestBonus.toFixed(2)} (${REINVEST_BONUS_PERCENT}% reinvestment reward)`,
+        type: 'success',
       },
     })
 
     return NextResponse.json({
       success: true,
       deposit: { id: deposit.id, amount, planName: plan.name, status: deposit.status },
+      bonus: reinvestBonus,
     }, { status: 201 })
   } catch (error) {
     console.error('Reinvest error:', error)

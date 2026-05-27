@@ -19,6 +19,7 @@ import { SecurityTab } from './SecurityTab'
 import { WelcomeTour } from './WelcomeTour'
 import { MobileBottomNav } from './MobileBottomNav'
 import { ProfitNotification } from './ProfitNotification'
+import { SessionTimeout } from '@/components/SessionTimeout'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -326,6 +327,9 @@ export function UserDashboard() {
 
       {/* Profit Notification Checker */}
       <ProfitNotification />
+
+      {/* Session Timeout */}
+      <SessionTimeout />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyPassword, setSessionCookie, createToken, hashPassword } from '@/lib/auth'
+import { sendEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +17,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
-    // Verify password (supports bcrypt, SHA-256 legacy, and plain text for seeded accounts)
     const isValid = await verifyPassword(password, user.password)
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
@@ -35,13 +35,28 @@ export async function POST(request: Request) {
     // Record login history
     const headers = request.headers
     const userAgent = headers.get('user-agent') || ''
-    const ipAddress = headers.get('x-forwarded-for') || headers.get('x-real-ip') || 'unknown'
+    const ipAddress = (headers.get('x-forwarded-for') || headers.get('x-real-ip') || 'unknown').split(',')[0].trim()
     const isMobile = /mobile|android|iphone|ipad/i.test(userAgent)
+
+    // IP Login Alert: check if this IP is new
+    const previousLogin = await db.loginHistory.findFirst({
+      where: { userId: user.id, ipAddress },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!previousLogin && ipAddress !== 'unknown') {
+      // New IP — send alert email (non-blocking)
+      sendEmail({
+        to: user.email,
+        subject: 'New login detected on your BNFX account',
+        html: `<h2>New Login Alert</h2><p>Hi ${user.name},</p><p>A new login was detected on your account from a new location:</p><ul><li><strong>IP:</strong> ${ipAddress}</li><li><strong>Device:</strong> ${isMobile ? 'Mobile' : 'Desktop'}</li><li><strong>Time:</strong> ${new Date().toLocaleString()}</li></ul><p>If this was you, no action needed. If not, please change your password immediately.</p>`,
+      }).catch(() => {})
+    }
 
     await db.loginHistory.create({
       data: {
         userId: user.id,
-        ipAddress: typeof ipAddress === 'string' ? ipAddress.split(',')[0].trim() : 'unknown',
+        ipAddress,
         userAgent: userAgent.substring(0, 200),
         device: isMobile ? 'mobile' : 'desktop',
       },
@@ -49,31 +64,19 @@ export async function POST(request: Request) {
 
     // Check if 2FA is enabled
     if (user.twoFactorEnabled) {
-      // Return a temporary token that only allows 2FA verification
       const tempToken = createToken({ userId: user.id, email: user.email, role: '2fa_pending' })
-      return NextResponse.json({
-        requires2FA: true,
-        tempToken,
-      })
+      return NextResponse.json({ requires2FA: true, tempToken })
     }
 
-    // Create session cookie
     const token = await setSessionCookie({ userId: user.id, email: user.email, role: user.role })
 
     return NextResponse.json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-        referralCode: user.referralCode,
-        walletAddress: user.walletAddress,
-        tradingBalance: user.tradingBalance,
-        withdrawalBalance: user.withdrawalBalance,
-        totalEarnings: user.totalEarnings,
-        totalDeposited: user.totalDeposited,
+        id: user.id, email: user.email, name: user.name, phone: user.phone,
+        role: user.role, referralCode: user.referralCode, walletAddress: user.walletAddress,
+        tradingBalance: user.tradingBalance, withdrawalBalance: user.withdrawalBalance,
+        totalEarnings: user.totalEarnings, totalDeposited: user.totalDeposited,
       },
     })
   } catch (error) {
@@ -81,3 +84,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Login failed' }, { status: 500 })
   }
 }
+
