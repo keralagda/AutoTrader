@@ -291,13 +291,60 @@ export function DepositTab() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Screenshot / Proof URL</Label>
-              <Input
-                value={proofUrl}
-                onChange={e => setProofUrl(e.target.value)}
-                placeholder="Paste image URL of payment screenshot"
-              />
-              <p className="text-[10px] text-muted-foreground">Upload screenshot to any image host and paste the URL, or use the Media Library</p>
+              <Label className="text-xs">Payment Screenshot</Label>
+              {/* File Upload */}
+              <div className="space-y-2">
+                {proofUrl ? (
+                  <div className="relative rounded-lg border border-border/50 overflow-hidden">
+                    <img src={proofUrl} alt="Proof" className="w-full max-h-48 object-contain bg-muted/20" />
+                    <button
+                      onClick={() => setProofUrl('')}
+                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs hover:bg-black/80"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-dashed border-border/50 hover:border-primary/30 cursor-pointer transition-colors bg-muted/10">
+                    <svg className="h-8 w-8 text-muted-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                    </svg>
+                    <span className="text-xs text-muted-foreground">Click to upload screenshot</span>
+                    <span className="text-[10px] text-muted-foreground/60">PNG, JPG up to 5MB</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast({ title: 'File too large', description: 'Max 5MB allowed', variant: 'destructive' })
+                          return
+                        }
+                        // Convert to base64 data URL for preview and storage
+                        const reader = new FileReader()
+                        reader.onload = () => {
+                          setProofUrl(reader.result as string)
+                        }
+                        reader.readAsDataURL(file)
+                      }}
+                    />
+                  </label>
+                )}
+                {/* Or paste URL */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-border/50" />
+                  <span className="text-[10px] text-muted-foreground">or paste URL</span>
+                  <div className="flex-1 h-px bg-border/50" />
+                </div>
+                <Input
+                  value={proofUrl.startsWith('data:') ? '' : proofUrl}
+                  onChange={e => setProofUrl(e.target.value)}
+                  placeholder="https://... image URL"
+                  className="text-xs h-8"
+                />
+              </div>
             </div>
           </div>
 
