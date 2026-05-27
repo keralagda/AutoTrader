@@ -76,6 +76,7 @@ export function InvestmentTab() {
   // Invest form state
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [amount, setAmount] = useState('')
+  const [selectedRiskLevel, setSelectedRiskLevel] = useState('medium')
   const [submitting, setSubmitting] = useState(false)
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId)
@@ -127,6 +128,7 @@ export function InvestmentTab() {
           userId: user.id,
           planId: selectedPlanId,
           amount: parsedAmount,
+          riskLevel: selectedRiskLevel,
         }),
       })
 
@@ -413,6 +415,33 @@ export function InvestmentTab() {
                   </Button>
                 </div>
               )}
+            </div>
+
+            {/* Risk Level Selection */}
+            <div className="space-y-2">
+              <Label>Risk Level</Label>
+              <p className="text-[10px] text-muted-foreground">Higher risk = higher potential returns but more variation</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'low', label: '🟢 Low', desc: '0.5-2%/day', color: 'emerald' },
+                  { value: 'medium', label: '🟡 Medium', desc: '2-5%/day', color: 'amber' },
+                  { value: 'high', label: '🔴 High', desc: '5-15%/day', color: 'rose' },
+                ].map(level => (
+                  <button
+                    key={level.value}
+                    type="button"
+                    onClick={() => setSelectedRiskLevel(level.value)}
+                    className={`p-3 rounded-lg border text-center transition-all ${
+                      selectedRiskLevel === level.value
+                        ? `bg-${level.color}-500/15 border-${level.color}-500/30 text-${level.color}-400`
+                        : 'border-border/50 text-muted-foreground hover:border-border'
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{level.label}</p>
+                    <p className="text-[10px] mt-0.5">{level.desc}</p>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Validation Error */}

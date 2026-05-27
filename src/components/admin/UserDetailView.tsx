@@ -153,11 +153,13 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
         {/* Risk Level Assignment */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2"><Shield className="h-4 w-4 text-amber-400" /> Risk & Win % Assignment</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><Shield className="h-4 w-4 text-amber-400" /> Risk Profile (Stackable)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Default risk for new investments */}
             <div className="space-y-2">
-              <Label className="text-xs">Risk Category</Label>
+              <Label className="text-xs">Default Risk for New Investments</Label>
+              <p className="text-[10px] text-muted-foreground">This is the default when user creates a new deposit. Each deposit can have its own risk level.</p>
               <Select value={riskCategory} onValueChange={setRiskCategory}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -168,11 +170,34 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
               </Select>
             </div>
 
+            {/* Stacked Risk Breakdown */}
+            {user.deposits && user.deposits.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs">Active Risk Stack</Label>
+                <p className="text-[10px] text-muted-foreground">This user has deposits across multiple risk levels:</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['low', 'medium', 'high'] as const).map(level => {
+                    const deps = (user.deposits || []).filter((d: any) => (d.riskLevel || 'medium') === level && d.status === 'active')
+                    const total = deps.reduce((s: number, d: any) => s + d.amount, 0)
+                    const colors = { low: 'emerald', medium: 'amber', high: 'rose' }
+                    const c = colors[level]
+                    return (
+                      <div key={level} className={`p-3 rounded-lg border border-${c}-500/20 bg-${c}-500/5 text-center`}>
+                        <p className="text-[10px] text-muted-foreground capitalize">{level}</p>
+                        <p className={`text-lg font-bold text-${c}-400`}>${total.toFixed(0)}</p>
+                        <p className="text-[9px] text-muted-foreground">{deps.length} deposit{deps.length !== 1 ? 's' : ''}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <Separator />
 
             <div className="space-y-2">
               <Label className="text-xs">Custom Win % Override (optional)</Label>
-              <p className="text-[10px] text-muted-foreground">Leave empty to use category defaults. Set specific values to override for this user only.</p>
+              <p className="text-[10px] text-muted-foreground">Overrides ALL deposits for this user regardless of risk level. Leave empty to use per-deposit risk settings.</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-[10px]">Min Daily %</Label>

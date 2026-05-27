@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId, planId, amount, paymentMethod } = await request.json()
+    const { userId, planId, amount, paymentMethod, riskLevel } = await request.json()
 
     if (!userId || !planId || !amount) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
@@ -120,6 +120,7 @@ export async function POST(request: Request) {
         status: plan.lockPeriodDays > 0 ? 'locked' : 'active',
         earnedSoFar: 0,
         stackIndex,
+        riskLevel: riskLevel || user.riskCategory || 'medium',
         lockedUntil,
         endsAt,
         nextProfitAt,

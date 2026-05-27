@@ -119,8 +119,9 @@ export async function POST(request: Request) {
         // Fixed total return divided by number of payouts (for fixed-return plans)
         profitAmount = (deposit.amount * plan.totalReturnPercent / 100) / plan.repeatCount
       } else {
-        // VARIABLE PERCENTAGE: Use user's risk category to determine daily %
-        const riskCategory = (user as any).riskCategory || 'medium'
+        // VARIABLE PERCENTAGE: Use deposit's risk level (per-deposit, stackable)
+        // Falls back to user's global riskCategory if deposit doesn't have one
+        const depositRiskLevel = (deposit as any).riskLevel || (user as any).riskCategory || 'medium'
         const customWinMin = (user as any).customWinMin
         const customWinMax = (user as any).customWinMax
 
@@ -138,7 +139,7 @@ export async function POST(request: Request) {
             medium: { minPercent: 2.0, maxPercent: 5.0 },
             high: { minPercent: 5.0, maxPercent: 15.0 },
           }
-          const cat = categoryDefaults[riskCategory] || categoryDefaults.medium
+          const cat = categoryDefaults[depositRiskLevel] || categoryDefaults.medium
           minPercent = cat.minPercent
           maxPercent = cat.maxPercent
         }
