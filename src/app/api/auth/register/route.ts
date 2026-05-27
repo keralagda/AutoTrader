@@ -61,6 +61,22 @@ export async function POST(request: Request) {
     // Send welcome email (non-blocking)
     sendWelcomeEmail(user.email, user.name).catch(() => {})
 
+    // Signup referral bonus: notify referrer
+    if (referredById) {
+      const referrer = await db.user.findUnique({ where: { id: referredById } })
+      if (referrer) {
+        // Notify referrer about new team member
+        await db.notification.create({
+          data: {
+            userId: referrer.id,
+            title: 'New Referral! 🎉',
+            message: `${name} joined using your referral code. You'll earn commissions on their deposits.`,
+            type: 'referral',
+          },
+        })
+      }
+    }
+
     return NextResponse.json({
       token,
       user: {
