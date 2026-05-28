@@ -48,16 +48,60 @@ export default function LandingPage() {
       .then(template => {
         if (template?.colors) {
           const root = document.documentElement
-          // Override Tailwind's primary color with template color
-          root.style.setProperty('--color-primary', template.colors.primary || '#10b981')
-          // Override emerald colors used throughout landing page
-          root.style.setProperty('--color-emerald-400', template.colors.primary || '#34d399')
-          root.style.setProperty('--color-emerald-500', template.colors.primary || '#10b981')
-          root.style.setProperty('--color-emerald-600', template.colors.accent || '#059669')
-          // Set background if template specifies one
-          if (template.colors.background) {
-            root.style.setProperty('--background', template.colors.background)
-            document.body.style.backgroundColor = template.colors.background
+          const c = template.colors
+
+          // Override CSS variables at root level - use hex directly
+          // These override the oklch values defined in globals.css
+          if (c.primary) {
+            root.style.setProperty('--primary', c.primary)
+            root.style.setProperty('--color-primary', c.primary)
+            root.style.setProperty('--color-emerald-400', c.primary)
+            root.style.setProperty('--color-emerald-500', c.primary)
+          }
+
+          if (c.accent) {
+            root.style.setProperty('--color-emerald-600', c.accent)
+            root.style.setProperty('--color-cyan-400', c.accent)
+            root.style.setProperty('--color-cyan-500', c.accent)
+          }
+
+          if (c.background) {
+            root.style.setProperty('--background', c.background)
+            root.style.setProperty('--color-background', c.background)
+            document.body.style.backgroundColor = c.background
+            // Also set the landing page wrapper
+            const landing = document.querySelector('.min-h-screen')
+            if (landing) (landing as HTMLElement).style.backgroundColor = c.background
+          }
+
+          if (c.card) {
+            root.style.setProperty('--card', c.card)
+            root.style.setProperty('--color-card', c.card)
+          }
+
+          if (c.text) {
+            root.style.setProperty('--foreground', c.text)
+            root.style.setProperty('--color-foreground', c.text)
+            root.style.setProperty('--card-foreground', c.text)
+            document.body.style.color = c.text
+          }
+        }
+
+        // Apply font if template specifies one
+        if (template?.styles?.fontFamily) {
+          const fontName = template.styles.fontFamily.split(',')[0].trim().replace(/'/g, '')
+          if (fontName && !document.querySelector(`link[data-font="${fontName}"]`)) {
+            const link = document.createElement('link')
+            link.rel = 'stylesheet'
+            link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}:wght@300;400;500;600;700;800;900&display=swap`
+            link.setAttribute('data-font', fontName)
+            document.head.appendChild(link)
+            // Apply font after it loads
+            link.onload = () => {
+              document.documentElement.style.fontFamily = template.styles.fontFamily
+            }
+          } else {
+            document.documentElement.style.fontFamily = template.styles.fontFamily
           }
         }
       })
@@ -66,7 +110,7 @@ export default function LandingPage() {
 
   return (
     <LandingContentContext.Provider value={content}>
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
         <AnnouncementBanner />
         <Navbar />
         <main className="flex-1">
