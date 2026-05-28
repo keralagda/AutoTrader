@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils'
 import {
   Plus, Save, Edit2, X, Trash2, ChevronDown, ChevronUp,
   DollarSign, Percent, Lock, Layers, BarChart3, Eye,
-  RefreshCw, Info, AlertTriangle, Clock
+  RefreshCw, Info, AlertTriangle, Clock, Zap
 } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 
@@ -735,6 +735,94 @@ function PlanEditor({
                 onChange={e => ch('withdrawalRule', e.target.value)}
                 className="bg-muted/50 border-border/50 min-h-16 resize-y text-sm"
               />
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Section 5.5: Advanced Options */}
+        <SectionCard icon={<Zap className="h-4 w-4 text-emerald-400" />} title="Advanced Options">
+          <div className="space-y-4">
+            {/* Profit Schedule */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Profit Days</Label>
+              <div className="flex flex-wrap gap-2">
+                {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => {
+                  const profitDays = ((plan as any).profitDays || 'mon,tue,wed,thu,fri').split(',')
+                  const isActive = profitDays.includes(day)
+                  return (
+                    <button key={day} type="button" onClick={() => {
+                      const days = isActive ? profitDays.filter((d: string) => d !== day) : [...profitDays, day]
+                      ch('profitDays' as any, days.join(','))
+                    }} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isActive ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'}`}>
+                      {day.charAt(0).toUpperCase() + day.slice(1)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <NumberField label="Grace Period (days)" value={(plan as any).gracePeriodDays || 0} onChange={v => ch('gracePeriodDays' as any, v)} />
+              <NumberField label="Withdrawal Cooldown (hrs)" value={(plan as any).withdrawalCooldown || 24} onChange={v => ch('withdrawalCooldown' as any, v)} />
+              <NumberField label="Spots Limit (0=∞)" value={(plan as any).spotsLimit || 0} onChange={v => ch('spotsLimit' as any, v)} />
+              <NumberField label="Loss Day Chance %" suffix="%" value={(plan as any).lossDayChance || 0} onChange={v => ch('lossDayChance' as any, v)} />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <NumberField label="Bonus Day Chance %" suffix="%" value={(plan as any).bonusDayChance || 5} onChange={v => ch('bonusDayChance' as any, v)} />
+              <NumberField label="Reinvest Bonus %" suffix="%" value={(plan as any).reinvestBonus || 2} onChange={v => ch('reinvestBonus' as any, v)} />
+              <NumberField label="Custom Referral %" suffix="%" value={(plan as any).customReferralPct || 0} onChange={v => ch('customReferralPct' as any, v)} />
+              <NumberField label="Team Requirement" value={(plan as any).teamRequirement || 0} onChange={v => ch('teamRequirement' as any, v)} />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Plan Badge */}
+              <div className="space-y-2">
+                <Label className="text-xs">Plan Badge</Label>
+                <div className="flex gap-1 flex-wrap">
+                  {['', 'popular', 'new', 'limited', 'vip'].map(badge => (
+                    <button key={badge} type="button" onClick={() => ch('planBadge' as any, badge)} className={`px-2 py-1 rounded text-[10px] border transition-all ${(plan as any).planBadge === badge ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}>
+                      {badge || 'None'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Min VIP Tier */}
+              <div className="space-y-2">
+                <Label className="text-xs">Min VIP Tier</Label>
+                <div className="flex gap-1 flex-wrap">
+                  {['Bronze', 'Silver', 'Gold', 'Platinum'].map(tier => (
+                    <button key={tier} type="button" onClick={() => ch('minVipTier' as any, tier)} className={`px-2 py-1 rounded text-[10px] border transition-all ${(plan as any).minVipTier === tier ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}>
+                      {tier}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Volatility Mode */}
+              <div className="space-y-2">
+                <Label className="text-xs">Volatility Mode</Label>
+                <div className="flex gap-1 flex-wrap">
+                  {['stable', 'moderate', 'volatile'].map(mode => (
+                    <button key={mode} type="button" onClick={() => ch('volatilityMode' as any, mode)} className={`px-2 py-1 rounded text-[10px] border transition-all capitalize ${(plan as any).volatilityMode === mode ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}>
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Toggles */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+                <div><p className="text-xs font-medium">Auto-Reinvest</p><p className="text-[9px] text-muted-foreground">Auto reinvest profits</p></div>
+                <Switch checked={(plan as any).autoReinvest || false} onCheckedChange={v => ch('autoReinvest' as any, v)} />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+                <div><p className="text-xs font-medium">Require KYC</p><p className="text-[9px] text-muted-foreground">KYC needed to invest</p></div>
+                <Switch checked={(plan as any).requireKyc || false} onCheckedChange={v => ch('requireKyc' as any, v)} />
+              </div>
             </div>
           </div>
         </SectionCard>
