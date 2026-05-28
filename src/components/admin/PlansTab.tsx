@@ -534,6 +534,7 @@ function PlanEditor({
                 type="number"
                 value={plan.sortOrder}
                 onChange={e => ch('sortOrder', parseInt(e.target.value) || 0)}
+                onBlur={e => { if (e.target.value === '') ch('sortOrder', 0) }}
                 className="bg-muted/50 border-border/50"
               />
             </div>
@@ -1276,6 +1277,36 @@ function NumberField({
   hint?: string
   color?: string
 }) {
+  const [localValue, setLocalValue] = useState(String(value))
+
+  // Sync from parent when value changes externally
+  useEffect(() => {
+    setLocalValue(String(value))
+  }, [value])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    setLocalValue(raw)
+
+    // Parse and propagate if valid
+    if (raw === '' || raw === '-') return
+    let v = parseFloat(raw)
+    if (isNaN(v)) return
+    if (min !== undefined) v = Math.max(min, v)
+    if (max !== undefined) v = Math.min(max, v)
+    onChange(v)
+  }
+
+  const handleBlur = () => {
+    // On blur, normalize the display value
+    let v = parseFloat(localValue)
+    if (isNaN(v)) v = 0
+    if (min !== undefined) v = Math.max(min, v)
+    if (max !== undefined) v = Math.min(max, v)
+    setLocalValue(String(v))
+    onChange(v)
+  }
+
   return (
     <div className="space-y-1.5">
       <Label className={cn("text-xs uppercase tracking-wider", color || "text-muted-foreground")}>
@@ -1288,13 +1319,9 @@ function NumberField({
         )}
         <Input
           type="number"
-          value={value}
-          onChange={e => {
-            let v = parseFloat(e.target.value) || 0
-            if (min !== undefined) v = Math.max(min, v)
-            if (max !== undefined) v = Math.min(max, v)
-            onChange(v)
-          }}
+          value={localValue}
+          onChange={handleChange}
+          onBlur={handleBlur}
           className={cn(
             'bg-muted/50 border-border/50 h-9',
             prefix && 'pl-7',
