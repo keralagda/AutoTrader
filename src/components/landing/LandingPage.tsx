@@ -47,10 +47,17 @@ export default function LandingPage() {
       .then(template => {
         if (template?.colors) {
           const root = document.documentElement
-          root.style.setProperty('--template-primary', template.colors.primary || '#10b981')
-          root.style.setProperty('--template-accent', template.colors.accent || '#06b6d4')
-          root.style.setProperty('--template-bg', template.colors.background || '')
-          root.style.setProperty('--template-card', template.colors.card || '')
+          // Override Tailwind's primary color with template color
+          root.style.setProperty('--color-primary', template.colors.primary || '#10b981')
+          // Override emerald colors used throughout landing page
+          root.style.setProperty('--color-emerald-400', template.colors.primary || '#34d399')
+          root.style.setProperty('--color-emerald-500', template.colors.primary || '#10b981')
+          root.style.setProperty('--color-emerald-600', template.colors.accent || '#059669')
+          // Set background if template specifies one
+          if (template.colors.background) {
+            root.style.setProperty('--background', template.colors.background)
+            document.body.style.backgroundColor = template.colors.background
+          }
         }
       })
       .catch(() => {})
