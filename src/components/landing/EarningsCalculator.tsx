@@ -100,7 +100,7 @@ export function EarningsCalculator() {
                     }`}
                   >
                     <p className={`text-sm font-bold ${selectedPlan === i ? 'text-primary' : 'text-muted-foreground'}`}>{p.name}</p>
-                    <p className="text-xs text-muted-foreground">up to {p.dailyEarningPercent}% daily</p>
+                    <p className="text-xs text-muted-foreground">{p.lowRiskMin || 0.3}% - {p.highRiskMax || 8.0}% daily</p>
                   </button>
                 ))}
               </div>
