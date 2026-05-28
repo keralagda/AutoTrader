@@ -543,30 +543,50 @@ function DepositCard({
             <p className="font-bold">${(deposit.amount || 0).toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Earned</p>
+            <p className="text-xs text-muted-foreground">Total Earned</p>
             <p className="font-bold text-emerald-400">${(deposit.earnedSoFar || 0).toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Daily Rate</p>
-            <p className="font-bold text-cyan-400">{deposit.plan.dailyEarningPercent}%</p>
+            <p className="text-xs text-muted-foreground">Daily Return</p>
+            <p className="font-bold text-cyan-400">~${((deposit.amount * deposit.plan.dailyEarningPercent) / 100).toFixed(2)}/day</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Max Earning</p>
-            <p className="font-bold">${deposit.plan.maxEarningLimit.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">Capital + Profit</p>
+            <p className="font-bold text-amber-400">${(deposit.amount + deposit.earnedSoFar).toFixed(2)}</p>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="mt-3">
-          <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>Progress</span>
-            <span>{progress.toFixed(1)}%</span>
+        {/* X Multiplier */}
+        <div className="mt-3 flex items-center gap-3">
+          <div className="flex-1">
+            <div className="flex justify-between text-xs text-muted-foreground mb-1">
+              <span>Returns Multiplier</span>
+              <span className="font-bold text-emerald-400">
+                {deposit.amount > 0 ? `${(deposit.earnedSoFar / deposit.amount).toFixed(2)}x` : '0x'}
+              </span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full transition-all"
+                style={{ width: `${Math.min((deposit.earnedSoFar / Math.max(deposit.amount, 1)) * 100, 100)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[9px] text-muted-foreground mt-0.5">
+              <span>0x</span>
+              <span>1x</span>
+              <span>2x</span>
+              <span>3x+</span>
+            </div>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full transition-all"
-              style={{ width: `${Math.min(progress, 100)}%` }}
-            />
+          {/* Multiplier badge */}
+          <div className={`text-center px-3 py-1.5 rounded-lg border ${
+            deposit.earnedSoFar >= deposit.amount * 3 ? 'bg-violet-500/10 border-violet-500/20 text-violet-400' :
+            deposit.earnedSoFar >= deposit.amount * 2 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+            deposit.earnedSoFar >= deposit.amount ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+            'bg-muted/30 border-border/30 text-muted-foreground'
+          }`}>
+            <p className="text-lg font-bold">{deposit.amount > 0 ? `${Math.floor(deposit.earnedSoFar / deposit.amount)}x` : '0x'}</p>
+            <p className="text-[8px]">returns</p>
           </div>
         </div>
 
