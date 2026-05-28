@@ -36,6 +36,10 @@ const SECTION_LABELS: Record<string, { label: string; description: string }> = {
   hero: { label: 'Hero Section', description: 'Main banner with headline, subtitle, CTA buttons and stats' },
   navbar: { label: 'Navigation Bar', description: 'Logo, navigation links and auth buttons' },
   stats: { label: 'Statistics Section', description: 'Platform stats with animated counters' },
+  testimonials: { label: 'Testimonials', description: 'User testimonials with ratings and earnings' },
+  plans: { label: 'Plans Section', description: 'Investment plans display settings' },
+  referral: { label: 'Referral Section', description: 'Referral levels and earnings example' },
+  distribution: { label: 'Distribution Section', description: 'Profit distribution breakdown' },
   footer: { label: 'Footer', description: 'Company info, links and social media' },
 }
 
@@ -231,6 +235,87 @@ export function AdminLandingEditorTab() {
                 </div>
               ))}
               <Button variant="outline" size="sm" onClick={() => updateSection('navbar', 'links', [...(sections.navbar?.links || []), { label: '', href: '' }])}>+ Add Link</Button>
+            </div>
+          </SectionEditor>
+
+          {/* Testimonials Section Editor */}
+          <SectionEditor
+            sectionKey="testimonials"
+            data={sections.testimonials || {}}
+            saving={saving === 'testimonials'}
+            onSave={() => handleSaveSection('testimonials')}
+            onToggleVisibility={(v) => updateSection('testimonials', 'isVisible', v)}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label className="text-xs">Section Title</Label><Input value={sections.testimonials?.title || 'What Our Traders Say'} onChange={e => updateSection('testimonials', 'title', e.target.value)} /></div>
+                <div className="space-y-2"><Label className="text-xs">Subtitle</Label><Input value={sections.testimonials?.subtitle || ''} onChange={e => updateSection('testimonials', 'subtitle', e.target.value)} /></div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Testimonial Items</Label>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const items = sections.testimonials?.items || []
+                    updateSection('testimonials', 'items', [...items, { name: '', role: 'Trader', content: '', rating: 5, earnings: '', avatar: '👤' }])
+                  }}>+ Add Testimonial</Button>
+                </div>
+                {(sections.testimonials?.items || []).map((item: any, i: number) => (
+                  <Card key={i} className="border-border/30 bg-muted/10">
+                    <CardContent className="p-3 space-y-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1"><Label className="text-[10px]">Name</Label><Input value={item.name} onChange={e => { const items = [...(sections.testimonials?.items || [])]; items[i] = { ...items[i], name: e.target.value }; updateSection('testimonials', 'items', items) }} className="h-8 text-xs" /></div>
+                        <div className="space-y-1"><Label className="text-[10px]">Role</Label><Input value={item.role} onChange={e => { const items = [...(sections.testimonials?.items || [])]; items[i] = { ...items[i], role: e.target.value }; updateSection('testimonials', 'items', items) }} className="h-8 text-xs" /></div>
+                        <div className="space-y-1"><Label className="text-[10px]">Earnings</Label><Input value={item.earnings} onChange={e => { const items = [...(sections.testimonials?.items || [])]; items[i] = { ...items[i], earnings: e.target.value }; updateSection('testimonials', 'items', items) }} className="h-8 text-xs" placeholder="$5,000 earned" /></div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="col-span-3 space-y-1"><Label className="text-[10px]">Content</Label><Input value={item.content} onChange={e => { const items = [...(sections.testimonials?.items || [])]; items[i] = { ...items[i], content: e.target.value }; updateSection('testimonials', 'items', items) }} className="h-8 text-xs" /></div>
+                        <div className="space-y-1"><Label className="text-[10px]">Rating (1-5)</Label><Input type="number" min={1} max={5} value={item.rating} onChange={e => { const items = [...(sections.testimonials?.items || [])]; items[i] = { ...items[i], rating: parseInt(e.target.value) || 5 }; updateSection('testimonials', 'items', items) }} className="h-8 text-xs" /></div>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button variant="ghost" size="sm" className="h-6 text-[10px] text-rose-400" onClick={() => { const items = [...(sections.testimonials?.items || [])]; items.splice(i, 1); updateSection('testimonials', 'items', items) }}>
+                          <Trash2 className="size-3 mr-1" />Remove
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Note: Testimonials also pull from the Testimonials tab (Content → Testimonials). Items added here are additional overrides saved to the landing section.</p>
+            </div>
+          </SectionEditor>
+
+          {/* Plans Section Editor */}
+          <SectionEditor
+            sectionKey="plans"
+            data={sections.plans || {}}
+            saving={saving === 'plans'}
+            onSave={() => handleSaveSection('plans')}
+            onToggleVisibility={(v) => updateSection('plans', 'isVisible', v)}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label className="text-xs">Section Title</Label><Input value={sections.plans?.title || 'Investment Plans'} onChange={e => updateSection('plans', 'title', e.target.value)} /></div>
+                <div className="space-y-2"><Label className="text-xs">Subtitle</Label><Input value={sections.plans?.subtitle || ''} onChange={e => updateSection('plans', 'subtitle', e.target.value)} /></div>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Plans are managed in Trading → Plan Builder. This section controls the display title and visibility only.</p>
+            </div>
+          </SectionEditor>
+
+          {/* Referral Section Editor */}
+          <SectionEditor
+            sectionKey="referral"
+            data={sections.referral || {}}
+            saving={saving === 'referral'}
+            onSave={() => handleSaveSection('referral')}
+            onToggleVisibility={(v) => updateSection('referral', 'isVisible', v)}
+          >
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label className="text-xs">Section Title</Label><Input value={sections.referral?.title || '7-Level Referral & Trade Profit Share'} onChange={e => updateSection('referral', 'title', e.target.value)} /></div>
+                <div className="space-y-2"><Label className="text-xs">Subtitle</Label><Input value={sections.referral?.subtitle || ''} onChange={e => updateSection('referral', 'subtitle', e.target.value)} /></div>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Referral levels and percentages are managed in Trading → Referral System.</p>
             </div>
           </SectionEditor>
 
