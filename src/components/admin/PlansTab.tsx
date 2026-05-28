@@ -20,6 +20,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import {
@@ -81,6 +88,8 @@ export function PlansTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [newPlanData, setNewPlanData] = useState<EditablePlan | null>(null)
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -241,7 +250,73 @@ export function PlansTab() {
       isNew: true,
       isExpanded: true,
     }
-    setPlans(prev => [...prev, newPlan])
+    setNewPlanData(newPlan)
+    setShowCreateDialog(true)
+  }
+
+  // Handle changes for the create dialog plan
+  const handleNewPlanChange = (id: string, field: keyof PlanType, value: string | number | boolean) => {
+    setNewPlanData(prev => {
+      if (!prev) return prev
+      const updated = { ...prev, [field]: value }
+      if (['dailyEarningPercent', 'maxEarningLimit', 'autoCompound'].includes(field)) {
+        updated.earningMechanism = generateEarningMechanism(updated)
+      }
+      if (['lockPeriodDays', 'earlyExitPenalty', 'autoCompound'].includes(field)) {
+        updated.withdrawalRule = generateWithdrawalRule(updated)
+      }
+      if (['stackingEnabled', 'maxStacks', 'stackingBonusPercent'].includes(field)) {
+        updated.stackingRule = generateStackingRule(updated)
+      }
+      return updated
+    })
+  }
+
+  const handleNewPlanRegenerateField = (id: string, field: 'earningMechanism' | 'withdrawalRule' | 'stackingRule') => {
+    setNewPlanData(prev => {
+      if (!prev) return prev
+      const updated = { ...prev }
+      if (field === 'earningMechanism') updated.earningMechanism = generateEarningMechanism(updated)
+      if (field === 'withdrawalRule') updated.withdrawalRule = generateWithdrawalRule(updated)
+      if (field === 'stackingRule') updated.stackingRule = generateStackingRule(updated)
+      return updated
+    })
+  }
+
+  const handleSaveNewPlan = async () => {
+    if (!newPlanData) return
+    // Validate
+    const distTotal = newPlanData.accountHolderPercent + newPlanData.tradeProfitSharePercent + newPlanData.rewardsOffersPercent + newPlanData.platformFeePercent
+    if (Math.abs(distTotal - 100) > 0.01) {
+      toast({ title: 'Validation Error', description: `Distribution percentages must total 100%. Currently: ${distTotal}%`, variant: 'destructive' })
+      return
+    }
+    if (!newPlanData.name.trim()) {
+      toast({ title: 'Validation Error', description: 'Plan name is required', variant: 'destructive' })
+      return
+    }
+
+    setSaving(newPlanData.id)
+    try {
+      const { id, isEditing, isNew, isExpanded, ...data } = newPlanData as any
+      data.earningMechanism = data.earningMechanism || generateEarningMechanism(data)
+      data.withdrawalRule = data.withdrawalRule || generateWithdrawalRule(data)
+      data.stackingRule = data.stackingRule || generateStackingRule(data)
+      const res = await fetch('/api/admin/plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error('Failed to create plan')
+      toast({ title: 'Plan Created', description: `${newPlanData.name} has been created successfully` })
+      setShowCreateDialog(false)
+      setNewPlanData(null)
+      fetchPlans()
+    } catch {
+      toast({ title: 'Error', description: 'Failed to save plan', variant: 'destructive' })
+    } finally {
+      setSaving(null)
+    }
   }
 
   const handleRegenerateField = (id: string, field: 'earningMechanism' | 'withdrawalRule' | 'stackingRule') => {
@@ -292,7 +367,7 @@ export function PlansTab() {
 
       {/* Plan Cards */}
       <div className="space-y-4">
-        {plans.map(plan => (
+        {plans.filter(p => !p.isNew).map(plan => (
           <PlanCard
             key={plan.id}
             plan={plan}
@@ -319,6 +394,32 @@ export function PlansTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* Create New Plan Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={(open) => { if (!open) { setShowCreateDialog(false); setNewPlanData(null) } }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Create New Plan</DialogTitle>
+            <DialogDescription>Configure a new investment plan</DialogDescription>
+          </DialogHeader>
+          {newPlanData && (
+            <PlanCard
+              plan={newPlanData}
+              saving={saving === newPlanData.id}
+              onDelete={() => {}}
+              onEdit={() => {}}
+              onCancel={() => { setShowCreateDialog(false); setNewPlanData(null) }}
+              onSave={handleSaveNewPlan}
+              onChange={handleNewPlanChange}
+              onToggleExpand={() => setNewPlanData(prev => prev ? { ...prev, isExpanded: !prev.isExpanded } : prev)}
+              onRegenerateField={handleNewPlanRegenerateField}
+              isDeleteTarget={false}
+              onDeleteConfirm={() => {}}
+              onDeleteCancel={() => {}}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
