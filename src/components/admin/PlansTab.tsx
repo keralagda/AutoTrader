@@ -20,13 +20,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import {
@@ -351,6 +344,49 @@ export function PlansTab() {
   }
 
   // ─── Render ────────────────────────────────────────────────────────────────
+
+  // ─── If creating a new plan, show full-page form (Perfex CRM style) ──────
+  if (showCreateDialog && newPlanData) {
+    return (
+      <div className="space-y-4">
+        {/* Breadcrumb / Back Navigation */}
+        <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setShowCreateDialog(false); setNewPlanData(null) }}
+            className="gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+            Back to Plans
+          </Button>
+          <Separator orientation="vertical" className="h-5" />
+          <div className="flex items-center gap-2">
+            <Plus className="h-4 w-4 text-emerald-400" />
+            <span className="text-sm font-medium">Create New Investment Plan</span>
+          </div>
+        </div>
+
+        {/* Full-page Plan Form */}
+        <PlanCard
+          plan={newPlanData}
+          saving={saving === newPlanData.id}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onCancel={() => { setShowCreateDialog(false); setNewPlanData(null) }}
+          onSave={handleSaveNewPlan}
+          onChange={handleNewPlanChange}
+          onToggleExpand={() => setNewPlanData(prev => prev ? { ...prev, isExpanded: !prev.isExpanded } : prev)}
+          onRegenerateField={handleNewPlanRegenerateField}
+          isDeleteTarget={false}
+          onDeleteConfirm={() => {}}
+          onDeleteCancel={() => {}}
+        />
+      </div>
+    )
+  }
+
+  // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -394,32 +430,6 @@ export function PlansTab() {
           </CardContent>
         </Card>
       )}
-
-      {/* Create New Plan Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={(open) => { if (!open) { setShowCreateDialog(false); setNewPlanData(null) } }}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Create New Plan</DialogTitle>
-            <DialogDescription>Configure a new investment plan</DialogDescription>
-          </DialogHeader>
-          {newPlanData && (
-            <PlanCard
-              plan={newPlanData}
-              saving={saving === newPlanData.id}
-              onDelete={() => {}}
-              onEdit={() => {}}
-              onCancel={() => { setShowCreateDialog(false); setNewPlanData(null) }}
-              onSave={handleSaveNewPlan}
-              onChange={handleNewPlanChange}
-              onToggleExpand={() => setNewPlanData(prev => prev ? { ...prev, isExpanded: !prev.isExpanded } : prev)}
-              onRegenerateField={handleNewPlanRegenerateField}
-              isDeleteTarget={false}
-              onDeleteConfirm={() => {}}
-              onDeleteCancel={() => {}}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
