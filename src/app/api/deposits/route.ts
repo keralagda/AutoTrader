@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const isAdmin = user.role === 'admin'
+    const isAdmin = user.role === 'admin' || user.role === 'super_admin'
 
     // Check stacking limits (skip for admin)
     if (!isAdmin) {
@@ -111,19 +111,26 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Create deposit
+    // Create deposit - pending approval for regular users, active for admin
+    let depositStatus: string
+    if (isAdmin) {
+      depositStatus = plan.lockPeriodDays > 0 ? 'locked' : 'active'
+    } else {
+      depositStatus = 'pending' // Requires admin approval before profits start
+    }
+
     const deposit = await db.deposit.create({
       data: {
         userId,
         planId,
         amount,
-        status: plan.lockPeriodDays > 0 ? 'locked' : 'active',
+        status: depositStatus,
         earnedSoFar: 0,
         stackIndex,
         riskLevel: riskLevel || user.riskCategory || 'medium',
         lockedUntil,
         endsAt,
-        nextProfitAt,
+        nextProfitAt: depositStatus === 'pending' ? null : nextProfitAt, // Don't schedule profit until approved
       },
     })
 

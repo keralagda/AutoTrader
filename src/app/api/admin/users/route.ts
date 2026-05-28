@@ -26,9 +26,9 @@ export async function GET(request: Request) {
       return NextResponse.json(user)
     }
 
-    // List all users
+    // List all users (exclude fake profiles - they have their own management tab)
     const users = await db.user.findMany({
-      where: { role: 'user' },
+      where: { role: 'user', isFake: false },
       select: {
         id: true,
         name: true,
@@ -64,10 +64,35 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    const { userId, isActive, tradingBalance, withdrawalBalance, name, adjustBalance, amount, wallet, remarks } = body
+    const { userId, isActive, tradingBalance, withdrawalBalance, name, adjustBalance, amount, wallet, remarks, resetEarnings } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    // Reset earnings to zero
+    if (resetEarnings) {
+      const user = await db.user.findUnique({ where: { id: userId } })
+      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+      await db.user.update({
+        where: { id: userId },
+        data: { totalEarnings: 0, tradingBalance: 0, withdrawalBalance: 0 },
+      })
+
+      await db.activityLog.create({
+        data: {
+          userId,
+          action: 'admin_reset_earnings',
+          details: JSON.stringify({ previousEarnings: user.totalEarnings, previousTrading: user.tradingBalance, previousWithdrawal: user.withdrawalBalance }),
+        },
+      })
+
+      await db.notification.create({
+        data: { userId, title: 'Account Reset', message: 'Your earnings and balances have been reset by admin.', type: 'warning' },
+      })
+
+      return NextResponse.json({ success: true, message: 'Earnings reset to zero' })
     }
 
     // Handle balance adjustment with remarks and transaction logging
