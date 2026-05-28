@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import crypto from 'crypto'
-
-const prisma = new PrismaClient()
-
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex')
-}
+import { db } from '@/lib/db'
+import { verifyPassword, hashPassword } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,26 +14,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'New password must be at least 8 characters' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } })
+    const user = await db.user.findUnique({ where: { id: userId } })
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Verify current password
-    const hashedCurrent = hashPassword(currentPassword)
-    if (user.password !== hashedCurrent) {
+    // Verify current password (supports bcrypt, SHA-256, and plain text)
+    const isValid = await verifyPassword(currentPassword, user.password)
+    if (!isValid) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 })
     }
 
-    // Update password
-    const hashedNew = hashPassword(newPassword)
-    await prisma.user.update({
+    // Hash new password with bcrypt
+    const hashedNew = await hashPassword(newPassword)
+    await db.user.update({
       where: { id: userId },
       data: { password: hashedNew },
     })
 
-    // Log activity
-    await prisma.activityLog.create({
+    await db.activityLog.create({
       data: {
         userId,
         action: 'password_changed',
