@@ -15,6 +15,7 @@ import { PromotionBanner } from './PromotionBanner'
 import { AnnouncementBanner } from './AnnouncementBanner'
 import { WithdrawalProofTicker } from './WithdrawalProofTicker'
 import { ReferralCalculator } from './ReferralCalculator'
+import { NovaAIChatbot } from './NovaAIChatbot'
 
 // Context to share landing content across all sections
 interface LandingContent {
@@ -82,6 +83,7 @@ export default function LandingPage() {
         <FakeNotificationToast />
         <PromotionBanner />
         <WithdrawalProofTicker />
+        <NovaAIChatbot />
       </div>
     </LandingContentContext.Provider>
   )

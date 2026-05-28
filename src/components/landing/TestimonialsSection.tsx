@@ -7,6 +7,32 @@ import { Star } from 'lucide-react'
 
 interface Testimonial { id: string; name: string; avatar: string | null; role: string | null; content: string; rating: number; earnings: string | null }
 
+// Country flags mapped by common roles/regions
+const COUNTRY_FLAGS: Record<string, string> = {
+  'Trader': '🇺🇸',
+  'Investor': '🇬🇧',
+  'Crypto Enthusiast': '🇩🇪',
+  'Day Trader': '🇯🇵',
+  'Portfolio Manager': '🇸🇬',
+  'DeFi Investor': '🇦🇪',
+  'Swing Trader': '🇦🇺',
+  'HODLer': '🇨🇦',
+  'Yield Farmer': '🇫🇷',
+  'Analyst': '🇰🇷',
+  'Entrepreneur': '🇮🇳',
+  'Student': '🇧🇷',
+  'Engineer': '🇳🇱',
+  'Freelancer': '🇪🇸',
+  'Business Owner': '🇸🇦',
+}
+
+const FLAG_LIST = ['🇺🇸', '🇬🇧', '🇩🇪', '🇯🇵', '🇸🇬', '🇦🇪', '🇦🇺', '🇨🇦', '🇫🇷', '🇰🇷', '🇮🇳', '🇧🇷', '🇳🇱', '🇪🇸', '🇸🇦', '🇹🇷', '🇮🇩', '🇳🇬', '🇿🇦', '🇲🇽']
+
+function getFlag(role: string | null, index: number): string {
+  if (role && COUNTRY_FLAGS[role]) return COUNTRY_FLAGS[role]
+  return FLAG_LIST[index % FLAG_LIST.length]
+}
+
 export function TestimonialsSection() {
   const [items, setItems] = useState<Testimonial[]>([])
 
@@ -23,13 +49,16 @@ export function TestimonialsSection() {
           <p className="text-muted-foreground max-w-xl mx-auto">Join thousands of satisfied investors earning daily returns</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map(item => (
+          {items.map((item, idx) => (
             <Card key={item.id} className="bg-card/50 border-border/50 hover:border-primary/20 transition-colors">
               <CardContent className="p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-lg">{item.avatar || '👤'}</div>
-                  <div>
-                    <p className="text-sm font-semibold">{item.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold truncate">{item.name}</p>
+                      <span className="text-base shrink-0">{getFlag(item.role, idx)}</span>
+                    </div>
                     <p className="text-xs text-muted-foreground">{item.role}</p>
                   </div>
                 </div>

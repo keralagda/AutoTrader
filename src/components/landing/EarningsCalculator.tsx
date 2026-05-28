@@ -1,46 +1,74 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Calculator, TrendingUp, Calendar, Wallet } from 'lucide-react'
+import { Calculator, TrendingUp, Calendar, Wallet, Loader2 } from 'lucide-react'
 
-const PLANS = [
-  { name: 'Starter', dailyPercent: 6, maxEarning: 1000, color: 'text-gray-300', range: '0.5-6%' },
-  { name: 'Silver', dailyPercent: 8, maxEarning: 2500, color: 'text-slate-300', range: '2-8%' },
-  { name: 'Gold', dailyPercent: 10, maxEarning: 5000, color: 'text-amber-400', range: '2-10%' },
-  { name: 'Platinum', dailyPercent: 15, maxEarning: 25000, color: 'text-violet-400', range: '5-15%' },
-]
+interface PlanData {
+  id: string
+  name: string
+  dailyEarningPercent: number
+  maxEarningLimit: number
+  minDeposit: number
+  maxDeposit: number
+  lowRiskMin: number
+  lowRiskMax: number
+  mediumRiskMin: number
+  mediumRiskMax: number
+  highRiskMin: number
+  highRiskMax: number
+}
 
-const RISK_LEVELS = [
-  { id: 'low', label: '🟢 Low', min: 0.3, max: 1.2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-  { id: 'medium', label: '🟡 Medium', min: 1.0, max: 3.0, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-  { id: 'high', label: '🔴 High', min: 2.5, max: 8.0, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
+const FALLBACK_PLANS = [
+  { id: '1', name: 'Starter', dailyEarningPercent: 6, maxEarningLimit: 1000, minDeposit: 100, maxDeposit: 1000, lowRiskMin: 0.3, lowRiskMax: 1.2, mediumRiskMin: 1.0, mediumRiskMax: 3.0, highRiskMin: 2.5, highRiskMax: 8.0 },
+  { id: '2', name: 'Silver', dailyEarningPercent: 8, maxEarningLimit: 2500, minDeposit: 500, maxDeposit: 5000, lowRiskMin: 0.3, lowRiskMax: 1.2, mediumRiskMin: 1.0, mediumRiskMax: 3.0, highRiskMin: 2.5, highRiskMax: 8.0 },
+  { id: '3', name: 'Gold', dailyEarningPercent: 10, maxEarningLimit: 5000, minDeposit: 1000, maxDeposit: 10000, lowRiskMin: 0.3, lowRiskMax: 1.2, mediumRiskMin: 1.0, mediumRiskMax: 3.0, highRiskMin: 2.5, highRiskMax: 8.0 },
+  { id: '4', name: 'Platinum', dailyEarningPercent: 15, maxEarningLimit: 25000, minDeposit: 5000, maxDeposit: 50000, lowRiskMin: 0.3, lowRiskMax: 1.2, mediumRiskMin: 1.0, mediumRiskMax: 3.0, highRiskMin: 2.5, highRiskMax: 8.0 },
 ]
 
 export function EarningsCalculator() {
-  const [investment, setInvestment] = useState(500)
-  const [selectedPlan, setSelectedPlan] = useState(2)
+  const [plans, setPlans] = useState<PlanData[]>(FALLBACK_PLANS)
+  const [selectedPlan, setSelectedPlan] = useState(0)
   const [selectedRisk, setSelectedRisk] = useState(1) // Medium
+  const [investment, setInvestment] = useState(500)
   const [days, setDays] = useState(30)
 
-  const plan = PLANS[selectedPlan]
+  useEffect(() => {
+    fetch('/api/plans')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPlans(data)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const plan = plans[selectedPlan] || plans[0]
+
+  // Build risk levels from the selected plan's actual config
+  const RISK_LEVELS = [
+    { id: 'low', label: '🟢 Low', min: plan.lowRiskMin || 0.3, max: plan.lowRiskMax || 1.2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+    { id: 'medium', label: '🟡 Medium', min: plan.mediumRiskMin || 1.0, max: plan.mediumRiskMax || 3.0, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+    { id: 'high', label: '🔴 High', min: plan.highRiskMin || 2.5, max: plan.highRiskMax || 8.0, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
+  ]
+
   const risk = RISK_LEVELS[selectedRisk]
 
-  // Use risk category's range instead of fixed plan percent
   const avgDailyPercent = (risk.min + risk.max) / 2
   const minDailyEarning = (investment * risk.min) / 100
   const maxDailyEarning = (investment * risk.max) / 100
   const dailyEarning = (investment * avgDailyPercent) / 100
-  const totalEarning = Math.min(dailyEarning * days, plan.maxEarning)
-  const weeklyEarning = Math.min(dailyEarning * 5, plan.maxEarning)
-  const monthlyEarning = Math.min(dailyEarning * 22, plan.maxEarning)
+  const totalEarning = Math.min(dailyEarning * days, plan.maxEarningLimit)
+  const weeklyEarning = Math.min(dailyEarning * 5, plan.maxEarningLimit)
+  const monthlyEarning = Math.min(dailyEarning * 22, plan.maxEarningLimit)
   const roi = ((totalEarning / investment) * 100).toFixed(1)
 
   return (
-    <section className="py-16 md:py-24 px-4">
+    <section id="calculator" className="py-16 md:py-24 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <Badge className="bg-primary/20 text-primary border-primary/30 mb-4">
@@ -61,9 +89,9 @@ export function EarningsCalculator() {
             <div className="space-y-3">
               <Label className="text-sm font-medium">Select Plan</Label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {PLANS.map((p, i) => (
+                {plans.map((p, i) => (
                   <button
-                    key={p.name}
+                    key={p.id}
                     onClick={() => setSelectedPlan(i)}
                     className={`p-3 rounded-lg border text-center transition-all ${
                       selectedPlan === i
@@ -71,8 +99,8 @@ export function EarningsCalculator() {
                         : 'bg-muted/30 border-border/50 hover:border-primary/30'
                     }`}
                   >
-                    <p className={`text-sm font-bold ${p.color}`}>{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.range} daily</p>
+                    <p className={`text-sm font-bold ${selectedPlan === i ? 'text-primary' : 'text-muted-foreground'}`}>{p.name}</p>
+                    <p className="text-xs text-muted-foreground">up to {p.dailyEarningPercent}% daily</p>
                   </button>
                 ))}
               </div>
@@ -167,7 +195,7 @@ export function EarningsCalculator() {
                 Estimated ROI: {roi}% in {days} trading days ({risk.label.replace(/[🟢🟡🔴]\s*/, '')} risk)
               </Badge>
               <p className="text-[10px] text-muted-foreground mt-2">
-                * Returns vary between {risk.min}%-{risk.max}% daily based on {risk.id} risk level. Capped at ${plan.maxEarning.toLocaleString()} for {plan.name} plan.
+                * Returns vary between {risk.min}%-{risk.max}% daily based on {risk.id} risk level. Capped at ${plan.maxEarningLimit.toLocaleString()} for {plan.name} plan.
               </p>
             </div>
           </CardContent>

@@ -52,7 +52,7 @@ export default function ReferralSection() {
           >
             <Card className="bg-card/80 backdrop-blur-sm border-border overflow-hidden">
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-center mb-6">Referral Pyramid</h3>
+                <h3 className="text-lg font-bold text-center mb-6">Referral Levels</h3>
                 <div className="flex flex-col items-center gap-2">
                   {REFERRAL_LEVELS.map((level, index) => {
                     const width = 100 - index * 8
@@ -166,7 +166,7 @@ export default function ReferralSection() {
                     </div>
                     <div className="border-t border-border pt-2 mt-2">
                       <p className="text-muted-foreground">
-                        With <span className="text-foreground font-semibold">10 Level 1</span> referrals, you earn{' '}
+                        With <span className="text-foreground font-semibold">Ten Level 1</span> referrals, you earn{' '}
                         <span className="text-emerald-400 font-bold">$200</span> per cycle!
                       </p>
                     </div>

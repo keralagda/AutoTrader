@@ -12,7 +12,8 @@ import { t } from '@/lib/i18n'
 const navLinks = [
   { key: 'nav.home' as const, href: '#home' },
   { key: 'nav.plans' as const, href: '#plans' },
-  { key: 'nav.about' as const, href: '#about' },
+  { key: 'nav.calculator' as const, href: '#calculator' },
+  { key: 'nav.revenue' as const, href: '#referral' },
 ]
 
 export default function Navbar() {

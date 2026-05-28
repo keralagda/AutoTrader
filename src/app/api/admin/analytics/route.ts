@@ -27,10 +27,10 @@ export async function GET(req: NextRequest) {
     ] = await Promise.all([
       prisma.user.count({ where: { isFake: false } }),
       prisma.user.count({ where: { isFake: false, isActive: true, totalDeposited: { gt: 0 } } }),
-      prisma.deposit.aggregate({ _sum: { amount: true }, where: { createdAt: { gte: startDate } } }),
-      prisma.withdrawal.aggregate({ _sum: { amount: true }, where: { status: 'pending' } }),
-      prisma.withdrawal.aggregate({ _sum: { amount: true }, where: { status: { in: ['approved', 'completed'] }, createdAt: { gte: startDate } } }),
-      prisma.earning.aggregate({ _sum: { amount: true }, where: { createdAt: { gte: startDate } } }),
+      prisma.deposit.aggregate({ _sum: { amount: true }, where: { createdAt: { gte: startDate }, user: { isFake: false } } }),
+      prisma.withdrawal.aggregate({ _sum: { amount: true }, where: { status: 'pending', user: { isFake: false } } }),
+      prisma.withdrawal.aggregate({ _sum: { amount: true }, where: { status: { in: ['approved', 'completed'] }, createdAt: { gte: startDate }, user: { isFake: false } } }),
+      prisma.earning.aggregate({ _sum: { amount: true }, where: { createdAt: { gte: startDate }, user: { isFake: false } } }),
       prisma.user.count({ where: { isFake: false, createdAt: { gte: startDate } } }),
       prisma.activityLog.findMany({ orderBy: { createdAt: 'desc' }, take: 10 }),
     ])

@@ -49,6 +49,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   // 🛟 Support
   { tab: 'tickets', label: 'Support Tickets', icon: LifeBuoy, group: 'support' },
   { tab: 'messages', label: 'Messages', icon: MessageSquare, group: 'support' },
+  { tab: 'chatbot', label: 'Nova AI Chatbot', icon: MessageSquare, group: 'support' },
   { tab: 'activityLog', label: 'Activity Log', icon: ScrollText, group: 'support' },
 
   // ⚙️ Settings
