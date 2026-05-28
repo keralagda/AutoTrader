@@ -30,6 +30,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   // 📈 Trading & Plans
   { tab: 'plans', label: 'Plan Builder', icon: Settings, group: 'trading' },
   { tab: 'tradingConfig', label: 'Trading Config', icon: Activity, group: 'trading' },
+  { tab: 'referralConfig', label: 'Referral System', icon: Users, group: 'trading' },
   { tab: 'cron', label: 'Auto Profits (Cron)', icon: Clock, group: 'trading' },
 
   // 🎨 Site Builder

@@ -33,6 +33,7 @@ import { PageBuilderTab } from './PageBuilder'
 import { AdminTemplatesTab } from './AdminTemplatesTab'
 import { AdminDuplicatesTab } from './AdminDuplicatesTab'
 import { AdminRiskCategoriesTab } from './AdminRiskCategoriesTab'
+import { AdminReferralConfigTab } from './AdminReferralConfigTab'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -118,6 +119,7 @@ export function AdminDashboard() {
       case 'templates': return <AdminTemplatesTab />
       case 'duplicates': return <AdminDuplicatesTab />
       case 'riskCategories': return <AdminRiskCategoriesTab />
+      case 'referralConfig': return <AdminReferralConfigTab />
       default: return <PlansTab />
     }
   }
