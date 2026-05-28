@@ -76,6 +76,23 @@ export async function POST(request: Request) {
   }
 }
 
+export async function PUT(request: Request) {
+  try {
+    const { id, subject, body } = await request.json()
+    if (!id) return NextResponse.json({ error: 'Message ID required' }, { status: 400 })
+
+    const data: any = {}
+    if (subject !== undefined) data.subject = subject
+    if (body !== undefined) data.body = body
+
+    const message = await db.message.update({ where: { id }, data })
+    return NextResponse.json(message)
+  } catch (error) {
+    console.error('Admin edit message error:', error)
+    return NextResponse.json({ error: 'Failed to edit message' }, { status: 500 })
+  }
+}
+
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)

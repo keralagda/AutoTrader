@@ -163,3 +163,34 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+// DELETE - Remove a notification template by id
+export async function DELETE(req: NextRequest) {
+  try {
+    const { templateId } = await req.json()
+    if (!templateId) {
+      return NextResponse.json({ error: 'templateId required' }, { status: 400 })
+    }
+
+    const setting = await prisma.setting.findUnique({
+      where: { key: 'notification_templates' },
+    })
+    const templates = setting ? JSON.parse(setting.value) : defaultTemplates
+    const filtered = templates.filter((t: any) => t.id !== templateId)
+
+    if (filtered.length === templates.length) {
+      return NextResponse.json({ error: 'Template not found' }, { status: 404 })
+    }
+
+    await prisma.setting.upsert({
+      where: { key: 'notification_templates' },
+      update: { value: JSON.stringify(filtered) },
+      create: { key: 'notification_templates', value: JSON.stringify(filtered) },
+    })
+
+    return NextResponse.json({ success: true, remaining: filtered.length })
+  } catch (error) {
+    console.error('Templates DELETE error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

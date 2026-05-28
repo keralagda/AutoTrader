@@ -256,3 +256,45 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+// DELETE - Remove a custom template
+export async function DELETE(req: NextRequest) {
+  try {
+    const { templateId } = await req.json()
+    if (!templateId) {
+      return NextResponse.json({ error: 'templateId required' }, { status: 400 })
+    }
+
+    // Cannot delete built-in templates
+    if (BUILT_IN_TEMPLATES.find(t => t.id === templateId)) {
+      return NextResponse.json({ error: 'Cannot delete built-in templates' }, { status: 400 })
+    }
+
+    const key = `template_custom_${templateId}`
+    const existing = await prisma.setting.findUnique({ where: { key } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Template not found' }, { status: 404 })
+    }
+
+    await prisma.setting.delete({ where: { key } })
+
+    // If this was the active template, reset to default
+    const activeId = await prisma.setting.findUnique({ where: { key: 'active_template_id' } })
+    if (activeId?.value === templateId) {
+      await prisma.setting.update({
+        where: { key: 'active_template_id' },
+        data: { value: 'crypto-dark' },
+      })
+      await prisma.setting.upsert({
+        where: { key: 'active_template' },
+        update: { value: JSON.stringify(BUILT_IN_TEMPLATES[0]) },
+        create: { key: 'active_template', value: JSON.stringify(BUILT_IN_TEMPLATES[0]) },
+      })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Templates DELETE error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

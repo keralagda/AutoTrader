@@ -164,3 +164,54 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
   }
 }
+
+// DELETE - Soft-delete user (deactivate + wipe PII)
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+
+    if (!userId) {
+      return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    }
+
+    const user = await db.user.findUnique({ where: { id: userId } })
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Prevent deleting admin accounts
+    if (user.role === 'admin') {
+      return NextResponse.json({ error: 'Cannot delete admin accounts' }, { status: 403 })
+    }
+
+    // Soft-delete: deactivate, wipe PII, zero balances
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        name: `Deleted User ${userId.slice(0, 6)}`,
+        email: `deleted_${userId}@removed.local`,
+        phone: null,
+        walletAddress: null,
+        tradingBalance: 0,
+        withdrawalBalance: 0,
+        password: 'DELETED',
+      },
+    })
+
+    // Log the deletion
+    await db.activityLog.create({
+      data: {
+        userId,
+        action: 'admin_delete_user',
+        details: JSON.stringify({ originalEmail: user.email, originalName: user.name, deletedAt: new Date().toISOString() }),
+      },
+    })
+
+    return NextResponse.json({ success: true, message: 'User deactivated and PII wiped' })
+  } catch (error) {
+    console.error('Delete user error:', error)
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
+  }
+}

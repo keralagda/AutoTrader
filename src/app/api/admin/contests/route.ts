@@ -51,3 +51,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
+
+// PUT - Update contest
+export async function PUT(req: NextRequest) {
+  try {
+    const data = await req.json()
+    const existing = await db.setting.findUnique({ where: { key: 'referral_contest' } })
+    if (!existing) {
+      return NextResponse.json({ error: 'No contest found' }, { status: 404 })
+    }
+    const current = JSON.parse(existing.value)
+    const updated = { ...current, ...data }
+    await db.setting.update({
+      where: { key: 'referral_contest' },
+      data: { value: JSON.stringify(updated) },
+    })
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}
+
+// DELETE - Remove contest
+export async function DELETE() {
+  try {
+    await db.setting.deleteMany({ where: { key: 'referral_contest' } })
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+  }
+}
