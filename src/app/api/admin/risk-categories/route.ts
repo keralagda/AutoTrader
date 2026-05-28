@@ -3,9 +3,9 @@ import { db } from '@/lib/db'
 
 // Default category settings
 const DEFAULT_CATEGORIES = {
-  low: { label: 'Low Risk (Conservative)', minPercent: 0.5, maxPercent: 2.0, description: 'Stable, lower returns' },
-  medium: { label: 'Medium Risk (Balanced)', minPercent: 2.0, maxPercent: 5.0, description: 'Moderate risk and returns' },
-  high: { label: 'High Risk (Aggressive)', minPercent: 5.0, maxPercent: 15.0, description: 'Higher risk, higher potential' },
+  low: { label: 'Low Risk (Conservative)', minPercent: 0.3, maxPercent: 1.2, description: 'Stable, lower returns' },
+  medium: { label: 'Medium Risk (Balanced)', minPercent: 1.0, maxPercent: 3.0, description: 'Moderate risk and returns' },
+  high: { label: 'High Risk (Aggressive)', minPercent: 2.5, maxPercent: 8.0, description: 'Higher risk, higher potential' },
 }
 
 // GET - Get risk category settings and user assignments

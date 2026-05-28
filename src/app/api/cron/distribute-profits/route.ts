@@ -135,17 +135,19 @@ export async function POST(request: Request) {
         } else {
           // Get category settings from DB (cached in this run)
           const categoryDefaults: Record<string, { minPercent: number; maxPercent: number }> = {
-            low: { minPercent: 0.5, maxPercent: 2.0 },
-            medium: { minPercent: 2.0, maxPercent: 5.0 },
-            high: { minPercent: 5.0, maxPercent: 15.0 },
+            low: { minPercent: 0.3, maxPercent: 1.2 },
+            medium: { minPercent: 1.0, maxPercent: 3.0 },
+            high: { minPercent: 2.5, maxPercent: 8.0 },
           }
           const cat = categoryDefaults[depositRiskLevel] || categoryDefaults.medium
           minPercent = cat.minPercent
           maxPercent = cat.maxPercent
         }
 
-        // Generate random percentage within the user's range
-        const dailyPercent = minPercent + (Math.random() * (maxPercent - minPercent))
+        // Generate percentage skewed toward the minimum of the range
+        // Uses a power curve to heavily favor lower returns (cost savings)
+        const randomFactor = Math.pow(Math.random(), 3) // Cube makes it heavily skew low
+        const dailyPercent = minPercent + (randomFactor * (maxPercent - minPercent))
 
         // Scale to the return period
         const periodsPerDay = 24 / plan.returnPeriodHours

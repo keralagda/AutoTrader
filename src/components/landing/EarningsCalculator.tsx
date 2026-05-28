@@ -15,9 +15,9 @@ const PLANS = [
 ]
 
 const RISK_LEVELS = [
-  { id: 'low', label: '🟢 Low', min: 0.5, max: 2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-  { id: 'medium', label: '🟡 Medium', min: 2, max: 5, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-  { id: 'high', label: '🔴 High', min: 5, max: 15, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
+  { id: 'low', label: '🟢 Low', min: 0.3, max: 1.2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  { id: 'medium', label: '🟡 Medium', min: 1.0, max: 3.0, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+  { id: 'high', label: '🔴 High', min: 2.5, max: 8.0, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
 ]
 
 export function EarningsCalculator() {
