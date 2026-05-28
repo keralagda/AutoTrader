@@ -32,14 +32,16 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Protect /admin route - require admin role
+  // Protect /admin route - require staff role (admin, super_admin, moderator, support)
+  const STAFF_ROLES = ['admin', 'super_admin', 'moderator', 'support']
+
   if (pathname.startsWith('/admin')) {
     const token = request.cookies.get('bnfx_session')?.value
     if (!token) {
       return NextResponse.redirect(new URL('/?login=true', request.url))
     }
     const payload = decodeJWT(token)
-    if (!payload || payload.role !== 'admin') {
+    if (!payload || !STAFF_ROLES.includes(payload.role)) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
@@ -59,7 +61,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
     const payload = decodeJWT(token)
-    if (!payload || payload.role !== 'admin') {
+    if (!payload || !STAFF_ROLES.includes(payload.role)) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
   }

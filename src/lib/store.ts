@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export type AppView = 'landing' | 'dashboard' | 'admin'
 export type DashboardTab = 'overview' | 'profile' | 'earnings' | 'investment' | 'deposit' | 'withdraw' | 'team' | 'challenges' | 'leaderboard' | 'messages' | 'news' | 'transactions' | 'security' | 'rewards'
-export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder' | 'templates' | 'duplicates' | 'riskCategories' | 'referralConfig'
+export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder' | 'templates' | 'duplicates' | 'riskCategories' | 'referralConfig' | 'roles'
 
 interface AppState {
   // Navigation
@@ -61,7 +61,7 @@ export const useAppStore = create<AppState>((set) => ({
   login: (user) => set({
     isAuthenticated: true,
     user,
-    currentView: user.role === 'admin' ? 'admin' : 'dashboard',
+    currentView: ['admin', 'super_admin', 'moderator', 'support'].includes(user.role) ? 'admin' : 'dashboard',
     showAuthModal: false,
   }),
   logout: () => {

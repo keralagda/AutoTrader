@@ -193,8 +193,8 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
         </div>
       </div>
 
-      {/* Admin Panel Link (only for admins) */}
-      {user?.role === 'admin' && (
+      {/* Admin Panel Link (only for staff roles) */}
+      {user?.role && ['admin', 'super_admin', 'moderator', 'support'].includes(user.role) && (
         <div className="px-4 pb-2">
           <Button
             variant="outline"

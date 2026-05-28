@@ -34,6 +34,7 @@ import { AdminTemplatesTab } from './AdminTemplatesTab'
 import { AdminDuplicatesTab } from './AdminDuplicatesTab'
 import { AdminRiskCategoriesTab } from './AdminRiskCategoriesTab'
 import { AdminReferralConfigTab } from './AdminReferralConfigTab'
+import { AdminRolesTab } from './AdminRolesTab'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -120,6 +121,7 @@ export function AdminDashboard() {
       case 'duplicates': return <AdminDuplicatesTab />
       case 'riskCategories': return <AdminRiskCategoriesTab />
       case 'referralConfig': return <AdminReferralConfigTab />
+      case 'roles': return <AdminRolesTab />
       default: return <PlansTab />
     }
   }

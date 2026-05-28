@@ -14,6 +14,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
 
   // 👥 User Management
   { tab: 'users', label: 'All Users', icon: Users, group: 'users' },
+  { tab: 'roles', label: 'Roles & Permissions', icon: Shield, group: 'users' },
   { tab: 'kyc', label: 'KYC Verification', icon: ShieldCheck, group: 'users' },
   { tab: 'riskCategories', label: 'Risk Categories', icon: Shield, group: 'users' },
   { tab: 'duplicates', label: 'Duplicate Check', icon: AlertCircle, group: 'users' },

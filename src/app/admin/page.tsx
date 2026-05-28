@@ -19,8 +19,9 @@ export default function AdminPage() {
       })
       .then(data => {
         if (data.authenticated && data.user) {
-          if (data.user.role !== 'admin') {
-            // Not admin, redirect to user dashboard
+          const staffRoles = ['admin', 'super_admin', 'moderator', 'support']
+          if (!staffRoles.includes(data.user.role)) {
+            // Not staff, redirect to user dashboard
             router.replace('/dashboard')
             return
           }
@@ -36,7 +37,7 @@ export default function AdminPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading || !isAuthenticated || user?.role !== 'admin') {
+  if (loading || !isAuthenticated || !['admin', 'super_admin', 'moderator', 'support'].includes(user?.role || '')) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4">
