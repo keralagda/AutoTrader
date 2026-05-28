@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Gem, Shield, Crown, Rocket, TrendingUp, Layers, Lock, Zap } from 'lucide-react'
+import { Gem, Shield, Crown, Rocket, TrendingUp, Layers, Lock, Zap, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -98,7 +98,27 @@ export default function PlansSection() {
   const [joinCounts, setJoinCounts] = useState<Record<string, number>>({})
   const { setShowAuthModal, setAuthMode } = useAppStore()
   const sectionRef = useRef<HTMLDivElement>(null)
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const [activeSlide, setActiveSlide] = useState(0)
   const isInView = useInView(sectionRef, { once: true, margin: '-100px' })
+
+  const scrollToSlide = (index: number) => {
+    if (!carouselRef.current) return
+    const container = carouselRef.current
+    const cardWidth = container.firstElementChild?.clientWidth || 300
+    const gap = 24
+    container.scrollTo({ left: index * (cardWidth + gap), behavior: 'smooth' })
+    setActiveSlide(index)
+  }
+
+  const handleScroll = () => {
+    if (!carouselRef.current) return
+    const container = carouselRef.current
+    const cardWidth = container.firstElementChild?.clientWidth || 300
+    const gap = 24
+    const newIndex = Math.round(container.scrollLeft / (cardWidth + gap))
+    setActiveSlide(newIndex)
+  }
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -166,13 +186,13 @@ export default function PlansSection() {
           </p>
         </motion.div>
 
-        {/* Plans Grid */}
+        {/* Plans Carousel */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="flex gap-6 overflow-hidden">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-6 animate-pulse"
+                className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-6 animate-pulse min-w-[280px] shrink-0"
               >
                 <div className="h-6 bg-muted rounded mb-4 w-1/2" />
                 <div className="h-4 bg-muted rounded mb-2 w-3/4" />
@@ -182,21 +202,48 @@ export default function PlansSection() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {plans.map((plan, index) => {
-              const Icon = planIcons[plan.name] || TrendingUp
-              const accent = planAccent[plan.name] || planAccent.Starter
-              const glow = planGlow[plan.name] || 'hover:glow-emerald'
-              const isPopular = plan.name === 'Gold'
-
-              return (
-                <motion.div
-                  key={plan.id}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={isInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.5, delay: index * 0.15 }}
-                  className={`relative ${isPopular ? 'lg:-mt-4 lg:mb-4' : ''}`}
+          <div className="relative">
+            {/* Navigation Arrows */}
+            {plans.length > 1 && (
+              <>
+                <button
+                  onClick={() => scrollToSlide(Math.max(0, activeSlide - 1))}
+                  className="absolute -left-4 md:left-0 top-1/2 -translate-y-1/2 z-10 size-10 rounded-full bg-card/90 border border-border/50 shadow-lg flex items-center justify-center hover:bg-card hover:scale-110 transition-all backdrop-blur-sm"
+                  aria-label="Previous plan"
                 >
+                  <ChevronLeft className="size-5 text-foreground" />
+                </button>
+                <button
+                  onClick={() => scrollToSlide(Math.min(plans.length - 1, activeSlide + 1))}
+                  className="absolute -right-4 md:right-0 top-1/2 -translate-y-1/2 z-10 size-10 rounded-full bg-card/90 border border-border/50 shadow-lg flex items-center justify-center hover:bg-card hover:scale-110 transition-all backdrop-blur-sm"
+                  aria-label="Next plan"
+                >
+                  <ChevronRight className="size-5 text-foreground" />
+                </button>
+              </>
+            )}
+
+            {/* Carousel Container */}
+            <div
+              ref={carouselRef}
+              onScroll={handleScroll}
+              className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 px-8 md:px-12 -mx-4 scrollbar-hide"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {plans.map((plan, index) => {
+                const Icon = planIcons[plan.name] || TrendingUp
+                const accent = planAccent[plan.name] || planAccent.Starter
+                const glow = planGlow[plan.name] || 'hover:glow-emerald'
+                const isPopular = plan.name === 'Gold'
+
+                return (
+                  <motion.div
+                    key={plan.id}
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ duration: 0.5, delay: index * 0.15 }}
+                    className="min-w-[280px] md:min-w-[300px] snap-center shrink-0 relative"
+                  >
                   {/* Most Popular Badge */}
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
@@ -294,6 +341,25 @@ export default function PlansSection() {
                 </motion.div>
               )
             })}
+            </div>
+
+            {/* Dot Indicators */}
+            {plans.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                {plans.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => scrollToSlide(i)}
+                    className={`rounded-full transition-all duration-300 ${
+                      activeSlide === i
+                        ? 'w-8 h-2.5 bg-primary'
+                        : 'w-2.5 h-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                    }`}
+                    aria-label={`Go to plan ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
