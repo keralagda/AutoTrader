@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-
-const XP_CHECKIN_BASE = 12
-const XP_CHECKIN_STREAK_BONUS = 3
-const CHECKIN_USDC_BONUS_STREAK = 7
-const CHECKIN_USDC_BONUS_AMOUNT = 1
-const XP_PER_LEVEL = 1000
+import { loadNPConfig } from '@/app/api/admin/nova-points/route'
 
 // GET /api/gamification?userId=xxx - Get user gamification stats
 export async function GET(request: Request) {
@@ -16,6 +11,13 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
+
+    const config = await loadNPConfig()
+    const XP_PER_LEVEL = config.xpPerLevel || 1000
+    const XP_CHECKIN_BASE = config.gamification?.checkinBaseNP || 12
+    const XP_CHECKIN_STREAK_BONUS = config.gamification?.checkinStreakBonus || 3
+    const CHECKIN_USDC_BONUS_STREAK = config.gamification?.streakUsdcDay || 7
+    const CHECKIN_USDC_BONUS_AMOUNT = config.gamification?.streakUsdcAmount || 1
 
     // Get or create user stats
     const stats = await db.userStats.upsert({
@@ -138,6 +140,13 @@ export async function POST(request: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
+
+    const config = await loadNPConfig()
+    const XP_PER_LEVEL = config.xpPerLevel || 1000
+    const XP_CHECKIN_BASE = config.gamification?.checkinBaseNP || 12
+    const XP_CHECKIN_STREAK_BONUS = config.gamification?.checkinStreakBonus || 3
+    const CHECKIN_USDC_BONUS_STREAK = config.gamification?.streakUsdcDay || 7
+    const CHECKIN_USDC_BONUS_AMOUNT = config.gamification?.streakUsdcAmount || 1
 
     if (action === 'checkin') {
       // Check if already checked in today

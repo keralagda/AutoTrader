@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { loadNPConfig } from '@/app/api/admin/nova-points/route'
 
 const prisma = new PrismaClient()
 
@@ -100,30 +101,34 @@ export async function POST(req: NextRequest) {
     const newStreak = yesterdayCheckIn ? userStats.currentStreak + 1 : 1
     const streakDay = newStreak
 
-    // Calculate rewards based on streak
-    let xpEarned = 2 // Base NP
+    // Load NP config from admin settings
+    const npConfig = await loadNPConfig()
+    const checkinCfg = npConfig.checkin || {}
+
+    // Calculate rewards based on streak (from config)
+    let xpEarned = checkinCfg.baseNP || 2
     let bonusEarned = 0
 
     // Streak bonuses
     if (newStreak >= 7) {
-      xpEarned = 12
-      bonusEarned = 0.50 // $0.50 bonus for 7-day streak
+      xpEarned = checkinCfg.streak7NP || 12
+      bonusEarned = checkinCfg.streak7Bonus || 0.50
     } else if (newStreak >= 5) {
-      xpEarned = 8
-      bonusEarned = 0.25
+      xpEarned = checkinCfg.streak5NP || 8
+      bonusEarned = checkinCfg.streak5Bonus || 0.25
     } else if (newStreak >= 3) {
-      xpEarned = 5
-      bonusEarned = 0.10
+      xpEarned = checkinCfg.streak3NP || 5
+      bonusEarned = checkinCfg.streak3Bonus || 0.10
     }
 
     // Milestone bonuses
     const totalCheckIns = userStats.totalCheckIns + 1
     if (totalCheckIns === 30) {
-      xpEarned += 25
-      bonusEarned += 2.00
+      xpEarned += checkinCfg.milestone30NP || 25
+      bonusEarned += checkinCfg.milestone30Bonus || 2.00
     } else if (totalCheckIns === 7) {
-      xpEarned += 12
-      bonusEarned += 1.00
+      xpEarned += checkinCfg.milestone7NP || 12
+      bonusEarned += checkinCfg.milestone7Bonus || 1.00
     }
 
     // Create check-in record

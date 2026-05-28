@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { loadNPConfig } from '@/app/api/admin/nova-points/route'
 
 // GET /api/challenges?userId=xxx - Get all active challenges with user progress
 export async function GET(request: Request) {
@@ -108,9 +109,11 @@ export async function POST(request: Request) {
         },
       })
 
-      // If completed, award NP (reduced to 25% of configured value)
+      // If completed, award NP (multiplier from admin config)
       if (completed && challenge.xpReward > 0) {
-        await awardXP(userId, Math.max(1, Math.floor(challenge.xpReward * 0.25)))
+        const npConfig = await loadNPConfig()
+        const multiplier = npConfig.challengeMultiplier || 0.25
+        await awardXP(userId, Math.max(1, Math.floor(challenge.xpReward * multiplier)))
       }
 
       return NextResponse.json(updated)

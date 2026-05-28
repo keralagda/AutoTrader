@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-
-// Nova Points redemption rates and store items
-const STORE_ITEMS = {
-  convert_to_usdc: { id: 'convert_to_usdc', name: 'Convert to USDC', cost: 1000, description: 'Convert 1000 NP to $1 USDC in your trading wallet', type: 'conversion' },
-  fee_waiver: { id: 'fee_waiver', name: 'Withdrawal Fee Waiver', cost: 500, description: 'Waive withdrawal fee on your next withdrawal', type: 'perk' },
-  priority_withdrawal: { id: 'priority_withdrawal', name: 'Priority Withdrawal', cost: 200, description: 'Skip the withdrawal queue — instant processing', type: 'perk' },
-  bonus_2x_24h: { id: 'bonus_2x_24h', name: '2x Earnings (24h)', cost: 2000, description: 'Double your earnings for the next 24 hours', type: 'boost' },
-  extra_referral_level: { id: 'extra_referral_level', name: 'Unlock Level 8 Referral', cost: 5000, description: 'Temporarily unlock an 8th referral level for 7 days', type: 'boost' },
-  lucky_spin: { id: 'lucky_spin', name: 'Lucky Spin', cost: 50, description: 'Spin the wheel for a chance to win $1-$100 bonus', type: 'spin' },
-  custom_badge: { id: 'custom_badge', name: 'Exclusive Badge', cost: 3000, description: 'Get a unique profile badge that shows your status', type: 'cosmetic' },
-  cooldown_skip: { id: 'cooldown_skip', name: 'Skip Cooldown', cost: 300, description: 'Skip the withdrawal cooldown period', type: 'perk' },
-}
+import { loadNPConfig } from '@/app/api/admin/nova-points/route'
 
 // GET - Get store items and user's NP balance
 export async function GET(req: NextRequest) {
@@ -19,6 +8,7 @@ export async function GET(req: NextRequest) {
     const userId = req.nextUrl.searchParams.get('userId')
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
+    const config = await loadNPConfig()
     const userStats = await db.userStats.findUnique({ where: { userId } })
     const novaPoints = userStats?.xp || 0
     const level = userStats?.level || 1
@@ -27,12 +17,15 @@ export async function GET(req: NextRequest) {
     const historySetting = await db.setting.findUnique({ where: { key: `np_history_${userId}` } })
     const history = historySetting ? JSON.parse(historySetting.value) : []
 
+    // Only return enabled store items
+    const storeItems = config.storeItems.filter((item: any) => item.enabled !== false)
+
     return NextResponse.json({
       novaPoints,
       level,
-      storeItems: Object.values(STORE_ITEMS),
+      storeItems,
       history: history.slice(0, 20),
-      conversionRate: '1000 NP = $1 USDC',
+      conversionRate: `${config.conversionRate} NP = $1 USDC`,
     })
   } catch (error) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
@@ -45,8 +38,10 @@ export async function POST(req: NextRequest) {
     const { userId, itemId, quantity } = await req.json()
     if (!userId || !itemId) return NextResponse.json({ error: 'userId and itemId required' }, { status: 400 })
 
-    const item = STORE_ITEMS[itemId as keyof typeof STORE_ITEMS]
+    const config = await loadNPConfig()
+    const item = config.storeItems.find((i: any) => i.id === itemId)
     if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+    if (item.enabled === false) return NextResponse.json({ error: 'Item is currently disabled' }, { status: 400 })
 
     const qty = quantity || 1
     const totalCost = item.cost * qty
@@ -67,26 +62,25 @@ export async function POST(req: NextRequest) {
     let rewardMessage = ''
 
     if (itemId === 'convert_to_usdc') {
-      const usdcAmount = qty * 1 // 1000 NP = $1, so qty conversions = $qty
+      const usdcAmount = (totalCost / config.conversionRate) // Dynamic conversion rate
       await db.user.update({
         where: { id: userId },
         data: { tradingBalance: { increment: usdcAmount } },
       })
       await db.transactionLog.create({
-        data: { userId, type: 'bonus', amount: usdcAmount, wallet: 'trading', description: `Nova Points redemption: ${totalCost} NP → $${usdcAmount}`, status: 'completed' },
+        data: { userId, type: 'bonus', amount: usdcAmount, wallet: 'trading', description: `Nova Points redemption: ${totalCost} NP → $${usdcAmount.toFixed(2)}`, status: 'completed' },
       })
-      rewardMessage = `$${usdcAmount} USDC added to your trading wallet`
+      rewardMessage = `$${usdcAmount.toFixed(2)} USDC added to your trading wallet`
     }
     else if (itemId === 'lucky_spin') {
-      // Random prize: $0.10 to $10
-      const prizes = [0.10, 0.25, 0.50, 1, 2, 5, 10]
-      const weights = [30, 25, 20, 12, 8, 4, 1] // Weighted probability
-      const totalWeight = weights.reduce((s, w) => s + w, 0)
+      // Use configurable prizes
+      const prizes = config.luckySpinPrizes || [{ amount: 0.10, weight: 100 }]
+      const totalWeight = prizes.reduce((s: number, p: any) => s + p.weight, 0)
       let roll = Math.random() * totalWeight
-      let prize = prizes[0]
-      for (let i = 0; i < weights.length; i++) {
-        roll -= weights[i]
-        if (roll <= 0) { prize = prizes[i]; break }
+      let prize = prizes[0].amount
+      for (const p of prizes) {
+        roll -= p.weight
+        if (roll <= 0) { prize = p.amount; break }
       }
       await db.user.update({ where: { id: userId }, data: { tradingBalance: { increment: prize } } })
       await db.transactionLog.create({
