@@ -14,16 +14,29 @@ const PLANS = [
   { name: 'Platinum', dailyPercent: 15, maxEarning: 25000, color: 'text-violet-400', range: '5-15%' },
 ]
 
+const RISK_LEVELS = [
+  { id: 'low', label: '🟢 Low', min: 0.5, max: 2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+  { id: 'medium', label: '🟡 Medium', min: 2, max: 5, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+  { id: 'high', label: '🔴 High', min: 5, max: 15, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
+]
+
 export function EarningsCalculator() {
   const [investment, setInvestment] = useState(500)
-  const [selectedPlan, setSelectedPlan] = useState(2) // Gold
+  const [selectedPlan, setSelectedPlan] = useState(2)
+  const [selectedRisk, setSelectedRisk] = useState(1) // Medium
   const [days, setDays] = useState(30)
 
   const plan = PLANS[selectedPlan]
-  const dailyEarning = (investment * plan.dailyPercent) / 100
+  const risk = RISK_LEVELS[selectedRisk]
+
+  // Use risk category's range instead of fixed plan percent
+  const avgDailyPercent = (risk.min + risk.max) / 2
+  const minDailyEarning = (investment * risk.min) / 100
+  const maxDailyEarning = (investment * risk.max) / 100
+  const dailyEarning = (investment * avgDailyPercent) / 100
   const totalEarning = Math.min(dailyEarning * days, plan.maxEarning)
-  const weeklyEarning = Math.min(dailyEarning * 5, plan.maxEarning) // 5 trading days
-  const monthlyEarning = Math.min(dailyEarning * 22, plan.maxEarning) // ~22 trading days
+  const weeklyEarning = Math.min(dailyEarning * 5, plan.maxEarning)
+  const monthlyEarning = Math.min(dailyEarning * 22, plan.maxEarning)
   const roi = ((totalEarning / investment) * 100).toFixed(1)
 
   return (
@@ -60,6 +73,25 @@ export function EarningsCalculator() {
                   >
                     <p className={`text-sm font-bold ${p.color}`}>{p.name}</p>
                     <p className="text-xs text-muted-foreground">{p.range} daily</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Risk Level Selection */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Risk Level</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {RISK_LEVELS.map((level, i) => (
+                  <button
+                    key={level.id}
+                    onClick={() => setSelectedRisk(i)}
+                    className={`p-3 rounded-lg border text-center transition-all ${
+                      selectedRisk === i ? level.bg + ' border-current' : 'border-border/50 hover:border-border'
+                    }`}
+                  >
+                    <p className={`text-sm font-bold ${selectedRisk === i ? level.color : 'text-muted-foreground'}`}>{level.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{level.min}% - {level.max}% daily</p>
                   </button>
                 ))}
               </div>
@@ -110,7 +142,7 @@ export function EarningsCalculator() {
               <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-center">
                 <TrendingUp className="size-5 text-emerald-400 mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Daily Earning</p>
-                <p className="text-lg font-bold text-emerald-400">${dailyEarning.toFixed(2)}</p>
+                <p className="text-lg font-bold text-emerald-400">${minDailyEarning.toFixed(2)} - ${maxDailyEarning.toFixed(2)}</p>
               </div>
               <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-4 text-center">
                 <Calendar className="size-5 text-cyan-400 mx-auto mb-2" />
@@ -132,10 +164,10 @@ export function EarningsCalculator() {
             {/* ROI Badge */}
             <div className="text-center pt-2">
               <Badge className="bg-primary/20 text-primary border-primary/30 text-sm px-4 py-1">
-                Estimated ROI: {roi}% in {days} trading days
+                Estimated ROI: {roi}% in {days} trading days ({risk.label.replace(/[🟢🟡🔴]\s*/, '')} risk)
               </Badge>
               <p className="text-[10px] text-muted-foreground mt-2">
-                * Earnings are capped at ${plan.maxEarning.toLocaleString()} for the {plan.name} plan. Trading days are Mon-Fri.
+                * Returns vary between {risk.min}%-{risk.max}% daily based on {risk.id} risk level. Capped at ${plan.maxEarning.toLocaleString()} for {plan.name} plan.
               </p>
             </div>
           </CardContent>
