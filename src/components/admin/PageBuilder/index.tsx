@@ -343,31 +343,141 @@ export function PageBuilderTab() {
         </div>
       </div>
 
-      {/* Block Picker Modal */}
+      {/* Block Picker Modal - WPBakery Style with categories, search, pagination */}
       {showBlockPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowBlockPicker(false)}>
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-[600px] max-h-[70vh] overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-border/50">
-              <h3 className="font-semibold">Add Block</h3>
-              <p className="text-xs text-muted-foreground">Choose an element to add to your page</p>
+        <BlockPickerModal onSelect={addBlock} onClose={() => setShowBlockPicker(false)} />
+      )}
+    </div>
+  )
+}
+
+// ─── Block Picker Modal (WPBakery style) ─────────────────────────────────────
+function BlockPickerModal({ onSelect, onClose }: { onSelect: (type: BlockType) => void; onClose: () => void }) {
+  const [search, setSearch] = useState('')
+  const [activeCategory, setActiveCategory] = useState('All')
+  const [page, setPage] = useState(0)
+  const ITEMS_PER_PAGE = 12
+
+  const allBlocks = Object.entries(BLOCK_DEFINITIONS) as [BlockType, typeof BLOCK_DEFINITIONS[BlockType]][]
+  const categories = ['All', ...new Set(allBlocks.map(([, def]) => def.category))]
+
+  const filtered = allBlocks.filter(([type, def]) => {
+    const matchesSearch = !search || def.label.toLowerCase().includes(search.toLowerCase()) || def.description.toLowerCase().includes(search.toLowerCase())
+    const matchesCategory = activeCategory === 'All' || def.category === activeCategory
+    return matchesSearch && matchesCategory
+  })
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
+  const paginated = filtered.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE)
+
+  // Reset page when filter changes
+  const handleCategoryChange = (cat: string) => { setActiveCategory(cat); setPage(0) }
+  const handleSearchChange = (val: string) => { setSearch(val); setPage(0) }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-[720px] max-w-[95vw] max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-5 border-b border-border/50 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold">Add Element</h3>
+              <p className="text-xs text-muted-foreground">{filtered.length} widgets available</p>
             </div>
-            <ScrollArea className="max-h-[50vh]">
-              <div className="grid grid-cols-3 gap-2 p-4">
-                {(Object.entries(BLOCK_DEFINITIONS) as [BlockType, typeof BLOCK_DEFINITIONS[BlockType]][]).map(([type, def]) => (
-                  <button
-                    key={type}
-                    onClick={() => addBlock(type)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all text-center"
-                  >
-                    <span className="text-2xl">{def.icon}</span>
-                    <span className="text-xs font-medium">{def.label}</span>
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-muted transition-colors">
+              <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+          {/* Search */}
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+            <input
+              type="text"
+              placeholder="Search widgets..."
+              value={search}
+              onChange={e => handleSearchChange(e.target.value)}
+              className="w-full h-9 pl-9 pr-4 rounded-lg border border-border/50 bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          {/* Category Tabs */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => handleCategoryChange(cat)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                  activeCategory === cat
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* Grid */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {paginated.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-sm">No widgets found</p>
+              <p className="text-xs mt-1">Try a different search or category</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+              {paginated.map(([type, def]) => (
+                <button
+                  key={type}
+                  onClick={() => onSelect(type)}
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border/50 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md transition-all text-center group"
+                >
+                  <span className="text-3xl group-hover:scale-110 transition-transform">{def.icon}</span>
+                  <span className="text-xs font-semibold">{def.label}</span>
+                  <span className="text-[10px] text-muted-foreground line-clamp-2">{def.description}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-3 border-t border-border/50 flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              Page {page + 1} of {totalPages} • Showing {paginated.length} of {filtered.length}
+            </p>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="px-3 py-1.5 rounded-md text-xs font-medium border border-border/50 hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ← Prev
+              </button>
+              {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                const pageNum = totalPages <= 5 ? i : Math.max(0, Math.min(page - 2, totalPages - 5)) + i
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`size-7 rounded-md text-xs font-medium ${page === pageNum ? 'bg-primary text-primary-foreground' : 'border border-border/50 hover:bg-muted'}`}
+                  >
+                    {pageNum + 1}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="px-3 py-1.5 rounded-md text-xs font-medium border border-border/50 hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
