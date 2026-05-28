@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-const XP_CHECKIN_BASE = 50
-const XP_CHECKIN_STREAK_BONUS = 10
+const XP_CHECKIN_BASE = 12
+const XP_CHECKIN_STREAK_BONUS = 3
 const CHECKIN_USDC_BONUS_STREAK = 7
-const CHECKIN_USDC_BONUS_AMOUNT = 5
+const CHECKIN_USDC_BONUS_AMOUNT = 1
 const XP_PER_LEVEL = 1000
 
 // GET /api/gamification?userId=xxx - Get user gamification stats

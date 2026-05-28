@@ -101,28 +101,28 @@ export async function POST(req: NextRequest) {
     const streakDay = newStreak
 
     // Calculate rewards based on streak
-    let xpEarned = 10 // Base XP
+    let xpEarned = 2 // Base NP
     let bonusEarned = 0
 
     // Streak bonuses
     if (newStreak >= 7) {
-      xpEarned = 50
+      xpEarned = 12
       bonusEarned = 0.50 // $0.50 bonus for 7-day streak
     } else if (newStreak >= 5) {
-      xpEarned = 30
+      xpEarned = 8
       bonusEarned = 0.25
     } else if (newStreak >= 3) {
-      xpEarned = 20
+      xpEarned = 5
       bonusEarned = 0.10
     }
 
     // Milestone bonuses
     const totalCheckIns = userStats.totalCheckIns + 1
     if (totalCheckIns === 30) {
-      xpEarned += 100
+      xpEarned += 25
       bonusEarned += 2.00
     } else if (totalCheckIns === 7) {
-      xpEarned += 50
+      xpEarned += 12
       bonusEarned += 1.00
     }
 

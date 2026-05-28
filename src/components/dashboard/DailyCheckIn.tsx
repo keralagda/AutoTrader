@@ -155,7 +155,7 @@ export function DailyCheckIn() {
         </div>
         <div className="flex justify-between mt-1">
           <span className="text-[10px] text-muted-foreground">Day 1</span>
-          <span className="text-[10px] text-muted-foreground">Day 7 (+$0.50)</span>
+          <span className="text-[10px] text-muted-foreground">Day 7 (+$0.10)</span>
         </div>
       </CardContent>
     </Card>

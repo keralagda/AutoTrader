@@ -108,9 +108,9 @@ export async function POST(request: Request) {
         },
       })
 
-      // If completed, award XP
+      // If completed, award NP (reduced to 25% of configured value)
       if (completed && challenge.xpReward > 0) {
-        await awardXP(userId, challenge.xpReward)
+        await awardXP(userId, Math.max(1, Math.floor(challenge.xpReward * 0.25)))
       }
 
       return NextResponse.json(updated)
