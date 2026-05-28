@@ -90,7 +90,7 @@ export function RewardsTier() {
             <div className="text-right">
               <p className="text-sm font-bold flex items-center gap-1">
                 <Zap className="h-3.5 w-3.5 text-amber-400" />
-                {data.stats.xp} XP
+                {data.stats.xp} NP
               </p>
               <p className="text-[10px] text-muted-foreground">
                 ${data.stats.totalUsdcRewards.toFixed(2)} earned
@@ -103,11 +103,11 @@ export function RewardsTier() {
             <div className="mt-3">
               <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                 <span>{currentTier.name}</span>
-                <span>{nextTier.name} ({nextTier.xp} XP)</span>
+                <span>{nextTier.name} ({nextTier.xp} NP)</span>
               </div>
               <Progress value={progressToNext} className="h-1.5" />
               <p className="text-[10px] text-muted-foreground mt-1">
-                {nextTier.xp - data.stats.xp} XP to next tier
+                {nextTier.xp - data.stats.xp} NP to next tier
               </p>
             </div>
           )}
@@ -174,7 +174,7 @@ export function RewardsTier() {
                 </div>
                 <div className="text-right">
                   {challenge.reward > 0 && <p className="text-xs text-emerald-400">${challenge.reward}</p>}
-                  <p className="text-[10px] text-muted-foreground">+{challenge.xpReward} XP</p>
+                  <p className="text-[10px] text-muted-foreground">+{challenge.xpReward} NP</p>
                 </div>
               </div>
             ))}

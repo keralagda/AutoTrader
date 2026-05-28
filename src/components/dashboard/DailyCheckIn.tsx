@@ -56,7 +56,7 @@ export function DailyCheckIn() {
       if (res.ok) {
         toast({
           title: '🎉 Daily Check-in Complete!',
-          description: `+${result.xpEarned} XP${result.bonusEarned > 0 ? ` • +$${result.bonusEarned.toFixed(2)} bonus` : ''} • Streak: ${result.currentStreak} days`,
+          description: `+${result.xpEarned} NP${result.bonusEarned > 0 ? ` • +$${result.bonusEarned.toFixed(2)} bonus` : ''} • Streak: ${result.currentStreak} days`,
         })
         setData(prev => prev ? {
           ...prev,
@@ -112,7 +112,7 @@ export function DailyCheckIn() {
                 </span>
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Zap className="h-3 w-3 text-amber-400" />
-                  {data.xp} XP
+                  {data.xp} NP
                 </span>
               </div>
             </div>

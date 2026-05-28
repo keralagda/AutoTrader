@@ -284,7 +284,7 @@ export function ChallengesTab() {
                   <p className="text-xs opacity-90">+{formatCurrency(showClaimSuccess.reward)} USDC</p>
                 )}
                 {showClaimSuccess.xp > 0 && (
-                  <p className="text-xs opacity-90">+{showClaimSuccess.xp} XP</p>
+                  <p className="text-xs opacity-90">+{showClaimSuccess.xp} NP</p>
                 )}
               </div>
             </div>
@@ -303,7 +303,7 @@ export function ChallengesTab() {
         )}
       </AnimatePresence>
 
-      {/* ─── XP Level Header ─── */}
+      {/* ─── Nova Points Level Header ─── */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card overflow-hidden">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
@@ -327,17 +327,17 @@ export function ChallengesTab() {
                 <p className="text-sm text-muted-foreground">Level</p>
                 <p className="text-xl font-bold">{stats?.level || 1}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formatNumber(stats?.totalXpEarned || 0)} Total XP
+                  {formatNumber(stats?.totalXpEarned || 0)} Total NP
                 </p>
               </div>
             </div>
 
-            {/* XP Progress Bar */}
+            {/* NP Progress Bar */}
             <div className="flex-1 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">XP Progress</span>
+                <span className="text-muted-foreground">NP Progress</span>
                 <span className="font-medium">
-                  {stats?.xpInLevel || 0} / {stats?.xpNeeded || XP_PER_LEVEL} XP
+                  {stats?.xpInLevel || 0} / {stats?.xpNeeded || XP_PER_LEVEL} NP
                 </span>
               </div>
               <div className="relative">
@@ -408,7 +408,7 @@ export function ChallengesTab() {
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {checkIn?.canCheckIn
-                    ? `Check in now to earn ${checkIn.todayXp} XP!`
+                    ? `Check in now to earn ${checkIn.todayXp} NP!`
                     : 'Already checked in today. Come back tomorrow!'}
                   {checkIn?.todayBonus ? ` + ${formatCurrency(checkIn.todayBonus)} USDC bonus!` : ''}
                 </p>
@@ -641,7 +641,7 @@ export function ChallengesTab() {
                               {challenge.xpReward > 0 && (
                                 <span className="flex items-center gap-1 text-amber-400">
                                   <Zap className="size-3" />
-                                  {challenge.xpReward} XP
+                                  {challenge.xpReward} NP
                                 </span>
                               )}
                             </div>
@@ -791,7 +791,7 @@ export function ChallengesTab() {
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 <StatItem icon={<Star className="size-5 text-amber-400" />} label="Level" value={stats?.level || 1} />
-                <StatItem icon={<Zap className="size-5 text-amber-400" />} label="Total XP" value={formatNumber(stats?.totalXpEarned || 0)} />
+                <StatItem icon={<Zap className="size-5 text-amber-400" />} label="Total NP" value={formatNumber(stats?.totalXpEarned || 0)} />
                 <StatItem icon={<Flame className="size-5 text-violet-400" />} label="Current Streak" value={`${stats?.currentStreak || 0} days`} />
                 <StatItem icon={<Flame className="size-5 text-violet-400" />} label="Best Streak" value={`${stats?.longestStreak || 0} days`} />
                 <StatItem icon={<Calendar className="size-5 text-emerald-400" />} label="Total Check-ins" value={stats?.totalCheckIns || 0} />
@@ -878,8 +878,8 @@ export function ChallengesTab() {
                 </div>
                 {selectedBadge.xpRequired > 0 && (
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">XP Required:</span>
-                    <span className="font-medium text-amber-400">{selectedBadge.xpRequired} XP</span>
+                    <span className="text-muted-foreground">NP Required:</span>
+                    <span className="font-medium text-amber-400">{selectedBadge.xpRequired} NP</span>
                   </div>
                 )}
               </div>

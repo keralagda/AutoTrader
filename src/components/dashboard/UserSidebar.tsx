@@ -34,6 +34,7 @@ import {
   ScrollText,
   Bell,
   Shield,
+  Sparkles,
 } from 'lucide-react'
 
 interface NavItem {
@@ -51,6 +52,7 @@ const navItems: NavItem[] = [
   { id: 'deposit', label: 'Deposit', icon: CreditCard },
   { id: 'withdraw', label: 'Withdrawal', icon: Wallet },
   { id: 'team', label: 'Team', icon: Users },
+  { id: 'rewards', label: 'Rewards Store', icon: Sparkles, badge: 'NP' },
   { id: 'challenges', label: 'Competition', icon: Target },
   { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   { id: 'messages', label: 'Message Centre', icon: MessageSquare },
