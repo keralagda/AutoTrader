@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// POST - Reinvest earnings into same or different plan
+// POST - Reinvest: original deposit + earned amount into same or different plan
 export async function POST(request: Request) {
   try {
-    const { userId, planId, amount, sourceDepositId } = await request.json()
+    const { userId, planId, sourceDepositId } = await request.json()
 
-    if (!userId || !planId || !amount || amount <= 0) {
-      return NextResponse.json({ error: 'User ID, plan ID, and valid amount required' }, { status: 400 })
+    if (!userId || !planId) {
+      return NextResponse.json({ error: 'User ID and plan ID required' }, { status: 400 })
     }
 
     const user = await db.user.findUnique({ where: { id: userId } })
@@ -16,15 +16,53 @@ export async function POST(request: Request) {
     const plan = await db.plan.findUnique({ where: { id: planId } })
     if (!plan || !plan.isActive) return NextResponse.json({ error: 'Plan not found or inactive' }, { status: 404 })
 
-    // Check balance (admin bypasses)
-    if (user.role !== 'admin' && amount > user.tradingBalance) {
-      return NextResponse.json({ error: 'Insufficient trading balance for reinvestment' }, { status: 400 })
+    // If reinvesting from a specific deposit, use deposit amount + earnings
+    let reinvestAmount: number
+    let sourceDeposit: any = null
+
+    if (sourceDepositId) {
+      sourceDeposit = await db.deposit.findUnique({ where: { id: sourceDepositId } })
+      if (!sourceDeposit || sourceDeposit.userId !== userId) {
+        return NextResponse.json({ error: 'Source deposit not found' }, { status: 404 })
+      }
+      if (sourceDeposit.status !== 'active' && sourceDeposit.status !== 'completed' && sourceDeposit.status !== 'ended') {
+        return NextResponse.json({ error: 'Source deposit is not eligible for reinvestment' }, { status: 400 })
+      }
+
+      // Reinvest = original deposit amount + all earnings from that deposit
+      reinvestAmount = sourceDeposit.amount + sourceDeposit.earnedSoFar
+
+      // Close the source deposit
+      await db.deposit.update({
+        where: { id: sourceDepositId },
+        data: { status: 'completed' },
+      })
+
+      // Deduct the earned amount from user's trading balance (it was already credited there by cron)
+      // The original deposit amount was already deducted when first invested
+      // So we only need to deduct the earnedSoFar from trading balance for the reinvestment
+      if (user.role !== 'admin' && sourceDeposit.earnedSoFar > user.tradingBalance) {
+        return NextResponse.json({ error: `Insufficient balance. Need $${sourceDeposit.earnedSoFar.toFixed(2)} from earnings in trading wallet.` }, { status: 400 })
+      }
+    } else {
+      // Manual reinvest from trading balance (legacy flow)
+      const body = await request.clone().json()
+      reinvestAmount = body.amount || 0
+      if (reinvestAmount <= 0) {
+        return NextResponse.json({ error: 'Valid amount required' }, { status: 400 })
+      }
+      if (user.role !== 'admin' && reinvestAmount > user.tradingBalance) {
+        return NextResponse.json({ error: 'Insufficient trading balance' }, { status: 400 })
+      }
     }
 
-    // Validate amount range (admin bypasses)
+    // Validate amount range
     if (user.role !== 'admin') {
-      if (amount < plan.minDeposit || amount > plan.maxDeposit) {
-        return NextResponse.json({ error: `Amount must be between $${plan.minDeposit} and $${plan.maxDeposit}` }, { status: 400 })
+      if (reinvestAmount < plan.minDeposit) {
+        return NextResponse.json({ error: `Reinvestment amount $${reinvestAmount.toFixed(2)} is below minimum $${plan.minDeposit}` }, { status: 400 })
+      }
+      if (reinvestAmount > plan.maxDeposit) {
+        reinvestAmount = plan.maxDeposit // Cap at max
       }
     }
 
@@ -37,31 +75,35 @@ export async function POST(request: Request) {
 
     // Calculate dates
     const now = new Date()
-    const lockedUntil = plan.lockPeriodDays > 0 ? new Date(now.getTime() + plan.lockPeriodDays * 24 * 60 * 60 * 1000) : null
-    const endsAt = plan.durationDays > 0 ? new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000) : null
-    const nextProfitAt = new Date(now.getTime() + plan.returnPeriodHours * 60 * 60 * 1000)
+    const lockedUntil = plan.lockPeriodDays > 0 ? new Date(now.getTime() + plan.lockPeriodDays * 86400000) : null
+    const endsAt = plan.durationDays > 0 ? new Date(now.getTime() + plan.durationDays * 86400000) : null
+    const nextProfitAt = new Date(now.getTime() + plan.returnPeriodHours * 3600000)
 
-    // Create reinvested deposit
+    // Create reinvested deposit with full amount (original + earnings)
     const deposit = await db.deposit.create({
       data: {
-        userId, planId, amount,
+        userId, planId, amount: reinvestAmount,
         status: plan.lockPeriodDays > 0 ? 'locked' : 'active',
         earnedSoFar: 0, stackIndex, lockedUntil, endsAt, nextProfitAt,
         isReinvested: true,
+        riskLevel: sourceDeposit?.riskLevel || user.riskCategory || 'medium',
       },
     })
 
-    // Reinvestment Bonus: +2% of reinvested amount credited immediately
+    // Reinvestment Bonus: +2%
     const REINVEST_BONUS_PERCENT = 2
-    const reinvestBonus = (amount * REINVEST_BONUS_PERCENT) / 100
+    const reinvestBonus = (reinvestAmount * REINVEST_BONUS_PERCENT) / 100
 
-    // Deduct from trading balance + add reinvest bonus
-    const newBalance = user.role === 'admin' ? user.tradingBalance : user.tradingBalance - amount + reinvestBonus
+    // Update user balances
+    // Deduct earnings portion from trading balance (original was already invested)
+    const deductAmount = sourceDepositId ? sourceDeposit.earnedSoFar : reinvestAmount
+    const newBalance = user.role === 'admin' ? user.tradingBalance : user.tradingBalance - deductAmount + reinvestBonus
+
     await db.user.update({
       where: { id: userId },
       data: {
-        tradingBalance: newBalance,
-        totalDeposited: user.totalDeposited + amount,
+        tradingBalance: Math.max(0, newBalance),
+        totalDeposited: user.totalDeposited + reinvestAmount,
         totalEarnings: user.totalEarnings + reinvestBonus,
       },
     })
@@ -74,9 +116,12 @@ export async function POST(request: Request) {
     // Transaction log
     await db.transactionLog.create({
       data: {
-        userId, type: 'reinvest', amount: -amount,
-        balanceBefore: user.tradingBalance, balanceAfter: newBalance,
-        wallet: 'trading', description: `Reinvested $${amount.toFixed(2)} into ${plan.name} plan (+$${reinvestBonus.toFixed(2)} bonus)`,
+        userId, type: 'reinvest', amount: -deductAmount,
+        balanceBefore: user.tradingBalance, balanceAfter: Math.max(0, newBalance),
+        wallet: 'trading',
+        description: sourceDepositId
+          ? `Reinvested $${reinvestAmount.toFixed(2)} (original $${sourceDeposit.amount.toFixed(2)} + earnings $${sourceDeposit.earnedSoFar.toFixed(2)}) into ${plan.name} (+$${reinvestBonus.toFixed(2)} bonus)`
+          : `Reinvested $${reinvestAmount.toFixed(2)} into ${plan.name} (+$${reinvestBonus.toFixed(2)} bonus)`,
         referenceId: deposit.id,
       },
     })
@@ -86,15 +131,18 @@ export async function POST(request: Request) {
       data: {
         userId,
         title: 'Reinvestment Successful! 🔄',
-        message: `$${amount.toFixed(2)} reinvested into ${plan.name}. Bonus: +$${reinvestBonus.toFixed(2)} (${REINVEST_BONUS_PERCENT}% reinvestment reward)`,
+        message: sourceDepositId
+          ? `$${sourceDeposit.amount.toFixed(2)} + $${sourceDeposit.earnedSoFar.toFixed(2)} earnings = $${reinvestAmount.toFixed(2)} reinvested into ${plan.name}. Bonus: +$${reinvestBonus.toFixed(2)}`
+          : `$${reinvestAmount.toFixed(2)} reinvested into ${plan.name}. Bonus: +$${reinvestBonus.toFixed(2)}`,
         type: 'success',
       },
     })
 
     return NextResponse.json({
       success: true,
-      deposit: { id: deposit.id, amount, planName: plan.name, status: deposit.status },
+      deposit: { id: deposit.id, amount: reinvestAmount, planName: plan.name, status: deposit.status },
       bonus: reinvestBonus,
+      breakdown: sourceDepositId ? { original: sourceDeposit.amount, earnings: sourceDeposit.earnedSoFar, total: reinvestAmount } : null,
     }, { status: 201 })
   } catch (error) {
     console.error('Reinvest error:', error)

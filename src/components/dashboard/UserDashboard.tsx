@@ -21,6 +21,7 @@ import { WelcomeTour } from './WelcomeTour'
 import { MobileBottomNav } from './MobileBottomNav'
 import { ProfitNotification } from './ProfitNotification'
 import { SessionTimeout } from '@/components/SessionTimeout'
+import { ScreenTimeNP } from './ScreenTimeNP'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -334,6 +335,9 @@ export function UserDashboard() {
 
       {/* Session Timeout */}
       <SessionTimeout />
+
+      {/* Screen Time NP Tracker */}
+      <ScreenTimeNP />
     </div>
   )
 }
