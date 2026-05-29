@@ -53,6 +53,7 @@ export async function PUT(request: Request) {
           data: {
             tradingBalance: newBalance,
             totalDeposited: user.totalDeposited + payment.amount,
+            isActive: true, // Activate user on first successful deposit
           },
         })
 

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight } from 'lucide-react'
+import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2 } from 'lucide-react'
 import { UserDetailView } from './UserDetailView'
 
 interface UserRecord {
@@ -98,6 +98,21 @@ export function UsersTab() {
       fetchUsers()
     } catch {
       toast({ title: 'Error', description: 'Failed to update user', variant: 'destructive' })
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Delete "${userName}"? This will deactivate the account and wipe personal data. This cannot be undone.`)) return
+    try {
+      const res = await fetch(`/api/admin/users?userId=${userId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed')
+      }
+      toast({ title: 'User Deleted', description: `${userName} has been removed` })
+      fetchUsers()
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to delete user', variant: 'destructive' })
     }
   }
 
@@ -313,6 +328,15 @@ export function UsersTab() {
                             title="Adjust Balance"
                           >
                             <DollarSign className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteUser(user.id, user.name)}
+                            className="text-rose-400/60 hover:text-rose-400 h-8 w-8 p-0"
+                            title="Delete User"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>

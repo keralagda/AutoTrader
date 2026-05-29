@@ -48,6 +48,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
         referralCode: userRefCode,
         referredById,
+        isActive: false, // User becomes active only after first deposit or admin balance add
         tradingBalance: 0,
         withdrawalBalance: 0,
         totalEarnings: 0,

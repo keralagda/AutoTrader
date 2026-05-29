@@ -44,6 +44,9 @@ export async function POST(request: Request) {
       const plan = deposit.plan
       const user = deposit.user
 
+      // Skip if user is not active (hasn't made a deposit yet)
+      if (!user.isActive) continue
+
       // Skip if locked and not yet unlocked
       if (deposit.status === 'locked' && deposit.lockedUntil && new Date(deposit.lockedUntil) > now) {
         continue
