@@ -119,7 +119,7 @@ export function EarningsCalculator() {
                     }`}
                   >
                     <p className={`text-sm font-bold ${selectedRisk === i ? level.color : 'text-muted-foreground'}`}>{level.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{level.min}% - {level.max}% daily</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5" dir="ltr">{level.min}% - {level.max}% daily</p>
                   </button>
                 ))}
               </div>
@@ -170,31 +170,31 @@ export function EarningsCalculator() {
               <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-center">
                 <TrendingUp className="size-5 text-emerald-400 mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Daily Earning</p>
-                <p className="text-lg font-bold text-emerald-400">${minDailyEarning.toFixed(2)} - ${maxDailyEarning.toFixed(2)}</p>
+                <p className="text-lg font-bold text-emerald-400" dir="ltr">${minDailyEarning.toFixed(2)} - ${maxDailyEarning.toFixed(2)}</p>
               </div>
               <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-4 text-center">
                 <Calendar className="size-5 text-cyan-400 mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Weekly (5 days)</p>
-                <p className="text-lg font-bold text-cyan-400">${weeklyEarning.toFixed(2)}</p>
+                <p className="text-lg font-bold text-cyan-400" dir="ltr">${weeklyEarning.toFixed(2)}</p>
               </div>
               <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4 text-center">
                 <Wallet className="size-5 text-amber-400 mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Monthly (~22 days)</p>
-                <p className="text-lg font-bold text-amber-400">${monthlyEarning.toFixed(2)}</p>
+                <p className="text-lg font-bold text-amber-400" dir="ltr">${monthlyEarning.toFixed(2)}</p>
               </div>
               <div className="rounded-lg bg-violet-500/10 border border-violet-500/20 p-4 text-center">
                 <Calculator className="size-5 text-violet-400 mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Total ({days} days)</p>
-                <p className="text-lg font-bold text-violet-400">${totalEarning.toFixed(2)}</p>
+                <p className="text-lg font-bold text-violet-400" dir="ltr">${totalEarning.toFixed(2)}</p>
               </div>
             </div>
 
             {/* ROI Badge */}
             <div className="text-center pt-2">
-              <Badge className="bg-primary/20 text-primary border-primary/30 text-sm px-4 py-1">
+              <Badge className="bg-primary/20 text-primary border-primary/30 text-sm px-4 py-1" dir="ltr">
                 Estimated ROI: {roi}% in {days} trading days ({risk.label.replace(/[🟢🟡🔴]\s*/, '')} risk)
               </Badge>
-              <p className="text-[10px] text-muted-foreground mt-2">
+              <p className="text-[10px] text-muted-foreground mt-2" dir="ltr">
                 * Returns vary between {risk.min}%-{risk.max}% daily based on {risk.id} risk level. Capped at ${plan.maxEarningLimit.toLocaleString()} for {plan.name} plan.
               </p>
             </div>

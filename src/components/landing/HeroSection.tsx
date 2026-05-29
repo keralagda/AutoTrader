@@ -205,7 +205,7 @@ export default function HeroSection() {
                 className="bg-card/80 backdrop-blur-sm border border-border rounded-xl p-6 text-center hover:border-emerald-500/30 transition-all duration-300"
               >
                 <Icon className="size-8 text-emerald-400 mx-auto mb-3" />
-                <div className="text-3xl font-bold text-foreground mb-1">
+                <div className="text-3xl font-bold text-foreground mb-1" dir="ltr">
                   {formatNumber(counts[i], stat.prefix, stat.suffix)}
                 </div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>

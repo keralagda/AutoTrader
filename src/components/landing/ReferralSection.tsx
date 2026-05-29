@@ -83,7 +83,7 @@ export default function ReferralSection() {
                                 background: `linear-gradient(90deg, oklch(0.72 0.19 160 / ${opacity}), oklch(0.72 0.19 160 / ${opacity * 0.6}))`,
                               }}
                             >
-                              <span className="text-xs font-bold text-white drop-shadow-sm">
+                              <span className="text-xs font-bold text-white drop-shadow-sm" dir="ltr">
                                 {level.percent}%
                               </span>
                             </motion.div>
@@ -103,7 +103,7 @@ export default function ReferralSection() {
                 {/* Total */}
                 <div className="mt-6 pt-4 border-t border-border text-center">
                   <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-4 py-1">
-                    Total: {totalPercent}% from Subscription Fee
+                    Total: <span dir="ltr">{totalPercent}%</span> from Subscription Fee
                   </Badge>
                 </div>
               </CardContent>
@@ -136,7 +136,7 @@ export default function ReferralSection() {
                         </div>
                         <span className="text-sm font-medium">Level {level.level}</span>
                       </div>
-                      <span className="text-emerald-400 font-bold">{level.percent}%</span>
+                      <span className="text-emerald-400 font-bold" dir="ltr">{level.percent}%</span>
                     </motion.div>
                   ))}
                 </div>
@@ -158,11 +158,11 @@ export default function ReferralSection() {
                   <div className="bg-background/50 rounded-lg p-4 border border-border space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">80% goes to referral pool</span>
-                      <span className="font-semibold text-amber-400">$80</span>
+                      <span className="font-semibold text-amber-400" dir="ltr">$80</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Your Level 1 share (25%)</span>
-                      <span className="font-bold text-emerald-400">$20</span>
+                      <span className="font-bold text-emerald-400" dir="ltr">$20</span>
                     </div>
                     <div className="border-t border-border pt-2 mt-2">
                       <p className="text-muted-foreground">

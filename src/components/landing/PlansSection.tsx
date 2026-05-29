@@ -283,23 +283,23 @@ export default function PlansSection() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Min Deposit</span>
-                          <span className="font-semibold">${plan.minDeposit}</span>
+                          <span className="font-semibold" dir="ltr">${plan.minDeposit}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Max Deposit</span>
-                          <span className="font-semibold">
+                          <span className="font-semibold" dir="ltr">
                             ${plan.maxDeposit.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Daily Earning</span>
-                          <span className={`font-bold text-lg ${accent.text}`}>
+                          <span className={`font-bold text-lg ${accent.text}`} dir="ltr">
                             {(plan as any).lowRiskMin || 0.3}% - {(plan as any).highRiskMax || 8.0}%
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Max Earning</span>
-                          <span className="font-semibold">
+                          <span className="font-semibold" dir="ltr">
                             {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
                           </span>
                         </div>
