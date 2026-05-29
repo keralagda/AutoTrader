@@ -1,18 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, clearSession } from '@/lib/auth'
+import { getSession, clearSession, verifyToken } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { headers } from 'next/headers'
 
 // GET - Validate current session and return user data
 export async function GET() {
   try {
-    const session = await getSession()
+    // Check for Bearer token first (spectate mode)
+    const headersList = await headers()
+    const authHeader = headersList.get('authorization')
+    let session: any = null
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '')
+      session = verifyToken(token)
+    }
+
+    // Fall back to cookie session
+    if (!session) {
+      session = await getSession()
+    }
+
     if (!session) {
       return NextResponse.json({ authenticated: false }, { status: 401 })
     }
 
     const user = await db.user.findUnique({ where: { id: session.userId } })
-    if (!user || !user.isActive) {
-      await clearSession()
+    if (!user) {
       return NextResponse.json({ authenticated: false }, { status: 401 })
     }
 

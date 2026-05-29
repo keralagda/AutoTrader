@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2 } from 'lucide-react'
+import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2, MonitorPlay } from 'lucide-react'
 import { UserDetailView } from './UserDetailView'
 
 interface UserRecord {
@@ -113,6 +113,26 @@ export function UsersTab() {
       fetchUsers()
     } catch (err: any) {
       toast({ title: 'Error', description: err.message || 'Failed to delete user', variant: 'destructive' })
+    }
+  }
+
+  const handleSpectate = async (userId: string) => {
+    // Create a spectate session — admin views the dashboard as this user
+    try {
+      const res = await fetch('/api/admin/spectate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        // Open user dashboard in new tab with spectate token
+        window.open(`/dashboard?spectate=${data.token}`, '_blank')
+      } else {
+        toast({ title: 'Failed to start spectate', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
     }
   }
 
@@ -302,6 +322,15 @@ export function UsersTab() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleSpectate(user.id)}
+                            className="text-violet-400 hover:text-violet-300 h-8 w-8 p-0"
+                            title="Spectate (View as User)"
+                          >
+                            <MonitorPlay className="h-4 w-4" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
