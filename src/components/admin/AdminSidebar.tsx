@@ -46,6 +46,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'testimonials', label: 'Testimonials', icon: Star, group: 'content' },
   { tab: 'challenges', label: 'Challenges & Badges', icon: Target, group: 'content' },
   { tab: 'novaPoints', label: 'Nova Points Pool', icon: Star, group: 'content' },
+  { tab: 'ecommerce', label: 'Ecommerce / Products', icon: Target, group: 'content' },
   { tab: 'notifications', label: 'Fake Notifications', icon: Bell, group: 'content' },
 
   // 🛟 Support

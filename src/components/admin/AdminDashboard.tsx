@@ -39,6 +39,7 @@ import { AdminChatbotTab } from './AdminChatbotTab'
 import { AdminNovaPointsTab } from './AdminNovaPointsTab'
 import { AdminLogicBuilderTab } from './AdminLogicBuilderTab'
 import { AdminFeatureFlagsTab } from './AdminFeatureFlagsTab'
+import { AdminEcommerceTab } from './AdminEcommerceTab'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -130,6 +131,7 @@ export function AdminDashboard() {
       case 'novaPoints': return <AdminNovaPointsTab />
       case 'logicBuilder': return <AdminLogicBuilderTab />
       case 'featureFlags': return <AdminFeatureFlagsTab />
+      case 'ecommerce': return <AdminEcommerceTab />
       default: return <PlansTab />
     }
   }
