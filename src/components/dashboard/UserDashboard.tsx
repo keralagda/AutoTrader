@@ -17,6 +17,7 @@ import { NewsTab } from './NewsTab'
 import { TransactionsTab } from './TransactionsTab'
 import { SecurityTab } from './SecurityTab'
 import { NovaPointsStore } from './NovaPointsStore'
+import { ResourcesTab } from './ResourcesTab'
 import { WelcomeTour } from './WelcomeTour'
 import { MobileBottomNav } from './MobileBottomNav'
 import { ProfitNotification } from './ProfitNotification'
@@ -69,6 +70,7 @@ const TAB_META: Record<
   messages: { title: 'Message Centre', icon: MessageSquare },
   transactions: { title: 'Transactions', icon: ScrollText },
   news: { title: 'News', icon: Newspaper },
+  resources: { title: 'Resources', icon: Sparkles },
   rewards: { title: 'Rewards Store', icon: Sparkles },
   security: { title: 'Security', icon: Shield },
 }
@@ -158,6 +160,7 @@ export function UserDashboard() {
       case 'messages': return <MessagesTab />
       case 'transactions': return <TransactionsTab />
       case 'news': return <NewsTab />
+      case 'resources': return <ResourcesTab />
       case 'security': return <SecurityTab />
       case 'rewards': return <NovaPointsStore />
       default: return <OverviewTab />

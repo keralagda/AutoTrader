@@ -35,6 +35,7 @@ import {
   Bell,
   Shield,
   Sparkles,
+  Gift,
 } from 'lucide-react'
 
 interface NavItem {
@@ -58,6 +59,7 @@ const navItems: NavItem[] = [
   { id: 'messages', label: 'Message Centre', icon: MessageSquare },
   { id: 'transactions', label: 'Transactions', icon: ScrollText },
   { id: 'news', label: 'News', icon: Newspaper },
+  { id: 'resources', label: 'Resources', icon: Gift },
   { id: 'security', label: 'Security', icon: Shield },
 ]
 
