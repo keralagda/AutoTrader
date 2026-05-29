@@ -15,15 +15,21 @@ export function LiveEarningsCounter() {
     setDisplayEarnings(earningsRef.current)
   }, [user?.totalEarnings])
 
-  // Simulate live ticking based on estimated earnings rate
+  // Only animate the counter if user has active investments AND actual earnings
   useEffect(() => {
+    // Don't tick if user has no deposits or no earnings
+    if (!user?.totalDeposited || user.totalDeposited <= 0) return
+    if (earningsRef.current <= 0) return
+
     const interval = setInterval(() => {
-      // Add tiny increment every 3 seconds to simulate live earnings
-      const increment = (earningsRef.current * 0.00001) + 0.001 // Very small tick
+      // Add tiny visual increment every 3 seconds (cosmetic only, not real)
+      const increment = earningsRef.current * 0.00001
       setDisplayEarnings(prev => prev + increment)
     }, 3000)
     return () => clearInterval(interval)
-  }, [])
+  }, [user?.totalDeposited])
+
+  const hasInvestment = (user?.totalDeposited || 0) > 0
 
   return (
     <Card className="bg-gradient-to-r from-emerald-500/10 via-card to-emerald-500/5 border-emerald-500/20">
@@ -31,12 +37,18 @@ export function LiveEarningsCounter() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Total Earnings (Live)
+              {hasInvestment && earningsRef.current > 0 && (
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              )}
+              Total Earnings
+              {hasInvestment && earningsRef.current > 0 && <span className="text-emerald-400/60">(Live)</span>}
             </p>
-            <p className="text-2xl md:text-3xl font-bold text-emerald-400 font-mono tabular-nums">
-              ${displayEarnings.toFixed(4)}
+            <p className="text-2xl md:text-3xl font-bold text-emerald-400 font-mono tabular-nums" dir="ltr">
+              ${displayEarnings.toFixed(2)}
             </p>
+            {!hasInvestment && (
+              <p className="text-[10px] text-muted-foreground mt-1">Invest in a plan to start earning</p>
+            )}
           </div>
           <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
             <TrendingUp className="h-5 w-5 text-emerald-400" />
