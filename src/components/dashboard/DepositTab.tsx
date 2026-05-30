@@ -380,7 +380,7 @@ export function DepositTab() {
           {/* Alternative: Bank Transfer */}
           <div className="text-center">
             <Separator className="my-3" />
-            <p className="text-xs text-muted-foreground mb-2">Or deposit via bank transfer</p>
+            <p className="text-xs text-muted-foreground mb-2">Or deposit via wire transfer</p>
             <Button
               variant="outline"
               size="sm"
@@ -388,7 +388,7 @@ export function DepositTab() {
               className="gap-2"
             >
               <Landmark className="size-3.5" />
-              Bank Transfer (Manual)
+              EU/US Wire Transfer
             </Button>
           </div>
         </CardContent>

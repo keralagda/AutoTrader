@@ -936,9 +936,9 @@ export const CRYPTO_PAYMENT_METHODS = [
 ]
 
 export const INDIAN_PAYMENT_METHODS = [
-  { value: 'upi', label: 'UPI', icon: 'UPI' },
-  { value: 'bank_transfer', label: 'Bank Transfer (NEFT/IMPS)', icon: '🏦' },
-  { value: 'razorpay', label: 'Razorpay (Cards/Wallets)', icon: 'RP' },
+  { value: 'wire_eu', label: 'EU Wire Transfer (SEPA)', icon: '🇪🇺' },
+  { value: 'wire_us', label: 'US Wire Transfer (ACH/Fedwire)', icon: '🇺🇸' },
+  { value: 'bank_transfer', label: 'International Wire (SWIFT)', icon: '🏦' },
 ]
 
 export const ALL_PAYMENT_METHODS = [...CRYPTO_PAYMENT_METHODS, ...INDIAN_PAYMENT_METHODS]
