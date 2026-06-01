@@ -27,8 +27,13 @@ export async function GET(request: Request) {
     }
 
     // List all users (exclude fake profiles - they have their own management tab)
+    // List all users (exclude fake profiles and soft-deleted users)
     const users = await db.user.findMany({
-      where: { role: 'user', isFake: false },
+      where: {
+        role: 'user',
+        isFake: false,
+        NOT: { email: { contains: '@removed.local' } },
+      },
       select: {
         id: true,
         name: true,
@@ -194,7 +199,7 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE - Soft-delete user (deactivate + wipe PII)
+// DELETE - Hard delete user and all their data
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -210,35 +215,45 @@ export async function DELETE(request: Request) {
     }
 
     // Prevent deleting admin accounts
-    if (user.role === 'admin') {
+    if (user.role === 'admin' || user.role === 'super_admin') {
       return NextResponse.json({ error: 'Cannot delete admin accounts' }, { status: 403 })
     }
 
-    // Soft-delete: deactivate, wipe PII, zero balances
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        isActive: false,
-        name: `Deleted User ${userId.slice(0, 6)}`,
-        email: `deleted_${userId}@removed.local`,
-        phone: null,
-        walletAddress: null,
-        tradingBalance: 0,
-        withdrawalBalance: 0,
-        password: 'DELETED',
-      },
-    })
+    // Delete all related records (FK constraints)
+    await db.ticketReply.deleteMany({ where: { ticket: { userId } } })
+    await db.supportTicket.deleteMany({ where: { userId } })
+    await db.dailyCheckIn.deleteMany({ where: { userId } })
+    await db.userBadge.deleteMany({ where: { userId } })
+    await db.userChallenge.deleteMany({ where: { userId } })
+    await db.loginHistory.deleteMany({ where: { userId } })
+    await db.p2PTransfer.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } })
+    await db.notification.deleteMany({ where: { userId } })
+    await db.message.deleteMany({ where: { userId } })
+    await db.profitDistribution.deleteMany({ where: { deposit: { userId } } })
+    await db.earning.deleteMany({ where: { userId } })
+    await db.transactionLog.deleteMany({ where: { userId } })
+    await db.payment.deleteMany({ where: { userId } })
+    await db.withdrawal.deleteMany({ where: { userId } })
+    await db.deposit.deleteMany({ where: { userId } })
+    await db.leaderboardEntry.deleteMany({ where: { userId } })
+    await db.userStats.deleteMany({ where: { userId } })
+    await db.kycVerification.deleteMany({ where: { userId } })
+
+    // Unlink referrals (set referredById to null for users referred by this user)
+    await db.user.updateMany({ where: { referredById: userId }, data: { referredById: null } })
+
+    // Delete the user
+    await db.user.delete({ where: { id: userId } })
 
     // Log the deletion
     await db.activityLog.create({
       data: {
-        userId,
         action: 'admin_delete_user',
-        details: JSON.stringify({ originalEmail: user.email, originalName: user.name, deletedAt: new Date().toISOString() }),
+        details: JSON.stringify({ deletedEmail: user.email, deletedName: user.name, deletedAt: new Date().toISOString() }),
       },
     })
 
-    return NextResponse.json({ success: true, message: 'User deactivated and PII wiped' })
+    return NextResponse.json({ success: true, message: 'User permanently deleted' })
   } catch (error) {
     console.error('Delete user error:', error)
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
