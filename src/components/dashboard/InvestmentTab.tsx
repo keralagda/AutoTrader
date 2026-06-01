@@ -102,9 +102,40 @@ export function InvestmentTab() {
     loadData()
   }, [loadData])
 
-  const estimatedDailyEarning = selectedPlan
-    ? (parsedAmount * selectedPlan.dailyEarningPercent) / 100
-    : 0
+  const estimatedDailyEarning = (() => {
+    if (!selectedPlan || parsedAmount <= 0) return 0
+    const p = selectedPlan as any
+    let minPct: number, maxPct: number
+    if (selectedRiskLevel === 'low') {
+      minPct = p.lowRiskMin || 0.3
+      maxPct = p.lowRiskMax || 1.2
+    } else if (selectedRiskLevel === 'high') {
+      minPct = p.highRiskMin || 2.5
+      maxPct = p.highRiskMax || 8.0
+    } else {
+      minPct = p.mediumRiskMin || 1.0
+      maxPct = p.mediumRiskMax || 3.0
+    }
+    const avgPct = (minPct + maxPct) / 2
+    return (parsedAmount * avgPct) / 100
+  })()
+
+  const estimatedRange = (() => {
+    if (!selectedPlan || parsedAmount <= 0) return { min: 0, max: 0 }
+    const p = selectedPlan as any
+    let minPct: number, maxPct: number
+    if (selectedRiskLevel === 'low') {
+      minPct = p.lowRiskMin || 0.3
+      maxPct = p.lowRiskMax || 1.2
+    } else if (selectedRiskLevel === 'high') {
+      minPct = p.highRiskMin || 2.5
+      maxPct = p.highRiskMax || 8.0
+    } else {
+      minPct = p.mediumRiskMin || 1.0
+      maxPct = p.mediumRiskMax || 3.0
+    }
+    return { min: (parsedAmount * minPct) / 100, max: (parsedAmount * maxPct) / 100 }
+  })()
 
   const validationError = (() => {
     if (!selectedPlan || parsedAmount <= 0) return null
@@ -331,14 +362,14 @@ export function InvestmentTab() {
                   <SelectValue placeholder="Choose a plan..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {plans.filter(p => p.isActive).map(plan => (
+                  {plans.map(plan => (
                     <SelectItem key={plan.id} value={plan.id}>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className={`text-[10px] ${PLAN_COLORS[plan.name] || ''}`}>
                           {plan.name}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {plan.dailyEarningPercent}%/day · ${plan.minDeposit}-${plan.maxDeposit.toLocaleString()}
+                          {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}%/day · ${plan.minDeposit}-${plan.maxDeposit.toLocaleString()}
                         </span>
                       </div>
                     </SelectItem>
@@ -356,7 +387,9 @@ export function InvestmentTab() {
                   </Badge>
                   <span className="text-sm font-medium text-emerald-400 flex items-center gap-1">
                     <TrendingUp className="size-3.5" />
-                    {selectedPlan.dailyEarningPercent}% daily
+                    {selectedRiskLevel === 'low' ? `${(selectedPlan as any).lowRiskMin || 0.3}%-${(selectedPlan as any).lowRiskMax || 1.2}%` :
+                     selectedRiskLevel === 'high' ? `${(selectedPlan as any).highRiskMin || 2.5}%-${(selectedPlan as any).highRiskMax || 8}%` :
+                     `${(selectedPlan as any).mediumRiskMin || 1}%-${(selectedPlan as any).mediumRiskMax || 3}%`} daily
                   </span>
                 </div>
                 <Separator />
@@ -451,17 +484,21 @@ export function InvestmentTab() {
 
             {/* Estimated Earnings */}
             {selectedPlan && parsedAmount > 0 && !validationError && (
-              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 space-y-1.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Est. Daily Earning</span>
-                  <span className="font-medium text-emerald-400 flex items-center gap-1">
+                  <span className="font-medium text-emerald-400 flex items-center gap-1" dir="ltr">
                     <ArrowUpRight className="size-3.5" />
-                    +${estimatedDailyEarning.toFixed(2)}
+                    ${estimatedRange.min.toFixed(2)} - ${estimatedRange.max.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs mt-1">
-                  <span className="text-muted-foreground">Paid from</span>
-                  <span className="text-emerald-400">Trading Wallet</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Average ({selectedRiskLevel} risk)</span>
+                  <span className="text-emerald-400 font-medium" dir="ltr">~${estimatedDailyEarning.toFixed(2)}/day</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Est. Monthly</span>
+                  <span className="text-emerald-400" dir="ltr">~${(estimatedDailyEarning * 22).toFixed(2)}</span>
                 </div>
               </div>
             )}
