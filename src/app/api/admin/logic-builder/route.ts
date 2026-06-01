@@ -65,6 +65,7 @@ const DEFAULT_LOGIC = {
   // ─── Deposit & Earning Rules (Advanced) ───
   depositRules: [
     { id: 'dep_require_activation', name: 'Require Plan Activation', type: 'config', enabled: true, description: 'Users must activate (pay entry fee) a plan before they can invest in it. New Investment button is disabled until a plan is activated.' },
+    { id: 'dep_referral_lock', name: 'Lock Referral Code from URL', type: 'config', enabled: true, description: 'When a user signs up via referral link (?ref=CODE), the referral code is auto-filled and locked (read-only). User cannot change it.' },
     { id: 'dep_cooldown', name: 'Investment Cooldown', type: 'timing', enabled: false, cooldownHours: 24, description: 'Minimum time between investments in same plan' },
     { id: 'dep_max_daily', name: 'Max Daily Investment', type: 'limit', enabled: false, maxAmount: 10000, description: 'Maximum total investment per user per day' },
     { id: 'dep_progressive_unlock', name: 'Progressive Plan Unlock', type: 'progression', enabled: false, requirements: [{ plan: 'Starter', minDays: 0 }, { plan: 'Silver', minDays: 7 }, { plan: 'Gold', minDays: 30 }, { plan: 'Platinum', minDays: 60 }], description: 'Users must invest in lower plans first before unlocking higher ones' },

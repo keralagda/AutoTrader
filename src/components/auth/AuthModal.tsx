@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, Mail, Lock, User, Gift, ArrowRight } from 'lucide-react'
 import {
@@ -242,11 +242,22 @@ function RegisterForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [referralCode, setReferralCode] = useState('')
+  const [referralLocked, setReferralLocked] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
   const { setAuthMode, login, setShowAuthModal } = useAppStore()
   const { toast } = useToast()
+
+  // Auto-fill referral code from URL params (?ref=CODE)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const refCode = params.get('ref') || params.get('referral') || params.get('code')
+    if (refCode) {
+      setReferralCode(refCode)
+      setReferralLocked(true)
+    }
+  }, [])
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -427,23 +438,33 @@ function RegisterForm() {
         <div className="space-y-2">
           <Label htmlFor="reg-referral" className="text-sm text-muted-foreground">
             Referral Code{' '}
-            <span className="text-muted-foreground/60">(optional)</span>
+            {referralLocked ? (
+              <span className="text-emerald-400 text-[10px]">✓ Linked via referral</span>
+            ) : (
+              <span className="text-muted-foreground/60">(optional)</span>
+            )}
           </Label>
           <div className="relative">
-            <Gift className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Gift className={`absolute left-3 top-1/2 -translate-y-1/2 size-4 ${referralLocked ? 'text-emerald-400' : 'text-muted-foreground'}`} />
             <Input
               id="reg-referral"
               type="text"
               placeholder="Enter referral code"
               value={referralCode}
               onChange={(e) => {
-                setReferralCode(e.target.value)
-                setError('')
+                if (!referralLocked) {
+                  setReferralCode(e.target.value)
+                  setError('')
+                }
               }}
-              className="pl-10 bg-secondary/50 border-border/50 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20 h-11"
-              disabled={isLoading}
+              className={`pl-10 h-11 ${referralLocked ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed' : 'bg-secondary/50 border-border/50 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20'}`}
+              disabled={isLoading || referralLocked}
+              readOnly={referralLocked}
               autoComplete="off"
             />
+            {referralLocked && (
+              <Lock className="absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-emerald-400" />
+            )}
           </div>
         </div>
 
