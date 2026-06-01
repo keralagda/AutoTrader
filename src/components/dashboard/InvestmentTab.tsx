@@ -37,6 +37,8 @@ import {
   Loader2,
   ArrowUpRight,
   RefreshCw,
+  Zap,
+  Shield,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import type { PlanType } from '@/lib/types'
@@ -73,6 +75,11 @@ export function InvestmentTab() {
   const [investModalOpen, setInvestModalOpen] = useState(false)
   const [selectedDeposit, setSelectedDeposit] = useState<Deposit | null>(null)
 
+  // Plan activation state
+  const [activatedPlanIds, setActivatedPlanIds] = useState<string[]>([])
+  const [activateModalOpen, setActivateModalOpen] = useState(false)
+  const [activating, setActivating] = useState(false)
+
   // Invest form state
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [amount, setAmount] = useState('')
@@ -80,18 +87,24 @@ export function InvestmentTab() {
   const [submitting, setSubmitting] = useState(false)
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId)
+  const activatedPlans = plans.filter(p => activatedPlanIds.includes(p.id))
   const parsedAmount = parseFloat(amount) || 0
   const tradingBalance = user?.tradingBalance || 0
 
   const loadData = useCallback(async () => {
     if (!user?.id) return
     try {
-      const [depsRes, plansRes] = await Promise.all([
+      const [depsRes, plansRes, activationRes] = await Promise.all([
         fetch(`/api/deposits?userId=${user.id}`),
         fetch('/api/plans'),
+        fetch(`/api/plan-activation?userId=${user.id}`),
       ])
       if (depsRes.ok) setDeposits(await depsRes.json())
       if (plansRes.ok) setPlans(await plansRes.json())
+      if (activationRes.ok) {
+        const actData = await activationRes.json()
+        setActivatedPlanIds(actData.activatedPlanIds || [])
+      }
     } catch {
     } finally {
       setLoading(false)
@@ -101,6 +114,31 @@ export function InvestmentTab() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  const handleActivatePlan = async (planId: string) => {
+    if (!user?.id) return
+    setActivating(true)
+    try {
+      const res = await fetch('/api/plan-activation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, planId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast({ title: data.message })
+        updateUserWallets(data.newBalance, user.withdrawalBalance || 0)
+        loadData()
+        setActivateModalOpen(false)
+      } else {
+        toast({ title: data.error || 'Activation failed', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
+    } finally {
+      setActivating(false)
+    }
+  }
 
   const estimatedDailyEarning = (() => {
     if (!selectedPlan || parsedAmount <= 0) return 0
@@ -282,10 +320,16 @@ export function InvestmentTab() {
             <span className="text-muted-foreground">Balance:</span>
             <span className="font-bold text-emerald-400">${tradingBalance.toFixed(2)}</span>
           </div>
-          <Button onClick={() => setInvestModalOpen(true)} className="gap-1.5">
-            <Plus className="size-4" />
-            New Investment
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setActivateModalOpen(true)} className="gap-1.5">
+              <Zap className="size-4" />
+              Activate Plan
+            </Button>
+            <Button onClick={() => { if (activatedPlanIds.length === 0) { toast({ title: 'Activate a plan first', description: 'You need to activate a plan before investing', variant: 'destructive' }); setActivateModalOpen(true) } else { setInvestModalOpen(true) } }} className="gap-1.5">
+              <Plus className="size-4" />
+              New Investment
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -349,7 +393,7 @@ export function InvestmentTab() {
               New Investment
             </DialogTitle>
             <DialogDescription>
-              Choose a plan and invest from your Trading Wallet (${tradingBalance.toFixed(2)} available)
+              Choose from your activated plans and invest from your Trading Wallet (${tradingBalance.toFixed(2)} available)
             </DialogDescription>
           </DialogHeader>
 
@@ -362,7 +406,7 @@ export function InvestmentTab() {
                   <SelectValue placeholder="Choose a plan..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {plans.map(plan => (
+                  {activatedPlans.map(plan => (
                     <SelectItem key={plan.id} value={plan.id}>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className={`text-[10px] ${PLAN_COLORS[plan.name] || ''}`}>
@@ -451,31 +495,37 @@ export function InvestmentTab() {
             </div>
 
             {/* Risk Level Selection */}
-            <div className="space-y-2">
-              <Label>Risk Level</Label>
-              <p className="text-[10px] text-muted-foreground">Higher risk = higher potential returns but more variation</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'low', label: '🟢 Low', desc: '0.5-2%/day', color: 'emerald' },
-                  { value: 'medium', label: '🟡 Medium', desc: '2-5%/day', color: 'amber' },
-                  { value: 'high', label: '🔴 High', desc: '5-15%/day', color: 'rose' },
-                ].map(level => (
-                  <button
-                    key={level.value}
-                    type="button"
-                    onClick={() => setSelectedRiskLevel(level.value)}
-                    className={`p-3 rounded-lg border text-center transition-all ${
-                      selectedRiskLevel === level.value
-                        ? `bg-${level.color}-500/15 border-${level.color}-500/30 text-${level.color}-400`
-                        : 'border-border/50 text-muted-foreground hover:border-border'
-                    }`}
-                  >
-                    <p className="text-sm font-medium">{level.label}</p>
-                    <p className="text-[10px] mt-0.5">{level.desc}</p>
-                  </button>
-                ))}
+            {selectedPlan && (
+              <div className="space-y-2">
+                <Label>Risk Level</Label>
+                <p className="text-[10px] text-muted-foreground">Higher risk = higher potential returns but more variation</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(() => {
+                    const p = selectedPlan as any
+                    const riskLevels = (p.riskLevels || 'low,medium,high').split(',').map((r: string) => r.trim())
+                    return [
+                      { value: 'low', label: '🟢 Low', desc: `${p.lowRiskMin || 0.3}%-${p.lowRiskMax || 1.2}%/day`, color: 'emerald' },
+                      { value: 'medium', label: '🟡 Medium', desc: `${p.mediumRiskMin || 1}%-${p.mediumRiskMax || 3}%/day`, color: 'amber' },
+                      { value: 'high', label: '🔴 High', desc: `${p.highRiskMin || 2.5}%-${p.highRiskMax || 8}%/day`, color: 'rose' },
+                    ].filter(l => riskLevels.includes(l.value)).map(level => (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() => setSelectedRiskLevel(level.value)}
+                        className={`p-3 rounded-lg border text-center transition-all ${
+                          selectedRiskLevel === level.value
+                            ? `bg-${level.color}-500/15 border-${level.color}-500/30 text-${level.color}-400`
+                            : 'border-border/50 text-muted-foreground hover:border-border'
+                        }`}
+                      >
+                        <p className="text-sm font-medium">{level.label}</p>
+                        <p className="text-[10px] mt-0.5" dir="ltr">{level.desc}</p>
+                      </button>
+                    ))
+                  })()}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Validation Error */}
             {validationError && (
@@ -515,6 +565,73 @@ export function InvestmentTab() {
                 'Confirm Investment'
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activate Plan Modal */}
+      <Dialog open={activateModalOpen} onOpenChange={setActivateModalOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="size-5 text-amber-400" />
+              Activate a Plan
+            </DialogTitle>
+            <DialogDescription>
+              Pay the activation fee to unlock a plan for investment. This fee does NOT go into your investment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {/* Activated Plans */}
+            {activatedPlanIds.length > 0 && (
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+                <p className="text-xs font-medium text-emerald-400 mb-1.5">✅ Your Activated Plans:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {activatedPlans.map(p => (
+                    <Badge key={p.id} className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">{p.name}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Available Plans to Activate */}
+            <p className="text-xs text-muted-foreground font-medium">Available Plans:</p>
+            {plans.filter(p => !activatedPlanIds.includes(p.id)).map(plan => (
+              <Card key={plan.id} className="border-border/50 hover:border-amber-500/30 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={PLAN_COLORS[plan.name] || ''}>{plan.name}</Badge>
+                        <span className="text-xs text-muted-foreground">
+                          Invest ${plan.minDeposit}-${plan.maxDeposit.toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Daily: {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}% • Max: {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-amber-400" dir="ltr">${plan.entryFee}</p>
+                      <p className="text-[9px] text-muted-foreground">activation fee</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full mt-3 gap-1.5 bg-amber-500 hover:bg-amber-600 text-black"
+                    onClick={() => handleActivatePlan(plan.id)}
+                    disabled={activating || (user?.tradingBalance || 0) < plan.entryFee}
+                  >
+                    {activating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
+                    {(user?.tradingBalance || 0) < plan.entryFee ? `Need $${plan.entryFee}` : `Activate for $${plan.entryFee}`}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+
+            {plans.filter(p => !activatedPlanIds.includes(p.id)).length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-4">All plans activated! 🎉</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
