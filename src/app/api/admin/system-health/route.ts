@@ -20,7 +20,7 @@ export async function GET() {
       recentTransactions,
       totalEarningsDistributed,
     ] = await Promise.all([
-      prisma.user.count({ where: { isFake: false } }),
+      prisma.user.count({ where: { isFake: false, NOT: { email: { contains: '@removed.local' } } } }),
       prisma.loginHistory.findMany({
         where: { createdAt: { gte: oneDayAgo } },
         distinct: ['userId'],
