@@ -5,7 +5,7 @@ const DEFAULT_PRODUCTS = [
   { id: 'tshirt-black', name: 'Black Nova FX T-Shirt', category: 'merch', price: 35, image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop&q=80', description: 'Premium cotton tee with gold embroidered BN logo. S-3XL.', colors: ['Black', 'Navy'], inStock: true, stock: 100, type: 'paid' },
   { id: 'diary-leather', name: 'Executive Diary', category: 'merch', price: 25, image: 'https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=300&h=300&fit=crop&q=80', description: 'Leather-bound diary with gold foil BN logo, 200 pages.', colors: ['Black', 'Brown'], inStock: true, stock: 50, type: 'paid' },
   { id: 'pen-gold', name: 'Gold Signature Pen', category: 'merch', price: 15, image: 'https://images.unsplash.com/photo-1585336261022-680e295ce3fe?w=300&h=300&fit=crop&q=80', description: 'Metal ballpoint pen with gold trim and engraved branding.', colors: ['Gold/Black'], inStock: true, stock: 200, type: 'paid' },
-  { id: 'cap-snapback', name: 'BN Snapback Cap', category: 'merch', price: 20, image: 'https://images.unsplash.com/photo-1588850561407-ed78c334e67a?w=300&h=300&fit=crop&q=80', description: 'Structured snapback with embroidered BN logo.', colors: ['Black/Gold', 'Navy/Gold'], inStock: true, stock: 75, type: 'paid' },
+  { id: 'cap-snapback', name: 'BN Snapback Cap', category: 'merch', price: 20, image: 'https://images.unsplash.com/photo-1556306535-0f09a537f0a3?w=300&h=300&fit=crop&q=80', description: 'Structured snapback with embroidered BN logo.', colors: ['Black/Gold', 'Navy/Gold'], inStock: true, stock: 75, type: 'paid' },
   { id: 'keychain-metal', name: 'Metal Keychain', category: 'merch', price: 10, image: 'https://images.unsplash.com/photo-1622434641406-a158123450f9?w=300&h=300&fit=crop&q=80', description: 'Die-cast metal keychain with 3D BN emblem.', colors: ['Gold'], inStock: true, stock: 300, type: 'paid' },
   { id: 'watch-classic', name: 'BN Classic Watch', category: 'merch', price: 120, image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=300&h=300&fit=crop&q=80', description: 'Stainless steel watch with BN dial, leather strap.', colors: ['Black/Gold', 'Silver/Black'], inStock: false, stock: 0, type: 'paid' },
   { id: 'banner-dark-1', name: 'Dark Banner (1200x628)', category: 'banner', price: 0, image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&h=210&fit=crop&q=80', description: 'Social media banner with gold logo on black.', colors: [], inStock: true, stock: -1, type: 'free' },
@@ -118,3 +118,4 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
+

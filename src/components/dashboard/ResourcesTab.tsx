@@ -164,7 +164,7 @@ const PAID_MERCH: PaidMerch[] = [
     name: 'BN Snapback Cap',
     description: 'Structured snapback with embroidered BN logo. One size fits all.',
     price: 20,
-    image: 'https://images.unsplash.com/photo-1588850561407-ed78c334e67a?w=300&h=300&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1556306535-0f09a537f0a3?w=300&h=300&fit=crop&q=80',
     icon: Crown,
     colors: ['Black/Gold', 'Navy/Gold'],
     inStock: true,

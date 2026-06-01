@@ -181,7 +181,7 @@ export function AwwwardsLanding() {
           </FadeInView>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {plans.slice(0, 4).map((plan, i) => (
+            {(plans || []).slice(0, 4).map((plan, i) => (
               <FadeInView key={plan.id} delay={i * 0.1}>
                 <div className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent border border-white/[0.06] p-6 hover:border-amber-500/20 transition-all group">
                   <div className="text-3xl mb-4">{['🛡️', '💎', '👑', '🚀'][i] || '📈'}</div>
