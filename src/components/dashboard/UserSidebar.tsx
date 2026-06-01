@@ -60,6 +60,7 @@ const navItems: NavItem[] = [
   { id: 'transactions', label: 'Transactions', icon: ScrollText },
   { id: 'news', label: 'News', icon: Newspaper },
   { id: 'resources', label: 'Resources', icon: Gift },
+  { id: 'help', label: 'Help Center', icon: Shield },
   { id: 'security', label: 'Security', icon: Shield },
 ]
 

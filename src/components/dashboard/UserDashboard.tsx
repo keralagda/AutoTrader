@@ -18,6 +18,7 @@ import { TransactionsTab } from './TransactionsTab'
 import { SecurityTab } from './SecurityTab'
 import { NovaPointsStore } from './NovaPointsStore'
 import { ResourcesTab } from './ResourcesTab'
+import { HelpCenterTab } from './HelpCenterTab'
 import { WelcomeTour } from './WelcomeTour'
 import { MobileBottomNav } from './MobileBottomNav'
 import { ProfitNotification } from './ProfitNotification'
@@ -71,6 +72,7 @@ const TAB_META: Record<
   transactions: { title: 'Transactions', icon: ScrollText },
   news: { title: 'News', icon: Newspaper },
   resources: { title: 'Resources', icon: Sparkles },
+  help: { title: 'Help Center', icon: Sparkles },
   rewards: { title: 'Rewards Store', icon: Sparkles },
   security: { title: 'Security', icon: Shield },
 }
@@ -161,6 +163,7 @@ export function UserDashboard() {
       case 'transactions': return <TransactionsTab />
       case 'news': return <NewsTab />
       case 'resources': return <ResourcesTab />
+      case 'help': return <HelpCenterTab />
       case 'security': return <SecurityTab />
       case 'rewards': return <NovaPointsStore />
       default: return <OverviewTab />

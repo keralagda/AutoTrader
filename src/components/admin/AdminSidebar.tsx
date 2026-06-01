@@ -58,6 +58,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   // ⚙️ Settings
   { tab: 'settings', label: 'General Settings', icon: Wrench, group: 'system' },
   { tab: 'featureFlags', label: 'Feature Flags', icon: Shield, group: 'system' },
+  { tab: 'helpCenter', label: 'Help Center', icon: LifeBuoy, group: 'system' },
   { tab: 'geoBlocking', label: 'Geo-Blocking', icon: Shield, group: 'system' },
   { tab: 'notifTemplates', label: 'Notification Templates', icon: Bell, group: 'system' },
 ]
