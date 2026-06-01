@@ -202,7 +202,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           <Button
             variant="outline"
             className="w-full justify-start gap-2 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-            onClick={() => { window.location.href = '/admin' }}
+            onClick={() => { window.location.href = '/control-hub' }}
           >
             <Shield className="size-4" />
             Admin Panel

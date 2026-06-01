@@ -32,7 +32,7 @@ function DashboardContent() {
           }
         })
         .catch(() => {
-          router.replace('/admin')
+          router.replace('/control-hub')
         })
         .finally(() => setLoading(false))
     } else {

@@ -32,10 +32,10 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Protect /admin route - require staff role (admin, super_admin, moderator, support)
+  // Protect /control-hub route - require staff role (admin, super_admin, moderator, support)
   const STAFF_ROLES = ['admin', 'super_admin', 'moderator', 'support']
 
-  if (pathname.startsWith('/admin')) {
+  if (pathname.startsWith('/control-hub')) {
     const token = request.cookies.get('bnfx_session')?.value
     if (!token) {
       return NextResponse.redirect(new URL('/?login=true', request.url))
@@ -66,12 +66,18 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // Redirect old /admin route to 404 (security through obscurity)
+  if (pathname.startsWith('/admin')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/control-hub/:path*',
     '/admin/:path*',
     '/api/admin/:path*',
   ],

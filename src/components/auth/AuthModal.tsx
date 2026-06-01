@@ -97,8 +97,9 @@ function LoginForm() {
         setShowAuthModal(false)
 
         // Redirect based on role
-        if (userData.role === 'admin') {
-          window.location.href = '/admin'
+        const staffRoles = ['admin', 'super_admin', 'moderator', 'support']
+        if (staffRoles.includes(userData.role)) {
+          window.location.href = '/control-hub'
         } else {
           window.location.href = '/dashboard'
         }

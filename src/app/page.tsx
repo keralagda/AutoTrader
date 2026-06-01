@@ -27,8 +27,8 @@ function HomeContent() {
           const data = await res.json()
           if (data.authenticated && data.user) {
             login(data.user as UserData)
-            if (data.user.role === 'admin') {
-              router.replace('/admin')
+            if (['admin', 'super_admin', 'moderator', 'support'].includes(data.user.role)) {
+              router.replace('/control-hub')
             } else {
               router.replace('/dashboard')
             }
