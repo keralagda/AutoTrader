@@ -7,7 +7,8 @@ import { getLocale } from '@/lib/i18n'
 const clientCache: Record<string, string> = {}
 
 export function useTranslate(texts: string[]): string[] {
-  const [translated, setTranslated] = useState<string[]>(texts)
+  const safeTexts = (texts || []).map(t => t || '')
+  const [translated, setTranslated] = useState<string[]>(safeTexts)
   const [locale, setLocale] = useState('en')
 
   useEffect(() => {
@@ -18,20 +19,20 @@ export function useTranslate(texts: string[]): string[] {
   }, [])
 
   useEffect(() => {
-    if (locale === 'en' || texts.length === 0) {
-      setTranslated(texts)
+    if (locale === 'en' || safeTexts.length === 0) {
+      setTranslated(safeTexts)
       return
     }
 
     // Check client cache first
-    const allCached = texts.every(t => clientCache[`${locale}:${t}`])
+    const allCached = safeTexts.every(t => clientCache[`${locale}:${t}`])
     if (allCached) {
-      setTranslated(texts.map(t => clientCache[`${locale}:${t}`]))
+      setTranslated(safeTexts.map(t => clientCache[`${locale}:${t}`]))
       return
     }
 
     // Fetch translations from API
-    const uncached = texts.filter(t => !clientCache[`${locale}:${t}`])
+    const uncached = safeTexts.filter(t => !clientCache[`${locale}:${t}`])
     if (uncached.length === 0) return
 
     fetch('/api/translate', {
@@ -47,13 +48,13 @@ export function useTranslate(texts: string[]): string[] {
             clientCache[`${locale}:${t}`] = data.translations[i] || t
           })
           // Update all texts
-          setTranslated(texts.map(t => clientCache[`${locale}:${t}`] || t))
+          setTranslated(safeTexts.map(t => clientCache[`${locale}:${t}`] || t))
         }
       })
       .catch(() => {
-        setTranslated(texts)
+        setTranslated(safeTexts)
       })
-  }, [locale, texts.join('|')])
+  }, [locale, safeTexts.join('|')])
 
   return translated
 }
