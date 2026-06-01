@@ -167,42 +167,44 @@ export async function POST(request: Request) {
       })
     }
 
-    // Process referral earnings from entry fee (subscription fee distribution)
-    // 80% goes to referral/profit share cascade, 15% rewards & offers, 5% platform
-    const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
-    const entryFee = plan.entryFee
-    const referralPoolAmount = (entryFee * plan.subscriptionReferralPercent) / 100
+    // Process referral earnings from entry fee (only for immediately active deposits, not pending)
+    // For pending deposits, referral earnings are paid when admin approves
+    if (depositStatus !== 'pending') {
+      const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+      const entryFee = plan.entryFee
+      const referralPoolAmount = (entryFee * plan.subscriptionReferralPercent) / 100
 
-    let currentReferrerId = user.referredById
-    let level = 0
+      let currentReferrerId = user.referredById
+      let level = 0
 
-    while (currentReferrerId && level < 7) {
-      const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
-      if (!referrer) break
+      while (currentReferrerId && level < 7) {
+        const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+        if (!referrer) break
 
-      const referralEarning = (referralPoolAmount * REFERRAL_PERCENTS[level]) / 100
+        const referralEarning = (referralPoolAmount * REFERRAL_PERCENTS[level]) / 100
 
-      await db.earning.create({
-        data: {
-          userId: referrer.id,
-          depositId: deposit.id,
-          amount: referralEarning,
-          type: 'referral',
-          level: level + 1,
-          walletTarget: 'trading',
-        },
-      })
+        await db.earning.create({
+          data: {
+            userId: referrer.id,
+            depositId: deposit.id,
+            amount: referralEarning,
+            type: 'referral',
+            level: level + 1,
+            walletTarget: 'trading',
+          },
+        })
 
-      await db.user.update({
-        where: { id: referrer.id },
-        data: {
-          totalEarnings: referrer.totalEarnings + referralEarning,
-          tradingBalance: referrer.tradingBalance + referralEarning,
-        },
-      })
+        await db.user.update({
+          where: { id: referrer.id },
+          data: {
+            totalEarnings: referrer.totalEarnings + referralEarning,
+            tradingBalance: referrer.tradingBalance + referralEarning,
+          },
+        })
 
-      currentReferrerId = referrer.referredById
-      level++
+        currentReferrerId = referrer.referredById
+        level++
+      }
     }
 
     return NextResponse.json({

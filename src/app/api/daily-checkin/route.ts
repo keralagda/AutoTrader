@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
-import { loadNPConfig } from '@/app/api/admin/nova-points/route'
-
-const prisma = new PrismaClient()
+import { loadNPConfig } from '@/lib/nova-points-config'
+import { db } from '@/lib/db'
 
 // Get check-in status
 export async function GET(req: NextRequest) {
@@ -12,11 +11,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'userId required' }, { status: 400 })
     }
 
-    const userStats = await prisma.userStats.findUnique({ where: { userId } })
+    const userStats = await db.userStats.findUnique({ where: { userId } })
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    const todayCheckIn = await prisma.dailyCheckIn.findFirst({
+    const todayCheckIn = await db.dailyCheckIn.findFirst({
       where: {
         userId,
         checkDate: { gte: today },
@@ -26,7 +25,7 @@ export async function GET(req: NextRequest) {
     // Get recent check-ins (last 7 days)
     const weekAgo = new Date(today)
     weekAgo.setDate(weekAgo.getDate() - 7)
-    const recentCheckIns = await prisma.dailyCheckIn.findMany({
+    const recentCheckIns = await db.dailyCheckIn.findMany({
       where: {
         userId,
         checkDate: { gte: weekAgo },
@@ -66,7 +65,7 @@ export async function POST(req: NextRequest) {
     today.setHours(0, 0, 0, 0)
 
     // Check if already checked in today
-    const existing = await prisma.dailyCheckIn.findFirst({
+    const existing = await db.dailyCheckIn.findFirst({
       where: {
         userId,
         checkDate: { gte: today },
@@ -78,9 +77,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Get or create user stats
-    let userStats = await prisma.userStats.findUnique({ where: { userId } })
+    let userStats = await db.userStats.findUnique({ where: { userId } })
     if (!userStats) {
-      userStats = await prisma.userStats.create({
+      userStats = await db.userStats.create({
         data: { userId },
       })
     }
@@ -88,7 +87,7 @@ export async function POST(req: NextRequest) {
     // Calculate streak
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
-    const yesterdayCheckIn = await prisma.dailyCheckIn.findFirst({
+    const yesterdayCheckIn = await db.dailyCheckIn.findFirst({
       where: {
         userId,
         checkDate: {
@@ -132,7 +131,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create check-in record
-    await prisma.dailyCheckIn.create({
+    await db.dailyCheckIn.create({
       data: {
         userId,
         checkDate: today,
@@ -145,9 +144,10 @@ export async function POST(req: NextRequest) {
     // Update user stats
     const newLongestStreak = Math.max(userStats.longestStreak, newStreak)
     const newXp = userStats.xp + xpEarned
-    const newLevel = Math.floor(newXp / 100) + 1
+    const xpPerLevel = npConfig.xpPerLevel || 1000
+    const newLevel = Math.floor(newXp / xpPerLevel) + 1
 
-    await prisma.userStats.update({
+    await db.userStats.update({
       where: { userId },
       data: {
         currentStreak: newStreak,
@@ -163,12 +163,12 @@ export async function POST(req: NextRequest) {
 
     // Credit bonus to trading wallet if any
     if (bonusEarned > 0) {
-      await prisma.user.update({
+      await db.user.update({
         where: { id: userId },
         data: { tradingBalance: { increment: bonusEarned } },
       })
 
-      await prisma.transactionLog.create({
+      await db.transactionLog.create({
         data: {
           userId,
           type: 'bonus',
@@ -194,3 +194,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+

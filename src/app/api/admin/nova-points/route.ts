@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { loadNPConfig } from '@/lib/nova-points-config'
+export { loadNPConfig } // Re-export for backward compatibility
 
 // Default reward pool config
 const DEFAULT_CONFIG = {
@@ -47,15 +49,6 @@ const DEFAULT_CONFIG = {
   rewardPoolBalance: 0, // Admin-tracked pool balance
   totalRedeemed: 0,
   totalNPIssued: 0,
-}
-
-// Helper: Load config from DB
-export async function loadNPConfig() {
-  const setting = await db.setting.findUnique({ where: { key: 'nova_points_config' } })
-  if (setting) {
-    try { return { ...DEFAULT_CONFIG, ...JSON.parse(setting.value) } } catch {}
-  }
-  return DEFAULT_CONFIG
 }
 
 // GET - Get Nova Points reward pool config + stats

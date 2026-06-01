@@ -300,7 +300,7 @@ export function UserDashboard() {
                     variant="outline"
                     size="sm"
                     className="flex-1 text-xs"
-                    onClick={() => setTransferAmount(Math.min(val, tradingBalance).toFixed(2))}
+                    onClick={() => setTransferAmount(Math.min(val, transferDirection === 'trading_to_withdrawal' ? tradingBalance : withdrawalBalance).toFixed(2))}
                   >
                     ${val}
                   </Button>
@@ -309,7 +309,7 @@ export function UserDashboard() {
                   variant="outline"
                   size="sm"
                   className="flex-1 text-xs text-primary"
-                  onClick={() => setTransferAmount(tradingBalance.toFixed(2))}
+                  onClick={() => setTransferAmount((transferDirection === 'trading_to_withdrawal' ? tradingBalance : withdrawalBalance).toFixed(2))}
                 >
                   Max
                 </Button>
@@ -319,7 +319,7 @@ export function UserDashboard() {
             <Button
               className="w-full gap-2"
               onClick={handleTransfer}
-              disabled={transferring || !transferAmount || parseFloat(transferAmount) <= 0 || parseFloat(transferAmount) > tradingBalance}
+              disabled={transferring || !transferAmount || parseFloat(transferAmount) <= 0 || parseFloat(transferAmount) > (transferDirection === 'trading_to_withdrawal' ? tradingBalance : withdrawalBalance)}
             >
               {transferring ? 'Transferring...' : 'Confirm Transfer'}
             </Button>

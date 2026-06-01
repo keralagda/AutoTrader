@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { loadNPConfig } from '@/app/api/admin/nova-points/route'
+import { loadNPConfig } from '@/lib/nova-points-config'
 
 // GET /api/challenges?userId=xxx - Get all active challenges with user progress
 export async function GET(request: Request) {

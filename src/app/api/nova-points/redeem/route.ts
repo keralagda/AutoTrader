@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { loadNPConfig } from '@/app/api/admin/nova-points/route'
+import { loadNPConfig } from '@/lib/nova-points-config'
 
 // GET - Get store items and user's NP balance
 export async function GET(req: NextRequest) {
