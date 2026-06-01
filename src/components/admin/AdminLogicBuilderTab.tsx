@@ -29,10 +29,13 @@ interface Rule {
 }
 
 interface LogicConfig {
+  variables: Rule[]
   profitRules: Rule[]
   calculatorRules: Rule[]
   stackingRules: Rule[]
   patterns: Rule[]
+  depositRules: Rule[]
+  riskRules: Rule[]
 }
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -74,13 +77,23 @@ function RuleCard({ rule, onToggle, onChange }: { rule: Rule; onToggle: () => vo
               <h4 className="text-sm font-semibold truncate">{rule.name}</h4>
               <Badge variant="outline" className="text-[9px] shrink-0">{rule.type}</Badge>
               {rule.priority && <Badge variant="outline" className="text-[9px] shrink-0">P{rule.priority}</Badge>}
+              {rule.variableRef && <Badge className="text-[9px] bg-violet-500/20 text-violet-400 border-violet-500/30">⚡ var</Badge>}
             </div>
             <p className="text-xs text-muted-foreground mb-2">{rule.description}</p>
 
-            {/* Editable fields based on rule type */}
+            {/* Editable fields */}
             {rule.enabled && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                {rule.value !== undefined && (
+                {rule.value !== undefined && rule.min !== undefined && (
+                  <div className="col-span-2 md:col-span-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[9px] text-muted-foreground">Value: {rule.value}</Label>
+                      <span className="text-[9px] text-muted-foreground">{rule.min} — {rule.max}</span>
+                    </div>
+                    <input type="range" min={rule.min} max={rule.max} step={rule.step || 0.1} value={rule.value} onChange={e => onChange('value', parseFloat(e.target.value))} className="w-full h-1.5 rounded-full appearance-none bg-muted cursor-pointer accent-primary" />
+                  </div>
+                )}
+                {rule.value !== undefined && rule.min === undefined && (
                   <div className="space-y-0.5">
                     <Label className="text-[9px] text-muted-foreground">Value</Label>
                     <Input type="number" step="0.01" value={rule.value} onChange={e => onChange('value', parseFloat(e.target.value))} className="h-7 text-xs" />
@@ -99,9 +112,9 @@ function RuleCard({ rule, onToggle, onChange }: { rule: Rule; onToggle: () => vo
                   </div>
                 )}
                 {rule.bonusPerStack !== undefined && (
-                  <div className="space-y-0.5">
-                    <Label className="text-[9px] text-muted-foreground">Bonus/Stack (%)</Label>
-                    <Input type="number" step="0.1" value={rule.bonusPerStack} onChange={e => onChange('bonusPerStack', parseFloat(e.target.value))} className="h-7 text-xs" />
+                  <div className="col-span-2 space-y-1">
+                    <div className="flex justify-between"><Label className="text-[9px]">Bonus/Stack: {rule.bonusPerStack}%</Label><span className="text-[9px] text-muted-foreground">{rule.min || 0}—{rule.max || 5}</span></div>
+                    <input type="range" min={rule.min || 0} max={rule.max || 5} step={rule.step || 0.1} value={rule.bonusPerStack} onChange={e => onChange('bonusPerStack', parseFloat(e.target.value))} className="w-full h-1.5 rounded-full appearance-none bg-muted cursor-pointer accent-primary" />
                   </div>
                 )}
                 {rule.maxStacks !== undefined && (
@@ -111,46 +124,43 @@ function RuleCard({ rule, onToggle, onChange }: { rule: Rule; onToggle: () => vo
                   </div>
                 )}
                 {rule.skewFactor !== undefined && (
-                  <div className="space-y-0.5">
-                    <Label className="text-[9px] text-muted-foreground">Skew Factor</Label>
-                    <Input type="number" step="0.05" value={rule.skewFactor} onChange={e => onChange('skewFactor', parseFloat(e.target.value))} className="h-7 text-xs" />
+                  <div className="col-span-2 space-y-1">
+                    <div className="flex justify-between"><Label className="text-[9px]">Skew: {rule.skewFactor}</Label><span className="text-[9px] text-muted-foreground">{rule.min || 0.1}—{rule.max || 0.9}</span></div>
+                    <input type="range" min={rule.min || 0.1} max={rule.max || 0.9} step={rule.step || 0.05} value={rule.skewFactor} onChange={e => onChange('skewFactor', parseFloat(e.target.value))} className="w-full h-1.5 rounded-full appearance-none bg-muted cursor-pointer accent-primary" />
                   </div>
                 )}
                 {rule.startMultiplier !== undefined && (
-                  <div className="space-y-0.5">
-                    <Label className="text-[9px] text-muted-foreground">Start Mult.</Label>
-                    <Input type="number" step="0.1" value={rule.startMultiplier} onChange={e => onChange('startMultiplier', parseFloat(e.target.value))} className="h-7 text-xs" />
-                  </div>
+                  <div className="space-y-0.5"><Label className="text-[9px]">Start Mult.</Label><Input type="number" step="0.1" value={rule.startMultiplier} onChange={e => onChange('startMultiplier', parseFloat(e.target.value))} className="h-7 text-xs" /></div>
                 )}
                 {rule.endMultiplier !== undefined && (
-                  <div className="space-y-0.5">
-                    <Label className="text-[9px] text-muted-foreground">End Mult.</Label>
-                    <Input type="number" step="0.1" value={rule.endMultiplier} onChange={e => onChange('endMultiplier', parseFloat(e.target.value))} className="h-7 text-xs" />
-                  </div>
+                  <div className="space-y-0.5"><Label className="text-[9px]">End Mult.</Label><Input type="number" step="0.1" value={rule.endMultiplier} onChange={e => onChange('endMultiplier', parseFloat(e.target.value))} className="h-7 text-xs" /></div>
                 )}
                 {rule.rampDays !== undefined && (
-                  <div className="space-y-0.5">
-                    <Label className="text-[9px] text-muted-foreground">Ramp Days</Label>
-                    <Input type="number" value={rule.rampDays} onChange={e => onChange('rampDays', parseInt(e.target.value))} className="h-7 text-xs" />
-                  </div>
+                  <div className="space-y-0.5"><Label className="text-[9px]">Ramp Days</Label><Input type="number" value={rule.rampDays} onChange={e => onChange('rampDays', parseInt(e.target.value))} className="h-7 text-xs" /></div>
                 )}
                 {rule.amplitude !== undefined && (
-                  <div className="space-y-0.5">
-                    <Label className="text-[9px] text-muted-foreground">Amplitude</Label>
-                    <Input type="number" step="0.05" value={rule.amplitude} onChange={e => onChange('amplitude', parseFloat(e.target.value))} className="h-7 text-xs" />
-                  </div>
+                  <div className="space-y-0.5"><Label className="text-[9px]">Amplitude</Label><Input type="number" step="0.05" value={rule.amplitude} onChange={e => onChange('amplitude', parseFloat(e.target.value))} className="h-7 text-xs" /></div>
                 )}
                 {rule.periodDays !== undefined && (
-                  <div className="space-y-0.5">
-                    <Label className="text-[9px] text-muted-foreground">Period (days)</Label>
-                    <Input type="number" value={rule.periodDays} onChange={e => onChange('periodDays', parseInt(e.target.value))} className="h-7 text-xs" />
-                  </div>
+                  <div className="space-y-0.5"><Label className="text-[9px]">Period (days)</Label><Input type="number" value={rule.periodDays} onChange={e => onChange('periodDays', parseInt(e.target.value))} className="h-7 text-xs" /></div>
                 )}
                 {rule.decayRate !== undefined && (
-                  <div className="space-y-0.5">
-                    <Label className="text-[9px] text-muted-foreground">Decay Rate</Label>
-                    <Input type="number" step="0.001" value={rule.decayRate} onChange={e => onChange('decayRate', parseFloat(e.target.value))} className="h-7 text-xs" />
+                  <div className="space-y-0.5"><Label className="text-[9px]">Decay Rate</Label><Input type="number" step="0.001" value={rule.decayRate} onChange={e => onChange('decayRate', parseFloat(e.target.value))} className="h-7 text-xs" /></div>
+                )}
+                {rule.compoundRate !== undefined && (
+                  <div className="col-span-2 space-y-1">
+                    <div className="flex justify-between"><Label className="text-[9px]">Compound: {rule.compoundRate}x</Label><span className="text-[9px] text-muted-foreground">{rule.min || 1.0}—{rule.max || 1.2}</span></div>
+                    <input type="range" min={rule.min || 1.0} max={rule.max || 1.2} step={rule.step || 0.005} value={rule.compoundRate} onChange={e => onChange('compoundRate', parseFloat(e.target.value))} className="w-full h-1.5 rounded-full appearance-none bg-muted cursor-pointer accent-primary" />
                   </div>
+                )}
+                {rule.cooldownHours !== undefined && (
+                  <div className="space-y-0.5"><Label className="text-[9px]">Cooldown (hrs)</Label><Input type="number" value={rule.cooldownHours} onChange={e => onChange('cooldownHours', parseInt(e.target.value))} className="h-7 text-xs" /></div>
+                )}
+                {rule.maxAmount !== undefined && (
+                  <div className="space-y-0.5"><Label className="text-[9px]">Max Amount ($)</Label><Input type="number" value={rule.maxAmount} onChange={e => onChange('maxAmount', parseInt(e.target.value))} className="h-7 text-xs" /></div>
+                )}
+                {rule.minAmount !== undefined && (
+                  <div className="space-y-0.5"><Label className="text-[9px]">Min Amount ($)</Label><Input type="number" value={rule.minAmount} onChange={e => onChange('minAmount', parseInt(e.target.value))} className="h-7 text-xs" /></div>
                 )}
               </div>
             )}
@@ -214,7 +224,9 @@ export function AdminLogicBuilderTab() {
   const enabledCount = config.profitRules.filter(r => r.enabled).length +
     config.calculatorRules.filter(r => r.enabled).length +
     config.stackingRules.filter(r => r.enabled).length +
-    config.patterns.filter(r => r.enabled).length
+    config.patterns.filter(r => r.enabled).length +
+    (config.depositRules || []).filter((r: Rule) => r.enabled).length +
+    (config.riskRules || []).filter((r: Rule) => r.enabled).length
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -255,25 +267,74 @@ export function AdminLogicBuilderTab() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="profit" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue="variables" className="space-y-4">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="variables" className="gap-1.5">
+            <Sparkles className="size-4" />
+            Variables
+          </TabsTrigger>
           <TabsTrigger value="profit" className="gap-1.5">
             <TrendingUp className="size-4" />
-            Profit Rules ({config.profitRules.filter(r => r.enabled).length})
+            Profit ({config.profitRules.filter(r => r.enabled).length})
+          </TabsTrigger>
+          <TabsTrigger value="deposit" className="gap-1.5">
+            <Shield className="size-4" />
+            Deposits ({(config.depositRules || []).filter(r => r.enabled).length})
           </TabsTrigger>
           <TabsTrigger value="calculator" className="gap-1.5">
             <BarChart3 className="size-4" />
-            Calculator ({config.calculatorRules.filter(r => r.enabled).length})
+            Calculator
           </TabsTrigger>
           <TabsTrigger value="stacking" className="gap-1.5">
             <Layers className="size-4" />
-            Stacking ({config.stackingRules.filter(r => r.enabled).length})
+            Stacking
           </TabsTrigger>
           <TabsTrigger value="patterns" className="gap-1.5">
             <Activity className="size-4" />
-            Patterns ({config.patterns.filter(r => r.enabled).length})
+            Patterns
+          </TabsTrigger>
+          <TabsTrigger value="risk" className="gap-1.5">
+            <Dices className="size-4" />
+            Risk Engine
           </TabsTrigger>
         </TabsList>
+
+        {/* Variables Tab */}
+        <TabsContent value="variables" className="space-y-3">
+          <p className="text-xs text-muted-foreground">Global variables that can be referenced by rules. Change a variable here and all linked rules update.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(config.variables || []).map((v: any, idx: number) => (
+              <Card key={v.id} className="border-violet-500/20 bg-violet-500/5">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold">{v.name}</h4>
+                    <Badge className="text-[9px] bg-violet-500/20 text-violet-400 border-violet-500/30">{v.type}</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{v.description}</p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px]">
+                      <span>Value: <strong>{v.value}</strong></span>
+                      <span>{v.min} — {v.max}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={v.min}
+                      max={v.max}
+                      step={v.step || 0.1}
+                      value={v.value}
+                      onChange={e => {
+                        const vars = [...(config.variables || [])]
+                        vars[idx] = { ...vars[idx], value: parseFloat(e.target.value) }
+                        setConfig({ ...config, variables: vars })
+                      }}
+                      className="w-full h-2 rounded-full appearance-none bg-violet-500/20 cursor-pointer accent-violet-500"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
 
         <TabsContent value="profit" className="space-y-3">
           <p className="text-xs text-muted-foreground">Controls how daily profits are calculated and distributed by the cron job. Rules stack in priority order.</p>
@@ -319,6 +380,32 @@ export function AdminLogicBuilderTab() {
               rule={rule}
               onToggle={() => toggleRule('patterns', idx)}
               onChange={(field, value) => changeRule('patterns', idx, field, value)}
+            />
+          ))}
+        </TabsContent>
+
+        {/* Deposit Rules Tab */}
+        <TabsContent value="deposit" className="space-y-3">
+          <p className="text-xs text-muted-foreground">Advanced deposit and earning rules — cooldowns, limits, progression, penalties, and automation.</p>
+          {(config.depositRules || []).map((rule: Rule, idx: number) => (
+            <RuleCard
+              key={rule.id}
+              rule={rule}
+              onToggle={() => toggleRule('depositRules' as keyof LogicConfig, idx)}
+              onChange={(field, value) => changeRule('depositRules' as keyof LogicConfig, idx, field, value)}
+            />
+          ))}
+        </TabsContent>
+
+        {/* Risk Engine Tab */}
+        <TabsContent value="risk" className="space-y-3">
+          <p className="text-xs text-muted-foreground">Dynamic risk adjustment rules — platform-level controls that adapt returns based on conditions.</p>
+          {(config.riskRules || []).map((rule: Rule, idx: number) => (
+            <RuleCard
+              key={rule.id}
+              rule={rule}
+              onToggle={() => toggleRule('riskRules' as keyof LogicConfig, idx)}
+              onChange={(field, value) => changeRule('riskRules' as keyof LogicConfig, idx, field, value)}
             />
           ))}
         </TabsContent>
