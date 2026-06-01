@@ -23,6 +23,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
 
   // 💰 Financial
   { tab: 'deposits', label: 'Deposit Approvals', icon: Banknote, group: 'finance' },
+  { tab: 'earnings', label: 'Investment Approvals', icon: TrendingUp, group: 'finance' },
   { tab: 'withdrawals', label: 'Withdrawals', icon: Wallet, group: 'finance' },
   { tab: 'withdrawalLimits', label: 'Limits & Fees', icon: DollarSign, group: 'finance' },
   { tab: 'payments', label: 'Payment Gateways', icon: CreditCard, group: 'finance' },

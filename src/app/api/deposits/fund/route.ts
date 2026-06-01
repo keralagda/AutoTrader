@@ -32,11 +32,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User ID and valid amount required' }, { status: 400 })
     }
 
+    // Proof is mandatory for non-admin users
     const user = await db.user.findUnique({ where: { id: userId } })
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-    // Only super admin (role === 'admin') gets auto-confirmed
-    const isAdmin = user.role === 'admin'
+    const isAdmin = user.role === 'admin' || user.role === 'super_admin'
+    if (!isAdmin && !txHash && !proofUrl) {
+      return NextResponse.json({ error: 'Transaction hash or proof screenshot is required' }, { status: 400 })
+    }
 
     // Create payment record with proof
     const payment = await db.payment.create({
