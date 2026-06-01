@@ -238,7 +238,13 @@ export function DepositTab() {
                 </Button>
               </div>
               {selectedGateway.network && (
-                <p className="text-[10px] text-amber-400">Network: {selectedGateway.network.toUpperCase()}</p>
+                <p className="text-[10px] text-amber-400">Network: {
+                  selectedGateway.network === 'bsc' ? 'BNB Smart Chain (BEP-20)' :
+                  selectedGateway.network === 'tron' ? 'TRON (TRC-20)' :
+                  selectedGateway.network === 'ethereum' ? 'Ethereum (ERC-20)' :
+                  selectedGateway.network === 'bitcoin' ? 'Bitcoin' :
+                  selectedGateway.network?.toUpperCase()
+                }</p>
               )}
             </div>
           )}
