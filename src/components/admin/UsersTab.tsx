@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2, MonitorPlay } from 'lucide-react'
+import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2, MonitorPlay, Pencil, KeyRound } from 'lucide-react'
 import { UserDetailView } from './UserDetailView'
 
 interface UserRecord {
@@ -70,6 +70,13 @@ export function UsersTab() {
   const [balanceAdjustWallet, setBalanceAdjustWallet] = useState<'trading' | 'withdrawal'>('trading')
   const [balanceAdjustRemarks, setBalanceAdjustRemarks] = useState('')
   const [balanceAdjustType, setBalanceAdjustType] = useState<'add' | 'subtract'>('add')
+  // Edit profile state
+  const [editUserId, setEditUserId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<any>({})
+  const [editSaving, setEditSaving] = useState(false)
+  // Password reset state
+  const [resetPwUserId, setResetPwUserId] = useState<string | null>(null)
+  const [resetPwValue, setResetPwValue] = useState('')
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -130,6 +137,56 @@ export function UsersTab() {
         window.open(`/dashboard?spectate=${data.token}`, '_blank')
       } else {
         toast({ title: 'Failed to start spectate', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
+    }
+  }
+
+  const handleEditUser = (user: UserRecord) => {
+    setEditUserId(user.id)
+    setEditForm({ name: user.name, email: user.email, riskCategory: user.riskCategory || 'medium' })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editUserId) return
+    setEditSaving(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: editUserId, editProfile: editForm }),
+      })
+      if (res.ok) {
+        toast({ title: 'User profile updated' })
+        setEditUserId(null)
+        fetchUsers()
+      } else {
+        const data = await res.json()
+        toast({ title: data.error || 'Failed', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetPwUserId) return
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: resetPwUserId, resetPassword: true, newPassword: resetPwValue || undefined }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        toast({ title: 'Password Reset', description: data.message })
+        setResetPwUserId(null)
+        setResetPwValue('')
+      } else {
+        toast({ title: 'Failed', variant: 'destructive' })
       }
     } catch {
       toast({ title: 'Network error', variant: 'destructive' })
@@ -352,11 +409,29 @@ export function UsersTab() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            onClick={() => handleEditUser(user)}
+                            className="text-cyan-400 hover:text-cyan-300 h-8 w-8 p-0"
+                            title="Edit Profile"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => setBalanceAdjustUserId(user.id)}
                             className="text-amber-400 hover:text-amber-300 h-8 w-8 p-0"
                             title="Adjust Balance"
                           >
                             <DollarSign className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setResetPwUserId(user.id); setResetPwValue('') }}
+                            className="text-orange-400 hover:text-orange-300 h-8 w-8 p-0"
+                            title="Reset Password"
+                          >
+                            <KeyRound className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
@@ -663,6 +738,65 @@ export function UsersTab() {
               </div>
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={!!editUserId} onOpenChange={() => setEditUserId(null)}>
+        <DialogContent className="bg-card border-border/50 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Name</label>
+              <input className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Email</label>
+              <input className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Phone</label>
+              <input className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Optional" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Wallet Address</label>
+              <input className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" value={editForm.walletAddress || ''} onChange={e => setEditForm({ ...editForm, walletAddress: e.target.value })} placeholder="Optional" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Risk Category</label>
+              <select className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" value={editForm.riskCategory || 'medium'} onChange={e => setEditForm({ ...editForm, riskCategory: e.target.value })}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setEditUserId(null)}>Cancel</Button>
+              <Button onClick={handleSaveEdit} disabled={editSaving}>{editSaving ? 'Saving...' : 'Save Changes'}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={!!resetPwUserId} onOpenChange={() => setResetPwUserId(null)}>
+        <DialogContent className="bg-card border-border/50 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reset User Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Set a new password for this user. Leave blank to use default: <code className="bg-muted px-1 rounded">Bnfx@2026</code></p>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">New Password</label>
+              <input type="text" className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm font-mono" value={resetPwValue} onChange={e => setResetPwValue(e.target.value)} placeholder="Bnfx@2026" />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="ghost" onClick={() => setResetPwUserId(null)}>Cancel</Button>
+              <Button onClick={handleResetPassword} className="bg-orange-600 hover:bg-orange-700 text-white">Reset Password</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

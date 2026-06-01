@@ -69,10 +69,55 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    const { userId, isActive, tradingBalance, withdrawalBalance, name, adjustBalance, amount, wallet, remarks, resetEarnings } = body
+    const { userId, isActive, tradingBalance, withdrawalBalance, name, adjustBalance, amount, wallet, remarks, resetEarnings, editProfile, resetPassword, newPassword } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    // ─── Edit user profile fields ───
+    if (editProfile) {
+      const user = await db.user.findUnique({ where: { id: userId } })
+      if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+      const updateData: any = {}
+      if (editProfile.name !== undefined) updateData.name = editProfile.name
+      if (editProfile.email !== undefined) updateData.email = editProfile.email
+      if (editProfile.phone !== undefined) updateData.phone = editProfile.phone || null
+      if (editProfile.walletAddress !== undefined) updateData.walletAddress = editProfile.walletAddress || null
+      if (editProfile.riskCategory !== undefined) updateData.riskCategory = editProfile.riskCategory
+      if (editProfile.customWinMin !== undefined) updateData.customWinMin = editProfile.customWinMin
+      if (editProfile.customWinMax !== undefined) updateData.customWinMax = editProfile.customWinMax
+      if (editProfile.referralCode !== undefined) updateData.referralCode = editProfile.referralCode
+      if (editProfile.isActive !== undefined) updateData.isActive = editProfile.isActive
+      if (editProfile.kycStatus !== undefined) updateData.kycStatus = editProfile.kycStatus
+
+      const updated = await db.user.update({ where: { id: userId }, data: updateData })
+
+      await db.activityLog.create({
+        data: { userId, action: 'admin_edit_profile', details: JSON.stringify({ fields: Object.keys(updateData) }) },
+      })
+
+      return NextResponse.json({ success: true, user: updated })
+    }
+
+    // ─── Reset password ───
+    if (resetPassword) {
+      const password = newPassword || 'Bnfx@2026'
+      const bcrypt = await import('bcryptjs')
+      const hashedPassword = await bcrypt.hash(password, 10)
+
+      await db.user.update({ where: { id: userId }, data: { password: hashedPassword } })
+
+      await db.activityLog.create({
+        data: { userId, action: 'admin_reset_password', details: JSON.stringify({ resetAt: new Date().toISOString() }) },
+      })
+
+      await db.notification.create({
+        data: { userId, title: 'Password Reset', message: 'Your password has been reset by admin. Please change it after logging in.', type: 'warning' },
+      })
+
+      return NextResponse.json({ success: true, message: `Password reset to: ${password}` })
     }
 
     // Reset earnings to zero
