@@ -9,19 +9,24 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/icon-192x192.svg",
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/bnfx-logo-dark.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192x192.svg",
+      "src": "/bnfx-logo-dark.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192x192.svg",
+      "src": "/bnfx-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"

@@ -71,11 +71,7 @@ export function AdminSidebar() {
       {/* Admin Header */}
       <div className="p-6">
         <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10 border-2 border-emerald-500/50">
-            <AvatarFallback className="bg-emerald-500/20 text-emerald-400">
-              <Shield className="h-5 w-5" />
-            </AvatarFallback>
-          </Avatar>
+          <img src="/bnfx-logo-dark.png" alt="BNFX" className="h-10 w-10 rounded-lg object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
           <div>
             <p className="text-sm font-semibold text-foreground">{user?.name || 'Admin'}</p>
             <span className="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">

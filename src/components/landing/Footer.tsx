@@ -90,7 +90,7 @@ export default function Footer() {
             {/* Brand */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Diamond className="size-6 text-emerald-400 fill-emerald-400/30" />
+                <img src="/bnfx-logo.svg" alt="BNFX" className="h-7 w-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 <span className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
                   {footerContent.companyName || 'BNFX'}
                 </span>

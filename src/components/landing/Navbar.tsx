@@ -71,7 +71,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <Diamond className="size-7 text-emerald-400 fill-emerald-400/30" />
+            <img src="/bnfx-logo.svg" alt="BNFX" className="h-8 w-auto" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">
               {navContent.logoText || 'BNFX'}
             </span>
