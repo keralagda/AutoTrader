@@ -293,6 +293,38 @@ const BUILT_IN_TEMPLATES = [
       animationStyle: 'holographic',
     },
   },
+  {
+    id: 'awwwards-minimal',
+    name: 'Awwwards Minimal',
+    description: 'Award-winning minimal design with large kinetic typography, bento grids, scroll animations, and glassmorphism. Inspired by Linear, Stripe, and Vercel.',
+    thumbnail: '🏆',
+    category: 'premium',
+    colors: { primary: '#f59e0b', accent: '#f97316', background: '#030303', card: '#0a0a0a', text: '#ffffff' },
+    images: {
+      heroBg: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80',
+    },
+    features: [
+      { icon: '⚡', title: 'AI Trading Engine', description: 'Neural network processing 10,000+ signals per second' },
+      { icon: '🛡️', title: 'Bank-Grade Security', description: '256-bit encryption with multi-sig wallets' },
+      { icon: '🌐', title: 'Global Access', description: '50+ countries, multi-language, multi-currency' },
+      { icon: '📈', title: 'Variable Returns', description: 'Choose Low, Medium, or High risk profiles' },
+    ],
+    hero: {
+      headline: 'Your money works harder.',
+      subtitle: 'Automated crypto trading with institutional-grade AI. Earn daily returns while you sleep.',
+      ctaText: 'Start Earning',
+      ctaSecondary: 'View Performance',
+      backgroundStyle: 'gradient-orbs',
+    },
+    sections: ['hero', 'stats', 'features-bento', 'plans', 'how-it-works', 'cta', 'footer'],
+    styles: {
+      borderRadius: '24px',
+      fontFamily: 'Inter, system-ui',
+      cardStyle: 'glass-minimal',
+      animationStyle: 'scroll-reveal',
+      layout: 'awwwards', // Special flag to use AwwwardsLanding component
+    },
+  },
 ]
 
 // GET - List templates or get active template

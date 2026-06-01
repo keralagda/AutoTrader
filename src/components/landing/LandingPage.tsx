@@ -16,6 +16,7 @@ import { AnnouncementBanner } from './AnnouncementBanner'
 import { WithdrawalProofTicker } from './WithdrawalProofTicker'
 import { ReferralCalculator } from './ReferralCalculator'
 import { NovaAIChatbot } from './NovaAIChatbot'
+import { AwwwardsLanding } from './AwwwardsLanding'
 
 // Context to share landing content across all sections
 interface LandingContent {
@@ -34,6 +35,7 @@ export function useLandingContent() {
 
 export default function LandingPage() {
   const [content, setContent] = useState<LandingContent>({})
+  const [useAwwwardsLayout, setUseAwwwardsLayout] = useState(false)
 
   useEffect(() => {
     // Fetch landing content
@@ -104,9 +106,26 @@ export default function LandingPage() {
             document.documentElement.style.fontFamily = template.styles.fontFamily
           }
         }
+
+        // Check if template uses special layout
+        if (template?.styles?.layout === 'awwwards') {
+          setUseAwwwardsLayout(true)
+        } else {
+          setUseAwwwardsLayout(false)
+        }
       })
       .catch(() => {})
   }, [])
+
+  // If Awwwards template is active, render the completely different layout
+  if (useAwwwardsLayout) {
+    return (
+      <LandingContentContext.Provider value={content}>
+        <AwwwardsLanding />
+        <NovaAIChatbot />
+      </LandingContentContext.Provider>
+    )
+  }
 
   return (
     <LandingContentContext.Provider value={content}>
