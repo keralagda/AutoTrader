@@ -17,11 +17,10 @@ export async function POST(request: Request) {
       { name: 'MetaMask', type: 'crypto', network: 'ethereum', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 1 },
       { name: 'CoinPayments', type: 'crypto', network: 'multi', minAmount: 10, maxAmount: 500000, feePercent: 0.5, isActive: true, sortOrder: 2 },
       { name: 'NOWPayments', type: 'crypto', network: 'multi', minAmount: 5, maxAmount: 100000, feePercent: 0.5, isActive: true, sortOrder: 3 },
-      { name: 'USDT (TRC-20)', type: 'crypto', network: 'tron', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 4 },
-      { name: 'USDC (ERC-20)', type: 'crypto', network: 'ethereum', minAmount: 25, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 5 },
-      { name: 'USDT (BEP-20)', type: 'crypto', network: 'bsc', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 6 },
-      { name: 'USDC (BEP-20)', type: 'crypto', network: 'bsc', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 7 },
-      { name: 'Bitcoin (BTC)', type: 'crypto', network: 'bitcoin', minAmount: 50, maxAmount: 100000, feePercent: 0, isActive: false, sortOrder: 8 },
+      { name: 'USDC (ERC-20)', type: 'crypto', network: 'ethereum', minAmount: 25, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 4 },
+      { name: 'USDT (BEP-20)', type: 'crypto', network: 'bsc', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 5 },
+      { name: 'USDC (BEP-20)', type: 'crypto', network: 'bsc', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 6 },
+      { name: 'Bitcoin (BTC)', type: 'crypto', network: 'bitcoin', minAmount: 50, maxAmount: 100000, feePercent: 0, isActive: false, sortOrder: 7 },
     ]
 
     for (const gw of newGateways) {

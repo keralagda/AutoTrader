@@ -227,10 +227,24 @@ export function DepositTab() {
 
           {/* Gateway Address (if crypto) */}
           {selectedGateway?.address && (
-            <div className="rounded-lg bg-muted/50 border border-border/50 p-3 space-y-2">
-              <p className="text-xs text-muted-foreground">Send funds to this address:</p>
+            <div className="rounded-lg bg-muted/50 border border-border/50 p-4 space-y-3">
+              <p className="text-xs text-muted-foreground font-medium">Send funds to this address:</p>
+
+              {/* QR Code */}
+              <div className="flex justify-center">
+                <div className="bg-white p-3 rounded-xl">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(selectedGateway.address)}&bgcolor=ffffff&color=000000&margin=0`}
+                    alt="Payment QR Code"
+                    className="size-[180px]"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-center text-muted-foreground">Scan QR code or copy address below</p>
+
+              {/* Address */}
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs font-mono bg-background/50 rounded px-2 py-1.5 truncate">
+                <code className="flex-1 text-xs font-mono bg-background/50 rounded px-2 py-1.5 truncate" dir="ltr">
                   {selectedGateway.address}
                 </code>
                 <Button variant="outline" size="icon" className="shrink-0 size-8" onClick={handleCopyAddress}>
@@ -238,13 +252,13 @@ export function DepositTab() {
                 </Button>
               </div>
               {selectedGateway.network && (
-                <p className="text-[10px] text-amber-400">Network: {
+                <p className="text-[10px] text-amber-400 text-center">⚠️ Network: {
                   selectedGateway.network === 'bsc' ? 'BNB Smart Chain (BEP-20)' :
                   selectedGateway.network === 'tron' ? 'TRON (TRC-20)' :
                   selectedGateway.network === 'ethereum' ? 'Ethereum (ERC-20)' :
                   selectedGateway.network === 'bitcoin' ? 'Bitcoin' :
                   selectedGateway.network?.toUpperCase()
-                }</p>
+                } — Send only on this network!</p>
               )}
             </div>
           )}
