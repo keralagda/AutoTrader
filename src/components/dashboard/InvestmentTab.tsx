@@ -325,7 +325,12 @@ export function InvestmentTab() {
               <Zap className="size-4" />
               Activate Plan
             </Button>
-            <Button onClick={() => { if (activatedPlanIds.length === 0) { toast({ title: 'Activate a plan first', description: 'You need to activate a plan before investing', variant: 'destructive' }); setActivateModalOpen(true) } else { setInvestModalOpen(true) } }} className="gap-1.5">
+            <Button
+              onClick={() => setInvestModalOpen(true)}
+              className="gap-1.5"
+              disabled={activatedPlanIds.length === 0}
+              title={activatedPlanIds.length === 0 ? 'Activate a plan first' : ''}
+            >
               <Plus className="size-4" />
               New Investment
             </Button>

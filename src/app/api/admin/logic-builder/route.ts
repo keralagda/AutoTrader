@@ -64,6 +64,7 @@ const DEFAULT_LOGIC = {
 
   // ─── Deposit & Earning Rules (Advanced) ───
   depositRules: [
+    { id: 'dep_require_activation', name: 'Require Plan Activation', type: 'config', enabled: true, description: 'Users must activate (pay entry fee) a plan before they can invest in it. New Investment button is disabled until a plan is activated.' },
     { id: 'dep_cooldown', name: 'Investment Cooldown', type: 'timing', enabled: false, cooldownHours: 24, description: 'Minimum time between investments in same plan' },
     { id: 'dep_max_daily', name: 'Max Daily Investment', type: 'limit', enabled: false, maxAmount: 10000, description: 'Maximum total investment per user per day' },
     { id: 'dep_progressive_unlock', name: 'Progressive Plan Unlock', type: 'progression', enabled: false, requirements: [{ plan: 'Starter', minDays: 0 }, { plan: 'Silver', minDays: 7 }, { plan: 'Gold', minDays: 30 }, { plan: 'Platinum', minDays: 60 }], description: 'Users must invest in lower plans first before unlocking higher ones' },
