@@ -47,13 +47,13 @@ export function EarningsCalculator() {
       .catch(() => {})
   }, [])
 
-  const plan = plans[selectedPlan] || plans[0]
+  const plan = plans[selectedPlan] || plans[0] || FALLBACK_PLANS[0]
 
   // Build risk levels from the selected plan's actual config
   const RISK_LEVELS = [
-    { id: 'low', label: '🟢 Low', min: plan.lowRiskMin || 0.3, max: plan.lowRiskMax || 1.2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-    { id: 'medium', label: '🟡 Medium', min: plan.mediumRiskMin || 1.0, max: plan.mediumRiskMax || 3.0, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-    { id: 'high', label: '🔴 High', min: plan.highRiskMin || 2.5, max: plan.highRiskMax || 8.0, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
+    { id: 'low', label: '🟢 Low', min: plan?.lowRiskMin || 0.3, max: plan?.lowRiskMax || 1.2, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+    { id: 'medium', label: '🟡 Medium', min: plan?.mediumRiskMin || 1.0, max: plan?.mediumRiskMax || 3.0, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+    { id: 'high', label: '🔴 High', min: plan?.highRiskMin || 2.5, max: plan?.highRiskMax || 8.0, color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
   ]
 
   const risk = RISK_LEVELS[selectedRisk]
@@ -62,9 +62,9 @@ export function EarningsCalculator() {
   const minDailyEarning = (investment * risk.min) / 100
   const maxDailyEarning = (investment * risk.max) / 100
   const dailyEarning = (investment * avgDailyPercent) / 100
-  const totalEarning = Math.min(dailyEarning * days, plan.maxEarningLimit)
-  const weeklyEarning = Math.min(dailyEarning * 5, plan.maxEarningLimit)
-  const monthlyEarning = Math.min(dailyEarning * 22, plan.maxEarningLimit)
+  const totalEarning = Math.min(dailyEarning * days, plan?.maxEarningLimit || 10000)
+  const weeklyEarning = Math.min(dailyEarning * 5, plan?.maxEarningLimit || 10000)
+  const monthlyEarning = Math.min(dailyEarning * 22, plan?.maxEarningLimit || 10000)
   const roi = ((totalEarning / investment) * 100).toFixed(1)
 
   return (
@@ -89,7 +89,7 @@ export function EarningsCalculator() {
             <div className="space-y-3">
               <Label className="text-sm font-medium">Select Plan</Label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {plans.map((p, i) => (
+                {(plans || []).map((p, i) => (
                   <button
                     key={p.id}
                     onClick={() => setSelectedPlan(i)}
@@ -195,7 +195,7 @@ export function EarningsCalculator() {
                 Estimated ROI: {roi}% in {days} trading days ({risk.label.replace(/[🟢🟡🔴]\s*/, '')} risk)
               </Badge>
               <p className="text-[10px] text-muted-foreground mt-2" dir="ltr">
-                * Returns vary between {risk.min}%-{risk.max}% daily based on {risk.id} risk level. Capped at ${plan.maxEarningLimit.toLocaleString()} for {plan.name} plan.
+                * Returns vary between {risk.min}%-{risk.max}% daily based on {risk.id} risk level. Capped at ${(plan?.maxEarningLimit || 10000).toLocaleString()} for {plan?.name || 'Selected'} plan.
               </p>
             </div>
           </CardContent>
