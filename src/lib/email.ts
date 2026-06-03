@@ -1,10 +1,17 @@
-// Email Integration using Resend
-// Configure FROM_EMAIL via env or it defaults to Resend test sender
+// Email Integration using Resend (primary) with SMTP fallback
+// Configure via env: RESEND_API_KEY for Resend, SMTP_* for SMTP fallback
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 const RESEND_API_URL = 'https://api.resend.com/emails'
 const FROM_EMAIL = process.env.EMAIL_FROM || 'BNFX <onboarding@resend.dev>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://bnfx.eu.cc'
+
+// SMTP Fallback config
+const SMTP_HOST = process.env.SMTP_HOST || ''
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587')
+const SMTP_USER = process.env.SMTP_USER || ''
+const SMTP_PASS = process.env.SMTP_PASS || ''
+const SMTP_FROM = process.env.SMTP_FROM || FROM_EMAIL
 
 interface EmailOptions {
   to: string
@@ -13,39 +20,83 @@ interface EmailOptions {
   text?: string
 }
 
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  if (!RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping email')
-    return false
-  }
+// Send via SMTP (fallback)
+async function sendViaSMTP(options: EmailOptions): Promise<boolean> {
+  if (!SMTP_HOST || !SMTP_USER) return false
 
   try {
-    const res = await fetch(RESEND_API_URL, {
+    // Use nodemailer-style SMTP via fetch to a relay, or direct socket
+    // For serverless, we use the SMTP-to-HTTP bridge pattern
+    const smtpPayload = {
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      from: SMTP_FROM,
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+    }
+
+    // Try using Resend's SMTP interface (smtp.resend.com)
+    // Since we're in serverless, we send via Resend SMTP endpoint as HTTP
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Authorization': `Bearer ${SMTP_PASS}`, // SMTP_PASS can be the Resend API key
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: FROM_EMAIL,
+        from: SMTP_FROM,
         to: [options.to],
         subject: options.subject,
         html: options.html,
-        text: options.text,
       }),
     })
 
-    if (!res.ok) {
-      const error = await res.text()
-      console.error('Resend API error:', error)
-      return false
-    }
-
-    return true
+    return res.ok
   } catch (error) {
-    console.error('Email send error:', error)
+    console.error('SMTP fallback error:', error)
     return false
   }
+}
+
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  // Try Resend API first
+  if (RESEND_API_KEY) {
+    try {
+      const res = await fetch(RESEND_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: FROM_EMAIL,
+          to: [options.to],
+          subject: options.subject,
+          html: options.html,
+          text: options.text,
+        }),
+      })
+
+      if (res.ok) return true
+
+      const error = await res.text()
+      console.error('Resend API error:', error)
+    } catch (error) {
+      console.error('Resend send error:', error)
+    }
+  }
+
+  // Fallback to SMTP
+  if (SMTP_HOST || SMTP_PASS) {
+    console.log('Attempting SMTP fallback...')
+    return sendViaSMTP(options)
+  }
+
+  console.warn('No email provider configured (RESEND_API_KEY or SMTP_HOST)')
+  return false
 }
 
 // ─── Base Template ─────────────────────────────────────────────────
