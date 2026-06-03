@@ -57,6 +57,12 @@ export async function PUT(request: Request) {
           },
         })
 
+        // Send account activated email if this is the first deposit
+        if (!user.isActive) {
+          const { sendAccountActivated } = await import('@/lib/email')
+          sendAccountActivated(user.email, user.name).catch(() => {})
+        }
+
         // Transaction log
         await db.transactionLog.create({
           data: {
@@ -91,6 +97,9 @@ export async function PUT(request: Request) {
             await db.user.update({ where: { id: referrer.id }, data: { tradingBalance: referrer.tradingBalance + bonus, totalEarnings: referrer.totalEarnings + bonus } })
             await db.earning.create({ data: { userId: referrer.id, amount: bonus, type: 'referral', level: level + 1, walletTarget: 'trading' } })
             await db.notification.create({ data: { userId: referrer.id, title: 'Referral Bonus!', message: `You earned $${bonus.toFixed(2)} from ${user.name}'s deposit (Level ${level + 1})`, type: 'referral' } })
+            // Send referral bonus email
+            const { sendReferralBonus } = await import('@/lib/email')
+            sendReferralBonus(referrer.email, referrer.name, bonus, user.name, level + 1).catch(() => {})
           }
           currentReferrerId = referrer.referredById
           level++

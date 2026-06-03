@@ -94,6 +94,13 @@ export async function PUT(req: NextRequest) {
         },
       })
 
+      // Send email notification
+      const investUser = await db.user.findUnique({ where: { id: deposit.userId } })
+      if (investUser) {
+        const { sendInvestmentApproved } = await import('@/lib/email')
+        sendInvestmentApproved(investUser.email, investUser.name, deposit.amount, plan.name).catch(() => {})
+      }
+
       await db.activityLog.create({
         data: { userId: deposit.userId, action: 'investment_approved', details: JSON.stringify({ depositId, amount: deposit.amount, plan: plan.name }) },
       })

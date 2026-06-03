@@ -44,6 +44,13 @@ export async function PUT(request: Request) {
       data: { status, txHash },
     })
 
+    // Send email notification for withdrawal status change
+    const withdrawalUser = await db.user.findUnique({ where: { id: withdrawal.userId } })
+    if (withdrawalUser && (status === 'approved' || status === 'rejected' || status === 'completed')) {
+      const { sendWithdrawalUpdate } = await import('@/lib/email')
+      sendWithdrawalUpdate(withdrawalUser.email, withdrawalUser.name, withdrawal.amount, status, txHash || undefined).catch(() => {})
+    }
+
     return NextResponse.json(updated)
   } catch (error) {
     console.error('Update withdrawal error:', error)

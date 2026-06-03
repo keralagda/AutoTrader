@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyPassword, setSessionCookie, createToken, hashPassword } from '@/lib/auth'
-import { sendEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
   try {
@@ -45,12 +44,9 @@ export async function POST(request: Request) {
     })
 
     if (!previousLogin && ipAddress !== 'unknown') {
-      // New IP — send alert email (non-blocking)
-      sendEmail({
-        to: user.email,
-        subject: 'New login detected on your BNFX account',
-        html: `<h2>New Login Alert</h2><p>Hi ${user.name},</p><p>A new login was detected on your account from a new location:</p><ul><li><strong>IP:</strong> ${ipAddress}</li><li><strong>Device:</strong> ${isMobile ? 'Mobile' : 'Desktop'}</li><li><strong>Time:</strong> ${new Date().toLocaleString()}</li></ul><p>If this was you, no action needed. If not, please change your password immediately.</p>`,
-      }).catch(() => {})
+      // New IP — send alert email with proper template (non-blocking)
+      const { sendLoginAlert } = await import('@/lib/email')
+      sendLoginAlert(user.email, user.name, ipAddress, isMobile ? 'Mobile' : 'Desktop', 'Unknown').catch(() => {})
     }
 
     await db.loginHistory.create({
