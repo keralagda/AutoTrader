@@ -55,6 +55,13 @@ const defaultTemplates = [
     type: 'earning',
   },
   {
+    id: 'daily_earnings_report',
+    name: 'Daily Earnings Report (W/L/N)',
+    title: 'Daily Trading Report 📊',
+    message: 'Today\'s results: ${wins}W / ${losses}L / ${neutral}N | Net: ${netAmount} | Total earned: ${totalEarnings}',
+    type: 'earning',
+  },
+  {
     id: 'referral_bonus',
     name: 'Referral Bonus',
     title: 'Referral Bonus Earned! 🎁',

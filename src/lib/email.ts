@@ -344,3 +344,48 @@ export async function sendAccountActivated(to: string, name: string) {
     `),
   })
 }
+
+export async function sendDailyEarningsReport(to: string, name: string, stats: { wins: number; losses: number; neutral: number; netAmount: number; totalEarnings: number; planName: string }) {
+  const { wins, losses, neutral, netAmount, totalEarnings, planName } = stats
+  const totalTrades = wins + losses + neutral
+  const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0'
+  const isPositive = netAmount >= 0
+
+  return sendEmail({
+    to,
+    subject: `Daily Report: ${wins}W/${losses}L/${neutral}N • ${isPositive ? '+' : ''}$${netAmount.toFixed(2)} 📊`,
+    html: baseTemplate(`
+      <h2 style="color:#fff;margin:0 0 15px;">Daily Trading Report 📊</h2>
+      <p style="color:#ccc;">Hi ${name}, here's your trading summary for today:</p>
+
+      <div style="background:#0a0a0a;border-radius:8px;padding:20px;margin:20px 0;">
+        <!-- W/L/N Stats -->
+        <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;">
+          <div style="text-align:center;">
+            <p style="color:#10b981;font-size:24px;font-weight:700;margin:0;">${wins}</p>
+            <p style="color:#666;font-size:11px;margin:4px 0 0;">WINS</p>
+          </div>
+          <div style="text-align:center;">
+            <p style="color:#ef4444;font-size:24px;font-weight:700;margin:0;">${losses}</p>
+            <p style="color:#666;font-size:11px;margin:4px 0 0;">LOSSES</p>
+          </div>
+          <div style="text-align:center;">
+            <p style="color:#f59e0b;font-size:24px;font-weight:700;margin:0;">${neutral}</p>
+            <p style="color:#666;font-size:11px;margin:4px 0 0;">NEUTRAL</p>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #333;padding-top:16px;">
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="color:#999;padding:6px 0;">Win Rate:</td><td style="color:#fff;text-align:right;font-weight:600;">${winRate}%</td></tr>
+            <tr><td style="color:#999;padding:6px 0;">Net P&L:</td><td style="color:${isPositive ? '#10b981' : '#ef4444'};text-align:right;font-weight:700;font-size:18px;">${isPositive ? '+' : ''}$${netAmount.toFixed(2)}</td></tr>
+            <tr><td style="color:#999;padding:6px 0;">Plan:</td><td style="color:#fff;text-align:right;">${planName}</td></tr>
+            <tr><td style="color:#999;padding:6px 0;border-top:1px solid #333;">Total Earnings:</td><td style="color:#10b981;text-align:right;font-weight:600;border-top:1px solid #333;">$${totalEarnings.toFixed(2)}</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <p style="color:#666;font-size:11px;text-align:center;">Trading results are based on AI algorithm performance. Past results don't guarantee future returns.</p>
+    `),
+  })
+}
