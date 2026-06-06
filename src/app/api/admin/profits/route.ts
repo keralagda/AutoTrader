@@ -3,6 +3,24 @@ import { db } from '@/lib/db'
 
 export async function POST(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { userId, riskMode, amount, dayOfWeek, operation, reason } = await request.json()
 
     if (!userId || !riskMode || !amount || !dayOfWeek) {
@@ -33,6 +51,16 @@ export async function POST(request: Request) {
 
     for (const deposit of deposits) {
       const absAmount = Math.abs(amount)
+      const plan = deposit.plan
+      const accountHolderPct = plan.accountHolderPercent ?? 50
+      const tradeProfitSharePct = plan.tradeProfitSharePercent ?? 30
+      const rewardsOffersPct = plan.rewardsOffersPercent ?? 15
+      const platformFeePct = plan.platformFeePercent ?? 5
+
+      const investorShare = (absAmount * accountHolderPct) / 100
+      const sharePoolAmount = (absAmount * tradeProfitSharePct) / 100
+      const rewardsShare = (absAmount * rewardsOffersPct) / 100
+      const platformFeeShare = (absAmount * platformFeePct) / 100
 
       if (op === 'subtract') {
         // SUBTRACT operation: reduce user's balance and earnings
@@ -40,7 +68,7 @@ export async function POST(request: Request) {
           data: {
             userId,
             depositId: deposit.id,
-            amount: -absAmount,
+            amount: -investorShare,
             type: 'subtract',
             walletTarget: 'trading',
           },
@@ -58,15 +86,15 @@ export async function POST(request: Request) {
         })
 
         // Update deposit earned so far (reduce it)
-        const newEarnedSoFar = Math.max(0, deposit.earnedSoFar - absAmount)
+        const newEarnedSoFar = Math.max(0, deposit.earnedSoFar - investorShare)
         await db.deposit.update({
           where: { id: deposit.id },
           data: { earnedSoFar: newEarnedSoFar },
         })
 
         // Reduce user trading balance and total earnings
-        const newTradingBalance = Math.max(0, user.tradingBalance - absAmount)
-        const newTotalEarnings = Math.max(0, user.totalEarnings - absAmount)
+        const newTradingBalance = Math.max(0, user.tradingBalance - investorShare)
+        const newTotalEarnings = Math.max(0, user.totalEarnings - investorShare)
         await db.user.update({
           where: { id: userId },
           data: {
@@ -74,60 +102,126 @@ export async function POST(request: Request) {
             totalEarnings: newTotalEarnings,
           },
         })
+        user.tradingBalance = newTradingBalance
+        user.totalEarnings = newTotalEarnings
 
         // Reverse profit share to upline
-        const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
-        const profitShareAmount = (absAmount * 30) / 100
-        let currentReferrerId = user.referredById
-        let level = 0
+        if (sharePoolAmount > 0) {
+          const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+          let currentReferrerId = user.referredById
+          let level = 0
 
-        while (currentReferrerId && level < 7) {
-          const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
-          if (!referrer) break
+          while (currentReferrerId && level < 7) {
+            const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+            if (!referrer) break
 
-          const shareAmount = (profitShareAmount * REFERRAL_PERCENTS[level]) / 100
+            const shareAmount = (sharePoolAmount * REFERRAL_PERCENTS[level]) / 100
+            if (shareAmount > 0) {
+              await db.earning.create({
+                data: {
+                  userId: referrer.id,
+                  depositId: deposit.id,
+                  amount: -shareAmount,
+                  type: 'subtract',
+                  level: level + 1,
+                  walletTarget: 'trading',
+                },
+              })
 
-          await db.earning.create({
-            data: {
-              userId: referrer.id,
-              depositId: deposit.id,
-              amount: -shareAmount,
-              type: 'subtract',
-              level: level + 1,
-              walletTarget: 'trading',
-            },
-          })
+              await db.user.update({
+                where: { id: referrer.id },
+                data: {
+                  totalEarnings: Math.max(0, referrer.totalEarnings - shareAmount),
+                  tradingBalance: Math.max(0, referrer.tradingBalance - shareAmount),
+                },
+              })
+            }
 
-          await db.user.update({
-            where: { id: referrer.id },
-            data: {
-              totalEarnings: Math.max(0, referrer.totalEarnings - shareAmount),
-              tradingBalance: Math.max(0, referrer.tradingBalance - shareAmount),
-            },
-          })
+            currentReferrerId = referrer.referredById
+            level++
+          }
+        }
 
-          currentReferrerId = referrer.referredById
-          level++
+        // Deduct Rewards & Platform Fee from Admin/Platform account
+        const admin = await db.user.findFirst({ where: { role: 'admin' } })
+        if (admin) {
+          if (rewardsShare > 0) {
+            await db.user.update({
+              where: { id: admin.id },
+              data: {
+                tradingBalance: Math.max(0, admin.tradingBalance - rewardsShare),
+                totalEarnings: Math.max(0, admin.totalEarnings - rewardsShare),
+              },
+            })
+            await db.earning.create({
+              data: {
+                userId: admin.id,
+                depositId: deposit.id,
+                amount: -rewardsShare,
+                type: 'subtract',
+                walletTarget: 'trading',
+              },
+            })
+          }
+          if (platformFeeShare > 0) {
+            await db.user.update({
+              where: { id: admin.id },
+              data: {
+                tradingBalance: Math.max(0, admin.tradingBalance - platformFeeShare),
+                totalEarnings: Math.max(0, admin.totalEarnings - platformFeeShare),
+              },
+            })
+            await db.earning.create({
+              data: {
+                userId: admin.id,
+                depositId: deposit.id,
+                amount: -platformFeeShare,
+                type: 'subtract',
+                walletTarget: 'trading',
+              },
+            })
+          }
         }
 
         results.push({ earning, profitDist })
       } else {
-        // ADD operation (existing logic)
+        // ADD operation
         // Calculate stacking bonus
         const stackingBonus = deposit.plan.stackingEnabled && deposit.stackIndex > 1
           ? deposit.plan.stackingBonusPercent * (deposit.stackIndex - 1)
           : 0
         const effectiveDailyPercent = deposit.plan.dailyEarningPercent + stackingBonus
 
-        const earning = await db.earning.create({
-          data: {
-            userId,
-            depositId: deposit.id,
-            amount: absAmount,
-            type: stackingBonus > 0 ? 'daily' : 'daily',
-            walletTarget: 'trading',
-          },
-        })
+        if (investorShare > 0) {
+          const earning = await db.earning.create({
+            data: {
+              userId,
+              depositId: deposit.id,
+              amount: investorShare,
+              type: 'daily',
+              walletTarget: 'trading',
+            },
+          })
+
+          // Update deposit earned so far
+          await db.deposit.update({
+            where: { id: deposit.id },
+            data: { earnedSoFar: deposit.earnedSoFar + investorShare },
+          })
+
+          // Update user trading balance and total earnings
+          const newTradingBalance = user.tradingBalance + investorShare
+          const newTotalEarnings = user.totalEarnings + investorShare
+          await db.user.update({
+            where: { id: userId },
+            data: {
+              tradingBalance: newTradingBalance,
+              totalEarnings: newTotalEarnings,
+            },
+          })
+          user.tradingBalance = newTradingBalance
+          user.totalEarnings = newTotalEarnings
+        }
 
         const profitDist = await db.profitDistribution.create({
           data: {
@@ -140,60 +234,129 @@ export async function POST(request: Request) {
           },
         })
 
-        // Update deposit earned so far
-        await db.deposit.update({
-          where: { id: deposit.id },
-          data: { earnedSoFar: deposit.earnedSoFar + absAmount },
-        })
+        // Distribute profit share to upline (referrals)
+        if (sharePoolAmount > 0) {
+          const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+          let currentReferrerId = user.referredById
+          let level = 0
 
-        // Update user trading balance and total earnings
-        await db.user.update({
-          where: { id: userId },
-          data: {
-            tradingBalance: user.tradingBalance + absAmount,
-            totalEarnings: user.totalEarnings + absAmount,
-          },
-        })
+          while (currentReferrerId && level < 7) {
+            const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+            if (!referrer) break
 
-        // Distribute profit share to upline (30% of profit goes to trade profit share)
-        const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
-        const profitShareAmount = (absAmount * 30) / 100
-        let currentReferrerId = user.referredById
-        let level = 0
+            const shareAmount = (sharePoolAmount * REFERRAL_PERCENTS[level]) / 100
+            if (shareAmount > 0) {
+              await db.earning.create({
+                data: {
+                  userId: referrer.id,
+                  depositId: deposit.id,
+                  amount: shareAmount,
+                  type: 'profit_share',
+                  level: level + 1,
+                  walletTarget: 'trading',
+                },
+              })
 
-        while (currentReferrerId && level < 7) {
-          const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
-          if (!referrer) break
+              await db.user.update({
+                where: { id: referrer.id },
+                data: {
+                  totalEarnings: referrer.totalEarnings + shareAmount,
+                  tradingBalance: referrer.tradingBalance + shareAmount,
+                },
+              })
+            }
 
-          const shareAmount = (profitShareAmount * REFERRAL_PERCENTS[level]) / 100
-
-          await db.earning.create({
-            data: {
-              userId: referrer.id,
-              depositId: deposit.id,
-              amount: shareAmount,
-              type: 'profit_share',
-              level: level + 1,
-              walletTarget: 'trading',
-            },
-          })
-
-          await db.user.update({
-            where: { id: referrer.id },
-            data: {
-              totalEarnings: referrer.totalEarnings + shareAmount,
-              tradingBalance: referrer.tradingBalance + shareAmount,
-            },
-          })
-
-          currentReferrerId = referrer.referredById
-          level++
+            currentReferrerId = referrer.referredById
+            level++
+          }
         }
 
-        results.push({ earning, profitDist })
+        // Credit Rewards & Platform Fee to Admin/Platform account
+        const admin = await db.user.findFirst({ where: { role: 'admin' } })
+        if (admin) {
+          if (rewardsShare > 0) {
+            const adminBefore = admin.tradingBalance
+            const adminAfter = adminBefore + rewardsShare
+            
+            await db.user.update({
+              where: { id: admin.id },
+              data: {
+                tradingBalance: adminAfter,
+                totalEarnings: admin.totalEarnings + rewardsShare,
+              },
+            })
+            
+            await db.earning.create({
+              data: {
+                userId: admin.id,
+                depositId: deposit.id,
+                amount: rewardsShare,
+                type: 'rewards',
+                walletTarget: 'trading',
+              },
+            })
+
+            await db.transactionLog.create({
+              data: {
+                userId: admin.id,
+                type: 'bonus',
+                amount: rewardsShare,
+                balanceBefore: adminBefore,
+                balanceAfter: adminAfter,
+                wallet: 'trading',
+                description: `Rewards allocation (${rewardsOffersPct}%) from manual profit distribution`,
+                referenceId: deposit.id,
+              },
+            })
+            
+            admin.tradingBalance = adminAfter
+            admin.totalEarnings += rewardsShare
+          }
+
+          if (platformFeeShare > 0) {
+            const adminBefore = admin.tradingBalance
+            const adminAfter = adminBefore + platformFeeShare
+            
+            await db.user.update({
+              where: { id: admin.id },
+              data: {
+                tradingBalance: adminAfter,
+                totalEarnings: admin.totalEarnings + platformFeeShare,
+              },
+            })
+            
+            await db.earning.create({
+              data: {
+                userId: admin.id,
+                depositId: deposit.id,
+                amount: platformFeeShare,
+                type: 'platform_fee',
+                walletTarget: 'trading',
+              },
+            })
+
+            await db.transactionLog.create({
+              data: {
+                userId: admin.id,
+                type: 'fee',
+                amount: platformFeeShare,
+                balanceBefore: adminBefore,
+                balanceAfter: adminAfter,
+                wallet: 'trading',
+                description: `Platform fee allocation (${platformFeePct}%) from manual profit distribution`,
+                referenceId: deposit.id,
+              },
+            })
+            
+            admin.tradingBalance = adminAfter
+            admin.totalEarnings += platformFeeShare
+          }
+        }
+
+        results.push({ profitDist })
 
         // Check if deposit reached max earning limit
-        if (deposit.earnedSoFar + absAmount >= deposit.plan.maxEarningLimit) {
+        if (deposit.earnedSoFar >= deposit.plan.maxEarningLimit) {
           await db.deposit.update({
             where: { id: deposit.id },
             data: { status: 'completed' },
@@ -215,6 +378,24 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 

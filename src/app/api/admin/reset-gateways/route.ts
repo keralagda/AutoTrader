@@ -17,10 +17,10 @@ export async function POST(request: Request) {
       { name: 'MetaMask', type: 'crypto', network: 'ethereum', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 1 },
       { name: 'CoinPayments', type: 'crypto', network: 'multi', minAmount: 10, maxAmount: 500000, feePercent: 0.5, isActive: true, sortOrder: 2 },
       { name: 'NOWPayments', type: 'crypto', network: 'multi', minAmount: 5, maxAmount: 100000, feePercent: 0.5, isActive: true, sortOrder: 3 },
-      { name: 'USDC (ERC-20)', type: 'crypto', network: 'ethereum', minAmount: 25, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 4 },
-      { name: 'USDT (BEP-20)', type: 'crypto', network: 'bsc', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 5 },
-      { name: 'USDC (BEP-20)', type: 'crypto', network: 'bsc', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 6 },
-      { name: 'Bitcoin (BTC)', type: 'crypto', network: 'bitcoin', minAmount: 50, maxAmount: 100000, feePercent: 0, isActive: false, sortOrder: 7 },
+      { name: 'USDC (BEP-20)', type: 'crypto', network: 'bsc', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 4, address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', apiSecret: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', apiKey: 'https://bsc-dataseed.binance.org/', webhookUrl: 'https://bscscan.com/tx/' },
+      { name: 'Bitcoin (BTC)', type: 'crypto', network: 'bitcoin', minAmount: 50, maxAmount: 100000, feePercent: 0, isActive: false, sortOrder: 5 },
+
+
     ]
 
     for (const gw of newGateways) {

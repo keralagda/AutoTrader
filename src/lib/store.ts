@@ -2,7 +2,8 @@ import { create } from 'zustand'
 
 export type AppView = 'landing' | 'dashboard' | 'admin'
 export type DashboardTab = 'overview' | 'profile' | 'earnings' | 'investment' | 'deposit' | 'withdraw' | 'team' | 'challenges' | 'leaderboard' | 'messages' | 'news' | 'transactions' | 'security' | 'rewards' | 'resources' | 'help'
-export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder' | 'templates' | 'duplicates' | 'riskCategories' | 'referralConfig' | 'roles' | 'chatbot' | 'novaPoints' | 'logicBuilder' | 'featureFlags' | 'ecommerce' | 'helpCenter' | 'earnings'
+export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder' | 'templates' | 'duplicates' | 'riskCategories' | 'referralConfig' | 'roles' | 'chatbot' | 'novaPoints' | 'logicBuilder' | 'featureFlags' | 'ecommerce' | 'helpCenter' | 'earnings' | 'financialLogs'
+
 
 interface AppState {
   // Navigation

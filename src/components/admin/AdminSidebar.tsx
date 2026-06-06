@@ -28,6 +28,8 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'withdrawalLimits', label: 'Limits & Fees', icon: DollarSign, group: 'finance' },
   { tab: 'payments', label: 'Payment Gateways', icon: CreditCard, group: 'finance' },
   { tab: 'profits', label: 'Manual Profits', icon: TrendingUp, group: 'finance' },
+  { tab: 'financialLogs', label: '5W1H Ledger', icon: ScrollText, group: 'finance' },
+
 
   // 📈 Trading & Plans
   { tab: 'plans', label: 'Plan Builder', icon: Settings, group: 'trading' },

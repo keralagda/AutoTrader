@@ -4,6 +4,24 @@ import { db } from '@/lib/db'
 // POST - Reinvest: original deposit + earned amount into same or different plan
 export async function POST(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { userId, planId, sourceDepositId } = await request.json()
 
     if (!userId || !planId) {
@@ -103,7 +121,6 @@ export async function POST(request: Request) {
       where: { id: userId },
       data: {
         tradingBalance: Math.max(0, newBalance),
-        totalDeposited: user.totalDeposited + reinvestAmount,
         totalEarnings: user.totalEarnings + reinvestBonus,
       },
     })

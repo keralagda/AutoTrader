@@ -1,10 +1,29 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { loadNPConfig } from '@/lib/nova-points-config'
+import { USER_HELP_GUIDES } from '@/lib/help-center-data'
 
 // GET /api/gamification?userId=xxx - Get user gamification stats
 export async function GET(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
@@ -92,6 +111,17 @@ export async function GET(request: Request) {
     const nextLevelXp = level * XP_PER_LEVEL
     const xpToNextLevel = nextLevelXp - stats.xp
 
+    // Get completed quizzes from Settings SSoT
+    const prefix = `quiz_complete_${userId}_`
+    const completedQuizSettings = await db.setting.findMany({
+      where: {
+        key: {
+          startsWith: prefix,
+        },
+      },
+    })
+    const completedQuizzes = completedQuizSettings.map((s) => s.key.substring(prefix.length))
+
     return NextResponse.json({
       stats: {
         ...stats,
@@ -125,6 +155,7 @@ export async function GET(request: Request) {
         earnedCount: unlockedBadges.length,
         rarityCounts: badgeRarityCounts,
       },
+      completedQuizzes,
     })
   } catch (error) {
     console.error('Get gamification error:', error)
@@ -132,10 +163,28 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/gamification - Daily check-in
+// POST /api/gamification - Daily check-in & Quiz completions
 export async function POST(request: Request) {
   try {
-    const { userId, action } = await request.json()
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
+    const { userId, action, quizId } = await request.json()
 
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
@@ -267,6 +316,68 @@ export async function POST(request: Request) {
         newStreak,
         newLevel,
         streakDay: newStreak,
+      })
+    } else if (action === 'quiz_complete') {
+      if (!quizId) {
+        return NextResponse.json({ error: 'quizId is required' }, { status: 400 })
+      }
+
+      const key = `quiz_complete_${userId}_${quizId}`
+      const existing = await db.setting.findUnique({
+        where: { key }
+      })
+
+      if (existing) {
+        return NextResponse.json({ success: true, alreadyCompleted: true, message: 'Quiz already completed' })
+      }
+
+      // Save completion in Setting SSoT
+      await db.setting.create({
+        data: {
+          key,
+          value: 'true'
+        }
+      })
+
+      // Get or create user stats
+      const stats = await db.userStats.upsert({
+        where: { userId },
+        create: { userId },
+        update: {},
+      })
+
+      const xpEarned = 50
+      const newXp = stats.xp + xpEarned
+      const newLevel = Math.floor(newXp / XP_PER_LEVEL) + 1
+
+      // Increment user XP by 50 in UserStats
+      await db.userStats.update({
+        where: { id: stats.id },
+        data: {
+          xp: { increment: xpEarned },
+          totalXpEarned: { increment: xpEarned },
+          level: newLevel,
+        }
+      })
+
+      // Get guide title
+      const guide = USER_HELP_GUIDES.find((g) => g.id === quizId)
+      const guideTitle = guide ? guide.title : 'Assessment'
+
+      // Create notification
+      await db.notification.create({
+        data: {
+          userId,
+          title: 'Assessment Completed',
+          message: `You completed the "${guideTitle}" assessment and earned 50 XP!`,
+          type: 'success',
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        xpEarned,
+        newLevel,
       })
     }
 

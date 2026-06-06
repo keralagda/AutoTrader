@@ -23,7 +23,7 @@ interface ProfileData {
 }
 
 export function OverviewTab() {
-  const { user, updateUserWallets } = useAppStore()
+  const { user, updateUserProfile } = useAppStore()
   const [profile, setProfile] = useState<ProfileData | null>(null)
 
   useEffect(() => {
@@ -32,13 +32,18 @@ export function OverviewTab() {
       .then(res => res.json())
       .then(data => {
         setProfile(data)
-        // Sync latest balances from server
+        // Sync latest balances and stats from server
         if (data.tradingBalance !== undefined && data.withdrawalBalance !== undefined) {
-          updateUserWallets(data.tradingBalance, data.withdrawalBalance)
+          updateUserProfile({
+            tradingBalance: data.tradingBalance,
+            withdrawalBalance: data.withdrawalBalance,
+            totalDeposited: data.totalDeposited,
+            totalEarnings: data.totalEarnings,
+          })
         }
       })
       .catch(() => {})
-  }, [user?.id, updateUserWallets])
+  }, [user?.id, updateUserProfile])
 
   const planColors: Record<string, string> = {
     starter: 'bg-gray-500/20 text-gray-300 border-gray-500/30',

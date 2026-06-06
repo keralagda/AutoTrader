@@ -47,8 +47,11 @@ const GATEWAY_TYPE_CONFIG: Record<string, {
     bgColor: 'bg-amber-500/15',
     borderColor: 'border-amber-500/30',
     fields: [
-      { key: 'network', label: 'Network', placeholder: 'e.g. polygon, ethereum, bitcoin' },
-      { key: 'address', label: 'Wallet Address', placeholder: '0x...' },
+      { key: 'network', label: 'Network', placeholder: 'e.g. bsc, polygon, ethereum' },
+      { key: 'address', label: 'Admin Wallet Receive Address', placeholder: '0x...' },
+      { key: 'apiSecret', label: 'Token Contract Address', placeholder: 'e.g. 0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d' },
+      { key: 'apiKey', label: 'JSON-RPC Provider Node URL', placeholder: 'e.g. https://bsc-dataseed.binance.org/' },
+      { key: 'webhookUrl', label: 'Block Explorer Tx URL Prefix', placeholder: 'e.g. https://bscscan.com/tx/' },
     ],
   },
   indian: {
@@ -62,6 +65,7 @@ const GATEWAY_TYPE_CONFIG: Record<string, {
       { key: 'apiSecret', label: 'API Secret', placeholder: 'Enter API secret', type: 'password' },
     ],
   },
+
 }
 
 export function PaymentGatewaysTab() {

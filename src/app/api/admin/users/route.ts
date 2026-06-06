@@ -167,16 +167,12 @@ export async function PUT(request: Request) {
 
       const newBalance = currentBalance + adjustAmount
 
-      // Update user balance + activate if adding funds
+      // Update user balance (do not auto-activate on balance addition)
       const updateData: any = {}
       if (targetWallet === 'withdrawal') {
         updateData.withdrawalBalance = newBalance
       } else {
         updateData.tradingBalance = newBalance
-      }
-      // Activate user when admin adds positive balance
-      if (adjustAmount > 0) {
-        updateData.isActive = true
       }
 
       await db.user.update({ where: { id: userId }, data: updateData })

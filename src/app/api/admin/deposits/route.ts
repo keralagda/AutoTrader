@@ -36,13 +36,16 @@ export async function PUT(request: Request) {
     const payment = await db.payment.findUnique({ where: { id: paymentId } })
     if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
 
-    if (payment.status !== 'pending') {
-      return NextResponse.json({ error: 'Payment already processed' }, { status: 400 })
-    }
-
     if (action === 'confirm') {
-      // Update payment status
-      await db.payment.update({ where: { id: paymentId }, data: { status: 'confirmed' } })
+      // Update payment status atomically ensuring status is still pending (concurrency guard)
+      const updateResult = await db.payment.updateMany({
+        where: { id: paymentId, status: 'pending' },
+        data: { status: 'confirmed' }
+      })
+
+      if (updateResult.count === 0) {
+        return NextResponse.json({ error: 'Payment already processed' }, { status: 400 })
+      }
 
       // Credit user's trading wallet
       const user = await db.user.findUnique({ where: { id: payment.userId } })
@@ -53,15 +56,8 @@ export async function PUT(request: Request) {
           data: {
             tradingBalance: newBalance,
             totalDeposited: user.totalDeposited + payment.amount,
-            isActive: true, // Activate user on first successful deposit
           },
         })
-
-        // Send account activated email if this is the first deposit
-        if (!user.isActive) {
-          const { sendAccountActivated } = await import('@/lib/email')
-          sendAccountActivated(user.email, user.name).catch(() => {})
-        }
 
         // Transaction log
         await db.transactionLog.create({
@@ -113,7 +109,15 @@ export async function PUT(request: Request) {
 
       return NextResponse.json({ success: true, status: 'confirmed' })
     } else if (action === 'reject') {
-      await db.payment.update({ where: { id: paymentId }, data: { status: 'failed' } })
+      // Update payment status atomically ensuring status is still pending (concurrency guard)
+      const updateResult = await db.payment.updateMany({
+        where: { id: paymentId, status: 'pending' },
+        data: { status: 'failed' }
+      })
+
+      if (updateResult.count === 0) {
+        return NextResponse.json({ error: 'Payment already processed' }, { status: 400 })
+      }
 
       // Notification
       await db.notification.create({

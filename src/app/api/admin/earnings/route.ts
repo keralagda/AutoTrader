@@ -117,7 +117,6 @@ export async function PUT(req: NextRequest) {
         where: { id: deposit.userId },
         data: {
           tradingBalance: { increment: deposit.amount },
-          totalDeposited: { decrement: deposit.amount },
         },
       })
 

@@ -4,6 +4,24 @@ import { DEFAULT_PLANS, DEFAULT_CHALLENGES, DEFAULT_BADGES } from '@/lib/types'
 
 export async function POST() {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     // Create admin user if not exists
     const existingAdmin = await db.user.findFirst({ where: { role: 'admin' } })
     if (!existingAdmin) {
@@ -44,9 +62,10 @@ export async function POST() {
         { name: 'MetaMask', type: 'crypto', network: 'ethereum', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 1 },
         { name: 'CoinPayments', type: 'crypto', network: 'multi', minAmount: 10, maxAmount: 500000, feePercent: 0.5, isActive: true, sortOrder: 2 },
         { name: 'NOWPayments', type: 'crypto', network: 'multi', minAmount: 5, maxAmount: 100000, feePercent: 0.5, isActive: true, sortOrder: 3 },
-        { name: 'USDT (TRC-20)', type: 'crypto', network: 'tron', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 4 },
-        { name: 'USDC (ERC-20)', type: 'crypto', network: 'ethereum', minAmount: 25, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 5 },
-        { name: 'Bitcoin (BTC)', type: 'crypto', network: 'bitcoin', minAmount: 50, maxAmount: 100000, feePercent: 0, isActive: false, sortOrder: 6 },
+        { name: 'USDC (BEP-20)', type: 'crypto', network: 'bsc', minAmount: 10, maxAmount: 100000, feePercent: 0, isActive: true, sortOrder: 4, address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', apiSecret: '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d', apiKey: 'https://bsc-dataseed.binance.org/', webhookUrl: 'https://bscscan.com/tx/' },
+        { name: 'Bitcoin (BTC)', type: 'crypto', network: 'bitcoin', minAmount: 50, maxAmount: 100000, feePercent: 0, isActive: false, sortOrder: 5 },
+
+
       ]
       for (const gw of defaultGateways) {
         await db.paymentGateway.create({ data: gw })
@@ -161,7 +180,21 @@ export async function POST() {
       })
     }
 
-    return NextResponse.json({ message: 'Seed completed' })
+    // Sync totalDeposited for all users with the sum of their confirmed payments
+    const allUsers = await db.user.findMany({ select: { id: true } })
+    for (const u of allUsers) {
+      const confirmedPayments = await db.payment.aggregate({
+        where: { userId: u.id, status: 'confirmed' },
+        _sum: { amount: true }
+      })
+      const totalDeposited = confirmedPayments._sum.amount || 0
+      await db.user.update({
+        where: { id: u.id },
+        data: { totalDeposited }
+      })
+    }
+
+    return NextResponse.json({ message: 'Seed completed and user deposits synced' })
   } catch (error) {
     console.error('Seed error:', error)
     return NextResponse.json({ error: 'Seed failed' }, { status: 500 })

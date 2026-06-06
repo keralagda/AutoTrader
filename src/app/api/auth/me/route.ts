@@ -4,6 +4,24 @@ import { getSession } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     // Support both session-based and legacy userId query param
     let userId: string | null = null
 
@@ -28,6 +46,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    // Calculate total deposited on the fly based on confirmed payments
+    const confirmedPayments = await db.payment.aggregate({
+      where: { userId, status: 'confirmed' },
+      _sum: { amount: true }
+    })
+    const calculatedTotalDeposited = confirmedPayments._sum.amount || 0
+
     return NextResponse.json({
       id: user.id,
       email: user.email,
@@ -39,7 +64,7 @@ export async function GET(request: NextRequest) {
       tradingBalance: user.tradingBalance,
       withdrawalBalance: user.withdrawalBalance,
       totalEarnings: user.totalEarnings,
-      totalDeposited: user.totalDeposited,
+      totalDeposited: calculatedTotalDeposited,
       kycStatus: user.kycStatus,
       twoFactorEnabled: user.twoFactorEnabled,
     })

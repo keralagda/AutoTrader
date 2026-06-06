@@ -4,6 +4,24 @@ import { db } from '@/lib/db'
 // Public endpoint - returns active payment gateways for users
 export async function GET() {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const gateways = await db.paymentGateway.findMany({
       where: { isActive: true },
       select: {
@@ -12,6 +30,8 @@ export async function GET() {
         type: true,
         network: true,
         address: true,
+        apiSecret: true,  // token contract address (for advanced setup display)
+        webhookUrl: true, // explorer URL prefix (for advanced setup display)
         minAmount: true,
         maxAmount: true,
         feePercent: true,
@@ -22,6 +42,7 @@ export async function GET() {
 
     return NextResponse.json(gateways)
   } catch (error) {
+    console.error('Failed to get public payment gateways:', error)
     return NextResponse.json([])
   }
 }

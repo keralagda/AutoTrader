@@ -56,12 +56,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Insufficient balance. Need $${activationFee} for activation. You have $${user.tradingBalance.toFixed(2)}` }, { status: 400 })
     }
 
-    // Deduct activation fee
+    // Deduct activation fee and activate user
     const newBalance = user.tradingBalance - activationFee
     await db.user.update({
       where: { id: userId },
-      data: { tradingBalance: newBalance },
+      data: {
+        tradingBalance: newBalance,
+        isActive: true,
+      },
     })
+
+    // Send account activated email if this is the first activation
+    if (!user.isActive) {
+      const { sendAccountActivated } = await import('@/lib/email')
+      sendAccountActivated(user.email, user.name).catch(() => {})
+    }
 
     // Save activated plan
     activatedPlanIds.push(planId)

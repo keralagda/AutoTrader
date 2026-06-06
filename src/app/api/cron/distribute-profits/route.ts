@@ -8,6 +8,24 @@ import { db } from '@/lib/db'
 
 export async function POST(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     // Auth check - accept multiple auth methods
     const cronSecret = process.env.CRON_SECRET || 'bnfx-cron-2026'
     const xCronSecret = request.headers.get('x-cron-secret')
@@ -169,76 +187,176 @@ export async function POST(request: Request) {
 
       if (profitAmount <= 0) continue
 
-      // Credit profit to user
-      const newBalance = user.tradingBalance + profitAmount
-      await db.user.update({
-        where: { id: user.id },
-        data: {
-          tradingBalance: newBalance,
-          totalEarnings: user.totalEarnings + profitAmount,
-        },
-      })
+      // Calculate splits based on plan settings
+      const accountHolderPct = plan.accountHolderPercent ?? 50
+      const tradeProfitSharePct = plan.tradeProfitSharePercent ?? 30
+      const rewardsOffersPct = plan.rewardsOffersPercent ?? 15
+      const platformFeePct = plan.platformFeePercent ?? 5
 
-      // Create earning record
-      await db.earning.create({
-        data: {
-          userId: user.id, depositId: deposit.id, amount: profitAmount,
-          type: 'daily', walletTarget: 'trading',
-        },
-      })
+      const investorShare = (profitAmount * accountHolderPct) / 100
+      const sharePoolAmount = (profitAmount * tradeProfitSharePct) / 100
+      const rewardsShare = (profitAmount * rewardsOffersPct) / 100
+      const platformFeeShare = (profitAmount * platformFeePct) / 100
 
-      // Create transaction log
-      await db.transactionLog.create({
-        data: {
-          userId: user.id, type: 'profit', amount: profitAmount,
-          balanceBefore: user.tradingBalance, balanceAfter: newBalance,
-          wallet: 'trading',
-          description: `${plan.name} plan profit (${plan.returnType} return)`,
-          referenceId: deposit.id,
-        },
-      })
+      if (investorShare > 0) {
+        // Credit profit to user
+        const newBalance = user.tradingBalance + investorShare
+        await db.user.update({
+          where: { id: user.id },
+          data: {
+            tradingBalance: newBalance,
+            totalEarnings: user.totalEarnings + investorShare,
+          },
+        })
+
+        // Create earning record
+        await db.earning.create({
+          data: {
+            userId: user.id, depositId: deposit.id, amount: investorShare,
+            type: 'daily', walletTarget: 'trading',
+          },
+        })
+
+        // Create transaction log
+        await db.transactionLog.create({
+          data: {
+            userId: user.id, type: 'profit', amount: investorShare,
+            balanceBefore: user.tradingBalance, balanceAfter: newBalance,
+            wallet: 'trading',
+            description: `${plan.name} plan profit (${plan.returnType} return)`,
+            referenceId: deposit.id,
+          },
+        })
+
+        // Update local user object for subsequent loop operations
+        user.tradingBalance = newBalance
+        user.totalEarnings += investorShare
+      }
 
       // Update deposit
       const nextProfit = new Date(now.getTime() + plan.returnPeriodHours * 60 * 60 * 1000)
       await db.deposit.update({
         where: { id: deposit.id },
         data: {
-          earnedSoFar: deposit.earnedSoFar + profitAmount,
+          earnedSoFar: deposit.earnedSoFar + investorShare,
           profitCount: deposit.profitCount + 1,
           lastProfitAt: now,
           nextProfitAt: nextProfit,
         },
       })
 
-      // Distribute profit share to upline (30% of profit)
-      const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
-      const profitShareAmount = (profitAmount * plan.tradeProfitSharePercent) / 100
-      let currentReferrerId = user.referredById
-      let level = 0
+      // Distribute profit share to upline (referrals)
+      if (sharePoolAmount > 0) {
+        const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+        let currentReferrerId = user.referredById
+        let level = 0
 
-      while (currentReferrerId && level < 7) {
-        const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
-        if (!referrer) break
+        while (currentReferrerId && level < 7) {
+          const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+          if (!referrer) break
 
-        const shareAmount = (profitShareAmount * REFERRAL_PERCENTS[level]) / 100
-        if (shareAmount > 0) {
+          const shareAmount = (sharePoolAmount * REFERRAL_PERCENTS[level]) / 100
+          if (shareAmount > 0) {
+            await db.earning.create({
+              data: {
+                userId: referrer.id, depositId: deposit.id, amount: shareAmount,
+                type: 'profit_share', level: level + 1, walletTarget: 'trading',
+              },
+            })
+            await db.user.update({
+              where: { id: referrer.id },
+              data: {
+                totalEarnings: referrer.totalEarnings + shareAmount,
+                tradingBalance: referrer.tradingBalance + shareAmount,
+              },
+            })
+          }
+
+          currentReferrerId = referrer.referredById
+          level++
+        }
+      }
+
+      // Credit Rewards & Platform Fee to Admin/Platform account
+      const admin = await db.user.findFirst({ where: { role: 'admin' } })
+      if (admin) {
+        if (rewardsShare > 0) {
+          const adminBefore = admin.tradingBalance
+          const adminAfter = adminBefore + rewardsShare
+          
+          await db.user.update({
+            where: { id: admin.id },
+            data: {
+              tradingBalance: adminAfter,
+              totalEarnings: admin.totalEarnings + rewardsShare,
+            },
+          })
+          
           await db.earning.create({
             data: {
-              userId: referrer.id, depositId: deposit.id, amount: shareAmount,
-              type: 'profit_share', level: level + 1, walletTarget: 'trading',
+              userId: admin.id,
+              depositId: deposit.id,
+              amount: rewardsShare,
+              type: 'rewards',
+              walletTarget: 'trading',
             },
           })
-          await db.user.update({
-            where: { id: referrer.id },
+
+          await db.transactionLog.create({
             data: {
-              totalEarnings: referrer.totalEarnings + shareAmount,
-              tradingBalance: referrer.tradingBalance + shareAmount,
+              userId: admin.id,
+              type: 'bonus',
+              amount: rewardsShare,
+              balanceBefore: adminBefore,
+              balanceAfter: adminAfter,
+              wallet: 'trading',
+              description: `Rewards allocation (${rewardsOffersPct}%) from ${plan.name} profit distribution`,
+              referenceId: deposit.id,
             },
           })
+          
+          admin.tradingBalance = adminAfter
+          admin.totalEarnings += rewardsShare
         }
 
-        currentReferrerId = referrer.referredById
-        level++
+        if (platformFeeShare > 0) {
+          const adminBefore = admin.tradingBalance
+          const adminAfter = adminBefore + platformFeeShare
+          
+          await db.user.update({
+            where: { id: admin.id },
+            data: {
+              tradingBalance: adminAfter,
+              totalEarnings: admin.totalEarnings + platformFeeShare,
+            },
+          })
+          
+          await db.earning.create({
+            data: {
+              userId: admin.id,
+              depositId: deposit.id,
+              amount: platformFeeShare,
+              type: 'platform_fee',
+              walletTarget: 'trading',
+            },
+          })
+
+          await db.transactionLog.create({
+            data: {
+              userId: admin.id,
+              type: 'fee',
+              amount: platformFeeShare,
+              balanceBefore: adminBefore,
+              balanceAfter: adminAfter,
+              wallet: 'trading',
+              description: `Platform fee allocation (${platformFeePct}%) from ${plan.name} profit distribution`,
+              referenceId: deposit.id,
+            },
+          })
+          
+          admin.tradingBalance = adminAfter
+          admin.totalEarnings += platformFeeShare
+        }
       }
 
       processed++

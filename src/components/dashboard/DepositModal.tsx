@@ -289,7 +289,8 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
                       onClick={() => setPaymentMethod('crypto_usdc')}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs transition-all ${paymentMethod === 'crypto_usdc' ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}
                     >
-                      <Bitcoin className="size-3.5" /> USDC (Polygon)
+                      <Bitcoin className="size-3.5" /> USDC (BEP-20)
+
                     </button>
                     <button
                       onClick={() => setPaymentMethod('upi')}

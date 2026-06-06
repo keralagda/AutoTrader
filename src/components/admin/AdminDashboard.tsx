@@ -42,6 +42,8 @@ import { AdminFeatureFlagsTab } from './AdminFeatureFlagsTab'
 import { AdminEcommerceTab } from './AdminEcommerceTab'
 import { AdminHelpCenter } from './AdminHelpCenter'
 import { AdminEarningsTab } from './AdminEarningsTab'
+import { AdminFinancialLogsTab } from './AdminFinancialLogsTab'
+
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -136,7 +138,9 @@ export function AdminDashboard() {
       case 'ecommerce': return <AdminEcommerceTab />
       case 'helpCenter': return <AdminHelpCenter />
       case 'earnings': return <AdminEarningsTab />
+      case 'financialLogs': return <AdminFinancialLogsTab />
       default: return <PlansTab />
+
     }
   }
 

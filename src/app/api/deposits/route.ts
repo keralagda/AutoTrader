@@ -3,6 +3,24 @@ import { db } from '@/lib/db'
 
 export async function GET(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
@@ -25,6 +43,24 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { userId, planId, amount, paymentMethod, riskLevel } = await request.json()
 
     if (!userId || !planId || !amount) {
@@ -134,12 +170,11 @@ export async function POST(request: Request) {
       },
     })
 
-    // Deduct from trading wallet and update total deposited
+    // Deduct from trading wallet
     const newBalance = isAdmin ? user.tradingBalance : user.tradingBalance - amount
     await db.user.update({
       where: { id: userId },
       data: {
-        totalDeposited: user.totalDeposited + amount,
         tradingBalance: newBalance,
       },
     })

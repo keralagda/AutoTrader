@@ -40,7 +40,7 @@ export async function aiChat(messages: AIMessage[], options?: { temperature?: nu
 
 // ─── Pre-built AI Functions ────────────────────────────────────────
 
-export async function generateTradingSignal(pair: string = 'BTC/USDT'): Promise<{
+export async function generateTradingSignal(pair: string = 'BTC/USDT', currentPrice: number = 0): Promise<{
   signal: 'BUY' | 'SELL' | 'HOLD'
   confidence: number
   reasoning: string
@@ -48,10 +48,14 @@ export async function generateTradingSignal(pair: string = 'BTC/USDT'): Promise<
   target: string
   stopLoss: string
 }> {
+  const priceContext = currentPrice > 0 
+    ? `The current live market price of ${pair} is $${currentPrice}. You MUST generate the trade setup relative to this exact price: entry should be extremely close to $${currentPrice}, target should be higher than entry for BUY / lower for SELL, and stopLoss should be lower than entry for BUY / higher for SELL. For HOLD, you can set them near $${currentPrice}.`
+    : `Use realistic current market prices.`;
+
   const response = await aiChat([
     {
       role: 'system',
-      content: `You are a crypto trading analyst. Generate a realistic trading signal for the given pair. Respond ONLY in valid JSON format with these fields: signal (BUY/SELL/HOLD), confidence (0-100), reasoning (1-2 sentences), entry (price), target (price), stopLoss (price). Use realistic current market prices.`,
+      content: `You are a crypto trading analyst. Generate a realistic trading signal for the given pair. Respond ONLY in valid JSON format with these fields: signal (BUY/SELL/HOLD), confidence (0-100), reasoning (1-2 sentences), entry (price), target (price), stopLoss (price). ${priceContext}`,
     },
     { role: 'user', content: `Generate a trading signal for ${pair} right now.` },
   ], { temperature: 0.8, maxTokens: 256 })

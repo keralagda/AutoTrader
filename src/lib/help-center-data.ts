@@ -1,11 +1,18 @@
 // ─── Help Center Data ─────────────────────────────────────────────────────
 
+export interface QuizQuestion {
+  question: string
+  options: string[]
+  answerIndex: number
+}
+
 export interface HelpGuide {
   id: string
   title: string
   category: string
   content: string
   audience: 'admin' | 'user' | 'both'
+  quiz?: QuizQuestion[]
 }
 
 export const ADMIN_HELP_GUIDES: HelpGuide[] = [
@@ -29,7 +36,8 @@ export const ADMIN_HELP_GUIDES: HelpGuide[] = [
   { id: 'a13', title: 'Deposit Approvals', category: 'Finance', audience: 'admin', content: 'All user deposits require admin approval. Go to Finance → Deposit Approvals to see pending deposits. Each shows amount, payment method, TX hash, and proof screenshot. Approve to credit the user\'s trading wallet, or reject to notify them.' },
   { id: 'a14', title: 'Investment Approvals', category: 'Finance', audience: 'admin', content: 'When users invest in a plan, the deposit starts as "pending". Approve from the Earnings section to activate it and start profit distribution. Reject to refund the amount back to their trading wallet.' },
   { id: 'a15', title: 'Withdrawal Management', category: 'Finance', audience: 'admin', content: 'Review withdrawal requests in Finance → Withdrawals. Approve to mark as processed (you handle the actual transfer manually). Reject with a reason. Set withdrawal limits in Settings → Withdrawal Limits.' },
-  { id: 'a16', title: 'Payment Gateways', category: 'Finance', audience: 'admin', content: 'Configure crypto payment gateways: MetaMask, CoinPayments, NOWPayments, USDT (TRC-20), USDC (ERC-20), and EU/US Wire Transfer. Set wallet addresses, API keys, min/max amounts, and fees. Enable/disable each gateway.' },
+  { id: 'a16', title: 'Payment Gateways', category: 'Finance', audience: 'admin', content: 'Configure crypto payment gateways: MetaMask, CoinPayments, NOWPayments, USDC (BEP-20), and EU/US Wire Transfer. Set wallet addresses, API keys, min/max amounts, and fees. Enable/disable each gateway.' },
+
 
   // ─── Trading & Plans
   { id: 'a17', title: 'Creating Investment Plans', category: 'Trading & Plans', audience: 'admin', content: 'Click "Add New Plan" to open the full-page plan builder. Configure: name, entry fee, min/max deposit, daily earning %, max earning limit, return type (hourly/daily/weekly), duration, capital return method, stacking, lock period, and distribution percentages.' },
@@ -90,7 +98,8 @@ export const USER_HELP_GUIDES: HelpGuide[] = [
 
   // ─── Deposits
   { id: 'u4', title: 'How to Deposit Funds', category: 'Deposits', audience: 'user', content: '1. Go to Deposit tab\n2. Choose a payment method (MetaMask, CoinPayments, NOWPayments, USDT, USDC, or Wire Transfer)\n3. Enter the amount and provide TX hash + proof screenshot\n4. Submit and wait for admin approval (usually within 24 hours)\n5. Once approved, funds appear in your Trading Wallet' },
-  { id: 'u5', title: 'Supported Payment Methods', category: 'Deposits', audience: 'user', content: 'Crypto: MetaMask (ETH/ERC-20), CoinPayments (multi-crypto), NOWPayments (100+ coins), USDT (TRC-20), USDC (ERC-20). Wire Transfer: EU banks (SEPA) and US banks (ACH/Fedwire) with SWIFT support. Minimum deposit: $10.' },
+  { id: 'u5', title: 'Supported Payment Methods', category: 'Deposits', audience: 'user', content: 'Crypto: MetaMask (BSC/BEP-20), CoinPayments (multi-crypto), NOWPayments (100+ coins), USDC (BEP-20). Wire Transfer: EU banks (SEPA) and US banks (ACH/Fedwire) with SWIFT support. Minimum deposit: $10.' },
+
   { id: 'u6', title: 'EU/US Wire Transfer', category: 'Deposits', audience: 'user', content: 'Click "EU/US Wire Transfer" in the deposit section. Copy the receiving bank details (IBAN, SWIFT). Send the wire from your bank with your BNFX reference code. Submit the transaction reference number. Processing: 1-3 business days.' },
   { id: 'u7', title: 'Deposit Approval Process', category: 'Deposits', audience: 'user', content: 'All deposits require admin verification. After submitting, your deposit shows as "Pending". Once approved, funds are credited to your Trading Wallet and you receive a notification. If rejected, you\'ll be notified with a reason.' },
 
@@ -126,4 +135,246 @@ export const USER_HELP_GUIDES: HelpGuide[] = [
   { id: 'u26', title: 'Promotional Resources', category: 'Resources', audience: 'user', content: 'Download free banners, PDFs, and logo packs from the Resources tab. Use them to promote your referral link on social media. Available in multiple sizes for different platforms (Instagram, Facebook, WhatsApp stories).' },
   { id: 'u27', title: 'Branded Merchandise', category: 'Resources', audience: 'user', content: 'Order official Black Nova FX merchandise: T-shirts, caps, pens, diaries, keychains, and watches. Pay with USDC or trading wallet balance. Contact support to place orders. Shipping worldwide.' },
   { id: 'u28', title: 'Getting Help', category: 'Resources', audience: 'user', content: 'Need help? Options:\n• Nova AI Chatbot (instant answers)\n• Support Tickets (for account issues)\n• Message Centre (direct admin contact)\n• This Help Center (guides and FAQs)' },
+  
+  // ─── Venture & Incubations
+  {
+    id: 'u29',
+    title: 'Introduction to Venture Capital',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Venture Capital (VC) is a form of private equity financing provided by investment firms to early-stage, high-growth-potential startups. VCs provide capital in exchange for equity (ownership), targeting substantial returns when the startup goes public (IPO) or gets acquired.',
+    quiz: [
+      { question: 'What is Venture Capital (VC)?', options: ['A form of private equity financing', 'A public bank loan', 'A corporate tax', 'A charity donation'], answerIndex: 0 },
+      { question: 'VCs invest in exchange for what?', options: ['Higher interest rates', 'Equity or ownership stake', 'Free advertising', 'Physical products'], answerIndex: 1 },
+      { question: 'When do VCs typically expect substantial returns?', options: ['Immediately upon investing', 'Upon startup exit via IPO or acquisition', 'Monthly through dividends', 'On tax day'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u30',
+    title: 'Seed Funding vs. Series A',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Seed funding is the initial capital used to prove a concept, build a prototype, and conduct early market research. Series A funding is the next stage, aimed at scaling the business, optimizing product-market fit, and expanding team operations once traction is established.',
+    quiz: [
+      { question: 'What is the primary purpose of Seed Funding?', options: ['To go public on a stock exchange', 'To prove a concept and build a prototype', 'To hire late-stage VPs', 'To buy competitor startups'], answerIndex: 1 },
+      { question: 'When is Series A funding raised?', options: ['Before the concept is created', 'After the concept has traction and product-market fit', 'During bankruptcy', 'At IPO'], answerIndex: 1 },
+      { question: 'Which funding round is typically larger?', options: ['Pre-seed', 'Seed', 'Series A', 'Family round'], answerIndex: 2 }
+    ]
+  },
+  {
+    id: 'u31',
+    title: 'What is Startup Incubation?',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Startup incubators support early-stage startups during their development phase. They offer physical workspace, shared resources, mentorship, and business training in exchange for equity or a program fee, helping founders build their ideas from scratch.',
+    quiz: [
+      { question: 'What do startup incubators primarily do?', options: ['Buy companies completely', 'Support early-stage startups during development', 'Manage public stocks', 'Close failing projects'], answerIndex: 1 },
+      { question: 'How do incubators charge or take returns?', options: ['Fixed daily interest', 'Equity stake or program fee', 'Product sales', 'They do it for free'], answerIndex: 1 },
+      { question: 'What stage of startup is incubation best suited for?', options: ['Late stage', 'Post-IPO', 'Early-stage/ideation', 'M&A stage'], answerIndex: 2 }
+    ]
+  },
+  {
+    id: 'u32',
+    title: 'Venture Incubator vs. Accelerator',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Incubators focus on early-stage ideation and product-building with open-ended timelines. Accelerators focus on rapid growth, offering intense, structured, cohort-based programs (usually 3-6 months) ending in a \'Demo Day\' to raise capital from investors.',
+    quiz: [
+      { question: 'What is the timeline of an Accelerator program?', options: ['Unlimited years', 'Open-ended', 'Intense and structured (typically 3-6 months)', '24 hours'], answerIndex: 2 },
+      { question: 'Which program typically ends with a \'Demo Day\'?', options: ['Incubator', 'Accelerator', 'Bank loan', 'Seed round'], answerIndex: 1 },
+      { question: 'Incubators focus on which phase of a startup?', options: ['Rapid scale and exit', 'Ideation and product-building', 'Public listing', 'Bankruptcy'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u33',
+    title: 'Angel Investing Basics',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Angel investors are high-net-worth individuals who invest their personal funds into early-stage startups. They often invest smaller amounts than VCs, provide hands-on mentorship, and take higher risks in exchange for convertible debt or equity.',
+    quiz: [
+      { question: 'Who is an Angel Investor?', options: ['A government agency', 'A high-net-worth individual investing personal funds', 'An institutional VC fund', 'A charity manager'], answerIndex: 1 },
+      { question: 'Do angels typically invest larger or smaller amounts than VCs?', options: ['Larger', 'Smaller', 'The exact same', 'Millions of dollars more'], answerIndex: 1 },
+      { question: 'What do angel investors receive in exchange for capital?', options: ['Monthly interest payments', 'Convertible debt or equity', 'Company products', 'Free consultations'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u34',
+    title: 'Understanding Pre-Seed Funding',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Pre-seed funding is the earliest stage of fundraising, occurring before seed rounds. It is typically used to support early product development, hire initial engineers, and get the product ready for beta testing. Sources include founders, family, and angels.',
+    quiz: [
+      { question: 'When does Pre-Seed funding occur?', options: ['After Series A', 'Before the concept exists', 'Before the seed round (earliest stage)', 'At IPO'], answerIndex: 2 },
+      { question: 'What is pre-seed funding typically used for?', options: ['Global marketing campaigns', 'Initial product development and hiring', 'M&As', 'Dividends'], answerIndex: 1 },
+      { question: 'Who are the common sources of pre-seed funding?', options: ['Institutional banks', 'Mutual funds', 'Founders, family, and angels', 'Stock brokers'], answerIndex: 2 }
+    ]
+  },
+  {
+    id: 'u35',
+    title: 'Equity Dilution in Venture Capital',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Equity dilution occurs when a company issues new shares to investors, reducing the ownership percentage of existing shareholders. While founders own a smaller percentage of the company, the overall value of their shares increases if the startup grows.',
+    quiz: [
+      { question: 'What is Equity Dilution?', options: ['When a company closes down', 'When a company issues new shares reducing existing ownership %', 'When a company splits its stock', 'When taxes increase'], answerIndex: 1 },
+      { question: 'Does dilution always decrease the total value of founder shares?', options: ['Yes always', 'No, not if the company\'s valuation grows', 'Dilution has no impact on value', 'Yes, it zeros them out'], answerIndex: 1 },
+      { question: 'Why does a company issue new shares?', options: ['To raise capital from new investors', 'To pay employee taxes', 'To reduce total shares', 'To pay bank debt'], answerIndex: 0 }
+    ]
+  },
+  {
+    id: 'u36',
+    title: 'Venture Debt vs. Venture Equity',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Venture equity involves selling ownership shares to investors in exchange for capital. Venture debt is a form of debt financing designed for venture-backed startups, allowing them to raise capital without diluting equity, usually repaid with interest.',
+    quiz: [
+      { question: 'What is the key difference between Venture Equity and Venture Debt?', options: ['Equity does not exist', 'Equity sells ownership while debt must be repaid with interest', 'Debt sells ownership while equity is repaid', 'They are identical'], answerIndex: 1 },
+      { question: 'What is the main benefit of Venture Debt?', options: ['It dilutes equity', 'It raises capital without diluting equity ownership', 'It is free money', 'It never has to be repaid'], answerIndex: 1 },
+      { question: 'Who is venture debt designed for?', options: ['Late-stage public conglomerates', 'Venture-backed startups', 'Brand new ideas', 'Government institutions'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u37',
+    title: 'What is a SAFE Note?',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'A SAFE (Simple Agreement for Future Equity) is a financial instrument created by Y Combinator. It allows investors to provide capital today in exchange for the right to receive equity in a future priced round, avoiding the need to value the startup immediately.',
+    quiz: [
+      { question: 'What does SAFE stand for?', options: ['Secure Asset and Financial Equity', 'Simple Agreement for Future Equity', 'Standard Agreement for Funding Startups', 'Stock Allocation and Financial Exchange'], answerIndex: 1 },
+      { question: 'Who created the SAFE note?', options: ['Y Combinator', 'Harvard University', 'Chase Bank', 'NASDAQ'], answerIndex: 0 },
+      { question: 'Why is a SAFE note used?', options: ['To pay immediate dividends', 'To delay valuing the startup until a future priced round', 'To sell public shares', 'To take bank loans'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u38',
+    title: 'Convertible Notes Explained',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'A convertible note is a short-term debt instrument that converts into equity during a future priced round. It behaves like debt initially (accruing interest and having a maturity date) but converts to shares once a venture round is raised.',
+    quiz: [
+      { question: 'What is a Convertible Note?', options: ['A bank check', 'A short-term debt instrument that converts into equity later', 'A stock certificate', 'A credit card contract'], answerIndex: 1 },
+      { question: 'Initially, how does a convertible note behave?', options: ['Like equity', 'Like debt (accruing interest and having a maturity date)', 'Like cash', 'Like a grant'], answerIndex: 1 },
+      { question: 'When does a convertible note convert to shares?', options: ['Immediately', 'Once a future priced venture round is raised', 'On the founder\'s birthday', 'At IPO'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u39',
+    title: 'Valuation Methods for Early-Stage Startups',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Valuing early-stage startups without revenue uses methods like: Berkus Method (assigns value to qualitative milestones), Scorecard Method (compares to similar startups), Risk Factor Summation, and Cost-to-Duplicate.',
+    quiz: [
+      { question: 'Why are standard cash-flow methods hard to use for early startups?', options: ['Startups have too much profit', 'They lack revenue/history to project cash flow', 'VCs do not like math', 'Startups are public'], answerIndex: 1 },
+      { question: 'What is the Berkus Method?', options: ['A method that assigns value to qualitative milestones', 'A public stock pricing tool', 'A DCF calculation', 'An asset valuation'], answerIndex: 0 },
+      { question: 'What does the Scorecard Method compare?', options: ['Startup to public corporations', 'Startup to similar early-stage startups in the region', 'Startup assets to liabilities', 'Stock price to bond yields'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u40',
+    title: 'Due Diligence in Venture Deals',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Due diligence is the comprehensive review conducted by investors before making an investment. It involves verifying legal compliance, researching the market, analyzing product technology, interviewing customers, and auditing financial statements.',
+    quiz: [
+      { question: 'What is Due Diligence?', options: ['The final payout to founders', 'The comprehensive review conducted by investors before investing', 'The public listing fee', 'A tax audit'], answerIndex: 1 },
+      { question: 'What is analyzed during technical due diligence?', options: ['Legal contracts', 'Product technology and source code', 'Team salaries', 'Bank balances'], answerIndex: 1 },
+      { question: 'Who conducts due diligence?', options: ['Startups on other startups', 'Investors on potential target startups', 'Public consumers', 'Auditors on governments'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u41',
+    title: 'The Lifecycle of a Venture Capital Fund',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'VC funds typically have a 10-year lifecycle. Years 1-3: Fundraising and sourcing investments. Years 4-5: Follow-on funding for portfolio companies. Years 6-10: Exiting investments through IPOs or acquisitions and returning capital to Limited Partners.',
+    quiz: [
+      { question: 'What is the typical lifecycle duration of a VC fund?', options: ['1 year', '10 years', '50 years', 'Indefinite'], answerIndex: 1 },
+      { question: 'What happens during years 1-3 of a VC fund?', options: ['The fund is closed', 'Fundraising and sourcing initial investments', 'IPO exits only', 'The fund liquidates'], answerIndex: 1 },
+      { question: 'Who receives capital returns when a fund exits its portfolio companies?', options: ['The General Partners only', 'The Limited Partners (investors)', 'The banks', 'The government'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u42',
+    title: 'Term Sheets: Key Terms to Know',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'A term sheet is a non-binding agreement outlining the terms of an investment. Key clauses include: Valuation (pre-money vs post-money), Liquidation Preference (payout order), Board Seats, Protective Provisions, and Anti-dilution clauses.',
+    quiz: [
+      { question: 'Is a Term Sheet a binding contract?', options: ['Yes', 'No (it is a non-binding outline of terms)', 'Only for the bank', 'Yes, for 10 years'], answerIndex: 1 },
+      { question: 'What does Liquidation Preference determine?', options: ['Startup valuation', 'The payout order when the company is sold/liquidated', 'Board seat count', 'Tax rates'], answerIndex: 1 },
+      { question: 'Pre-money valuation refers to what?', options: ['Value after investment', 'Value of startup before receiving new investment', 'Total bank assets', 'Stock price'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u43',
+    title: 'Exit Strategies: IPOs and M&As',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Startups exit to return capital to investors. Mergers & Acquisitions (M&A) involve another company buying the startup. Initial Public Offerings (IPO) involve listing the startup\'s shares on a public stock exchange.',
+    quiz: [
+      { question: 'What does M&A stand for?', options: ['Management and Auditing', 'Mergers & Acquisitions', 'Marketing & Advertising', 'Money & Assets'], answerIndex: 1 },
+      { question: 'What is an IPO?', options: ['Initial Public Offering (listing shares on public exchange)', 'Investment Portfolio Optimization', 'International Payment Order', 'Internal Profit Organization'], answerIndex: 0 },
+      { question: 'Why are exit strategies important for venture investors?', options: ['To pay company taxes', 'To return capital and cash out their investments', 'To change company name', 'To hire new developers'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u44',
+    title: 'LP (Limited Partner) vs. GP (General Partner)',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'LPs are passive investors (pension funds, family offices) who provide the capital for a VC fund. GPs are the fund managers who make investment decisions, manage the portfolio, and earn a management fee and carried interest (profit share).',
+    quiz: [
+      { question: 'Who are Limited Partners (LPs)?', options: ['Startups receiving funds', 'Passive investors who provide capital for the VC fund', 'The fund managers making decisions', 'Financial auditors'], answerIndex: 1 },
+      { question: 'What is the role of General Partners (GPs)?', options: ['Provide 100% of capital', 'Manage the fund, source deals, and run portfolio management', 'Audit the bank accounts', 'Write software'], answerIndex: 1 },
+      { question: 'What is "carried interest"?', options: ['Bank interest on fund deposits', 'The GPs\' share of the fund profits (usually 20%)', 'An LP management fee', 'Startup entry fee'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u45',
+    title: 'Syndicate Investing Explained',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'A syndicate is a temporary alliance of angel investors who pool their capital to invest in a startup. Lead angels source and negotiate the deal, while backing angels contribute funds, allowing smaller investors to access premium venture deals.',
+    quiz: [
+      { question: 'What is a Syndicate in early-stage investing?', options: ['A competitive VC firm', 'A temporary alliance of angels pooling capital for a deal', 'A bank branch', 'A startup builder'], answerIndex: 1 },
+      { question: 'Who manages and negotiates the syndicate deal?', options: ['All investors equally', 'The Lead Angel', 'The startup CEO', 'The broker'], answerIndex: 1 },
+      { question: 'What is the main benefit for backing angels in a syndicate?', options: ['Access to premium deals sourced by lead investors', 'Free equity', 'Monthly interest', 'Voting rights'], answerIndex: 0 }
+    ]
+  },
+  {
+    id: 'u46',
+    title: 'Venture Studio vs. Incubator',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Incubators support external founders\' ideas. Venture studios (or startup builders) generate ideas internally, build initial prototypes, hire management teams to run them, and spin them off as independent venture-backed startups.',
+    quiz: [
+      { question: 'How does a Venture Studio differ from an Incubator?', options: ['Studios are completely public', 'Studios generate ideas internally and build them from scratch', 'Incubators fund late-stage tech', 'They are exactly the same'], answerIndex: 1 },
+      { question: 'Who runs the startup built by a Venture Studio initially?', options: ['The LPs', 'The studio\'s internal team before hiring founders', 'The bank', 'The government'], answerIndex: 1 },
+      { question: 'Venture studios are also known as what?', options: ['Accelerators', 'Startup builders or venture builders', 'Venture funds', 'Incubators'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u47',
+    title: 'Equity Crowdfunding vs. Venture Capital',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Venture Capital comes from institutional funds. Equity crowdfunding allows public retail investors to buy small shares of early-stage startups online via platforms like WeFunder or Republic, regulated by securities commissions.',
+    quiz: [
+      { question: 'Who can invest in Equity Crowdfunding?', options: ['Only accredited VCs', 'The general retail public', 'Only banks', 'Only government entities'], answerIndex: 1 },
+      { question: 'Where does Venture Capital funding come from?', options: ['Public retail campaigns', 'Institutional venture funds', 'Bank loans', 'Small business grants'], answerIndex: 1 },
+      { question: 'Is equity crowdfunding regulated?', options: ['No', 'Yes by securities commissions (like SEC)', 'Only by banks', 'Only by startups themselves'], answerIndex: 1 }
+    ]
+  },
+  {
+    id: 'u48',
+    title: 'Diversification in Startup Portfolios',
+    category: 'Venture & Incubations',
+    audience: 'user',
+    content: 'Early-stage investing has a high failure rate (over 70%). To mitigate risk, investors diversify by building a portfolio of 15-20+ startups across different industries and vintages, aiming for 1 or 2 outlier winners to return the portfolio.',
+    quiz: [
+      { question: 'What is the estimated failure rate of early-stage startups?', options: ['Less than 10%', 'Over 70%', '0%', '50%'], answerIndex: 1 },
+      { question: 'How do investors mitigate high failure rates?', options: ['By investing in only 1 startup', 'By diversifying across 15-20+ startups', 'By taking bank loans', 'By not investing'], answerIndex: 1 },
+      { question: 'What is the goal of diversification in VC?', options: ['To make 10% on every startup', 'To find 1 or 2 outlier winners that return the portfolio', 'To pay less tax', 'To have many average returns'], answerIndex: 1 }
+    ]
+  },
 ]

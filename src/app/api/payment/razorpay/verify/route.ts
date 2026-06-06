@@ -23,8 +23,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 })
     }
 
-    await db.payment.update({
-      where: { id: paymentId },
+    // Update payment status atomically ensuring status is still pending (concurrency guard)
+    const updateResult = await db.payment.updateMany({
+      where: { id: paymentId, status: 'pending' },
       data: {
         status: 'confirmed',
         gatewayRef: razorpayOrderId,
@@ -32,13 +33,20 @@ export async function POST(request: Request) {
       },
     })
 
+    if (updateResult.count === 0) {
+      return NextResponse.json({ error: 'Payment already processed' }, { status: 400 })
+    }
+
     // Credit user's trading wallet
     const user = await db.user.findUnique({ where: { id: payment.userId } })
     if (user) {
       const newBalance = user.tradingBalance + payment.amount
       await db.user.update({
         where: { id: user.id },
-        data: { tradingBalance: newBalance },
+        data: {
+          tradingBalance: newBalance,
+          totalDeposited: user.totalDeposited + payment.amount,
+        },
       })
 
       // Transaction log

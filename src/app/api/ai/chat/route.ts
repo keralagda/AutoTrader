@@ -40,7 +40,8 @@ const BASE_SYSTEM_PROMPT = `You are Nova AI, BNFX's intelligent assistant. You h
 Key facts about BNFX:
 - Crypto investment platform with variable daily returns based on risk levels
 - Three risk categories: Low (0.3-1.2% daily), Medium (1.0-3.0% daily), High (2.5-8.0% daily)
-- Supports MetaMask, CoinPayments, NOWPayments, USDT (TRC-20), USDC (ERC-20)
+- Supports MetaMask, CoinPayments, NOWPayments, USDC (BEP-20)
+
 - Multiple investment plans with different return rates and stacking options
 - 7-level referral commission system with profit sharing
 - Withdrawals processed within 24-48 hours after admin approval
