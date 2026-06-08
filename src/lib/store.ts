@@ -45,6 +45,7 @@ export interface UserData {
   totalDeposited: number
   planName?: string
   planCategory?: string
+  isEmailVerified?: boolean
 }
 
 export const useAppStore = create<AppState>((set) => ({

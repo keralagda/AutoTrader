@@ -4,6 +4,24 @@ import { db } from '@/lib/db'
 // GET - List pending investment deposits (awaiting approval) and recent earnings
 export async function GET(req: NextRequest) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const action = req.nextUrl.searchParams.get('action')
 
     if (action === 'pending-investments') {
@@ -53,6 +71,24 @@ export async function GET(req: NextRequest) {
 // PUT - Approve or reject pending investment deposits
 export async function PUT(req: NextRequest) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { depositId, action, reason } = await req.json()
 
     if (!depositId || !action) {
@@ -72,7 +108,10 @@ export async function PUT(req: NextRequest) {
     if (action === 'approve') {
       const plan = deposit.plan
       const now = new Date()
-      const nextProfitAt = new Date(now.getTime() + plan.returnPeriodHours * 60 * 60 * 1000)
+      
+      // Calculate next profit time including grace period days
+      const graceDays = plan.gracePeriodDays || 0
+      const nextProfitAt = new Date(now.getTime() + (plan.returnPeriodHours * 60 * 60 * 1000) + (graceDays * 24 * 60 * 60 * 1000))
 
       // Activate the deposit
       await db.deposit.update({
@@ -154,6 +193,24 @@ export async function PUT(req: NextRequest) {
 // DELETE - Delete an earning record (admin correction)
 export async function DELETE(req: NextRequest) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { earningId, userId, amount } = await req.json()
     if (!earningId) return NextResponse.json({ error: 'earningId required' }, { status: 400 })
 

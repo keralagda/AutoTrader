@@ -132,52 +132,171 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Calculate profit amount for this period using VARIABLE percentages
-      // Based on user's risk category (low/medium/high) with randomized daily returns
-      let profitAmount: number
+      // 1. Check scheduling: Days, Hours, Holidays
+      const dayAbbr = now.toLocaleString('en-US', { weekday: 'short' }).toLowerCase() // e.g. "mon"
+      const daysAllowed = plan.profitDays ? plan.profitDays.toLowerCase().split(',') : []
+      let skipDueToSchedule = false
 
-      if (plan.totalReturnPercent > 0 && plan.repeatCount > 0) {
-        // Fixed total return divided by number of payouts (for fixed-return plans)
-        profitAmount = (deposit.amount * plan.totalReturnPercent / 100) / plan.repeatCount
+      if (daysAllowed.length > 0 && !daysAllowed.includes(dayAbbr)) {
+        skipDueToSchedule = true
+      }
+      if (!skipDueToSchedule && plan.holidayPauses) {
+        const currentDateStr = now.toISOString().split('T')[0] // YYYY-MM-DD
+        const holidays = plan.holidayPauses.split(',')
+        if (holidays.includes(currentDateStr)) {
+          skipDueToSchedule = true
+        }
+      }
+      if (!skipDueToSchedule && plan.profitHours) {
+        const currentHour = now.getHours().toString() // e.g. "14"
+        const hoursAllowed = plan.profitHours.split(',')
+        if (!hoursAllowed.includes(currentHour)) {
+          skipDueToSchedule = true
+        }
+      }
+
+      if (skipDueToSchedule) {
+        // Prevent cron from getting stuck by advancing nextProfitAt to the next scheduled interval
+        const currentNext = deposit.nextProfitAt || now
+        const nextProfit = new Date(currentNext.getTime() + plan.returnPeriodHours * 60 * 60 * 1000)
+        await db.deposit.update({
+          where: { id: deposit.id },
+          data: { nextProfitAt: nextProfit },
+        })
+        continue
+      }
+
+      // 2. Determine Volatility Mode & P&L Logics
+      const rand = Math.random() * 100
+      let isLossDay = false
+      let isBonusDay = false
+
+      if (rand < (plan.lossDayChance || 0)) {
+        isLossDay = true
+      } else if (rand > (100 - (plan.bonusDayChance || 0))) {
+        isBonusDay = true
+      }
+
+      let dailyPercent = 0
+      if (isLossDay) {
+        // Negative return within minLossPercent and maxLossPercent
+        const minLoss = plan.minLossPercent || 0.1
+        const maxLoss = plan.maxLossPercent || 5.0
+        dailyPercent = -(minLoss + Math.random() * (maxLoss - minLoss))
       } else {
-        // VARIABLE PERCENTAGE: Use deposit's risk level (per-deposit, stackable)
-        // Falls back to user's global riskCategory if deposit doesn't have one
-        const depositRiskLevel = (deposit as any).riskLevel || (user as any).riskCategory || 'medium'
+        // Positive return - check risk category overrides or defaults
+        const depositRiskLevel = deposit.riskLevel || user.riskCategory || 'medium'
         const customWinMin = (user as any).customWinMin
         const customWinMax = (user as any).customWinMax
 
         let minPercent: number
         let maxPercent: number
 
-        // Use custom per-user overrides if set, otherwise use category defaults
         if (customWinMin !== null && customWinMax !== null && customWinMin !== undefined && customWinMax !== undefined) {
           minPercent = customWinMin
           maxPercent = customWinMax
         } else {
-          // Get category settings from DB (cached in this run)
-          const categoryDefaults: Record<string, { minPercent: number; maxPercent: number }> = {
-            low: { minPercent: 0.3, maxPercent: 1.2 },
-            medium: { minPercent: 1.0, maxPercent: 3.0 },
-            high: { minPercent: 2.5, maxPercent: 8.0 },
+          if (depositRiskLevel === 'low') {
+            minPercent = plan.lowRiskMin ?? 0.5
+            maxPercent = plan.lowRiskMax ?? 2.0
+          } else if (depositRiskLevel === 'high') {
+            minPercent = plan.highRiskMin ?? 5.0
+            maxPercent = plan.highRiskMax ?? 15.0
+          } else {
+            // medium
+            minPercent = plan.mediumRiskMin ?? 2.0
+            maxPercent = plan.mediumRiskMax ?? 5.0
           }
-          const cat = categoryDefaults[depositRiskLevel] || categoryDefaults.medium
-          minPercent = cat.minPercent
-          maxPercent = cat.maxPercent
         }
 
-        // Generate percentage skewed toward the minimum of the range
-        // Uses a power curve to heavily favor lower returns (cost savings)
-        const randomFactor = Math.pow(Math.random(), 3) // Cube makes it heavily skew low
-        const dailyPercent = minPercent + (randomFactor * (maxPercent - minPercent))
+        let volatilityMultiplier = 1.0
+        if (plan.volatilityMode === 'low') {
+          volatilityMultiplier = 0.7
+        } else if (plan.volatilityMode === 'high') {
+          volatilityMultiplier = 1.3
+        }
 
-        // Scale to the return period
-        const periodsPerDay = 24 / plan.returnPeriodHours
-        profitAmount = (deposit.amount * dailyPercent / 100) / periodsPerDay
+        let bonusMultiplier = 1.0
+        if (isBonusDay) {
+          bonusMultiplier = 1.5
+        }
+
+        const randomFactor = Math.pow(Math.random(), 3)
+        dailyPercent = (minPercent + (randomFactor * (maxPercent - minPercent))) * volatilityMultiplier * bonusMultiplier
       }
 
-      // Apply stacking bonus
-      if (plan.stackingEnabled && deposit.stackIndex > 1) {
+      // Calculate gross profit amount for this period
+      const periodsPerDay = 24 / plan.returnPeriodHours
+      let profitAmount = (deposit.amount * dailyPercent / 100) / periodsPerDay
+
+      // Apply stacking bonus (only for positive returns)
+      if (profitAmount > 0 && plan.stackingEnabled && deposit.stackIndex > 1) {
         profitAmount += profitAmount * (plan.stackingBonusPercent * (deposit.stackIndex - 1)) / 100
+      }
+
+      // Handle Negative P&L (Loss Day)
+      if (profitAmount < 0) {
+        let actualLossAmount = profitAmount
+        if (!plan.allowNegativeBalance) {
+          if (user.tradingBalance + profitAmount < 0) {
+            actualLossAmount = -user.tradingBalance // Clamp loss to remaining balance
+          }
+        }
+
+        if (actualLossAmount < 0) {
+          const newBalance = user.tradingBalance + actualLossAmount
+          await db.user.update({
+            where: { id: user.id },
+            data: {
+              tradingBalance: newBalance,
+              totalEarnings: { decrement: Math.abs(actualLossAmount) }
+            }
+          })
+
+          await db.earning.create({
+            data: {
+              userId: user.id, depositId: deposit.id, amount: actualLossAmount,
+              type: 'daily', walletTarget: 'trading',
+            },
+          })
+
+          await db.transactionLog.create({
+            data: {
+              userId: user.id, type: 'fee', amount: actualLossAmount,
+              balanceBefore: user.tradingBalance, balanceAfter: newBalance,
+              wallet: 'trading',
+              description: `${plan.name} plan loss distribution`,
+              referenceId: deposit.id,
+            },
+          })
+
+          // Record PnLLog
+          await db.planPnLLog.create({
+            data: {
+              planId: plan.id,
+              yield: dailyPercent,
+              isLoss: true,
+              distributed: actualLossAmount,
+            }
+          })
+
+          user.tradingBalance = newBalance
+          credited += actualLossAmount
+        }
+
+        const nextProfit = new Date(now.getTime() + plan.returnPeriodHours * 60 * 60 * 1000)
+        await db.deposit.update({
+          where: { id: deposit.id },
+          data: {
+            earnedSoFar: deposit.earnedSoFar + actualLossAmount,
+            profitCount: deposit.profitCount + 1,
+            lastProfitAt: now,
+            nextProfitAt: nextProfit,
+          },
+        })
+
+        processed++
+        continue
       }
 
       // Cap at max earning limit
@@ -187,16 +306,52 @@ export async function POST(request: Request) {
 
       if (profitAmount <= 0) continue
 
-      // Calculate splits based on plan settings
+      // Calculate splits based on plan settings (8-way split)
       const accountHolderPct = plan.accountHolderPercent ?? 50
       const tradeProfitSharePct = plan.tradeProfitSharePercent ?? 30
       const rewardsOffersPct = plan.rewardsOffersPercent ?? 15
       const platformFeePct = plan.platformFeePercent ?? 5
+      const charityPct = plan.charityDonationPercent ?? 0
+      const insurancePct = plan.insuranceReservePercent ?? 0
+      const developerPct = plan.developerFundPercent ?? 0
+      const liquidityPct = plan.liquidityPoolPercent ?? 0
 
-      const investorShare = (profitAmount * accountHolderPct) / 100
-      const sharePoolAmount = (profitAmount * tradeProfitSharePct) / 100
-      const rewardsShare = (profitAmount * rewardsOffersPct) / 100
-      const platformFeeShare = (profitAmount * platformFeePct) / 100
+      let investorShare = (profitAmount * accountHolderPct) / 100
+      let sharePoolAmount = (profitAmount * tradeProfitSharePct) / 100
+      let rewardsShare = (profitAmount * rewardsOffersPct) / 100
+      let platformFeeShare = (profitAmount * platformFeePct) / 100
+      let charityShare = (profitAmount * charityPct) / 100
+      let insuranceShare = (profitAmount * insurancePct) / 100
+      let developerShare = (profitAmount * developerPct) / 100
+      let liquidityShare = (profitAmount * liquidityPct) / 100
+
+      // Enforce Earning Capping
+      const dailyCapUSD = deposit.amount * (plan.dailyEarningCapPercent || 0) / 100
+      if (plan.dailyEarningCapPercent > 0) {
+        let sumToCheck = 0
+        if (plan.cappingAppliesTo === 'all') {
+          sumToCheck = investorShare + sharePoolAmount
+        } else if (plan.cappingAppliesTo === 'profits_only') {
+          sumToCheck = investorShare
+        } else if (plan.cappingAppliesTo === 'referrals_only') {
+          sumToCheck = sharePoolAmount
+        }
+
+        if (sumToCheck > dailyCapUSD) {
+          const clampRatio = dailyCapUSD / sumToCheck
+          profitAmount = profitAmount * clampRatio
+
+          // Recalculate splits
+          investorShare = (profitAmount * accountHolderPct) / 100
+          sharePoolAmount = (profitAmount * tradeProfitSharePct) / 100
+          rewardsShare = (profitAmount * rewardsOffersPct) / 100
+          platformFeeShare = (profitAmount * platformFeePct) / 100
+          charityShare = (profitAmount * charityPct) / 100
+          insuranceShare = (profitAmount * insurancePct) / 100
+          developerShare = (profitAmount * developerPct) / 100
+          liquidityShare = (profitAmount * liquidityPct) / 100
+        }
+      }
 
       if (investorShare > 0) {
         // Credit profit to user
@@ -245,17 +400,37 @@ export async function POST(request: Request) {
         },
       })
 
-      // Distribute profit share to upline (referrals)
+      // Record PlanPnLLog
+      await db.planPnLLog.create({
+        data: {
+          planId: plan.id,
+          yield: dailyPercent,
+          isLoss: false,
+          distributed: investorShare,
+        }
+      })
+
+      // Distribute profit share to upline (referrals) using dynamic referral rules
       if (sharePoolAmount > 0) {
-        const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+        const referralRules = await db.planReferralRule.findMany({
+          where: { planId: plan.id },
+          orderBy: { level: 'asc' },
+        })
+
+        const referralRates = referralRules.length > 0 
+          ? referralRules.map(r => r.commission)
+          : [25, 20, 15, 10, 10, 10, 10]
+
+        const maxLevels = plan.registrationReferralLevels || referralRates.length
         let currentReferrerId = user.referredById
         let level = 0
 
-        while (currentReferrerId && level < 7) {
+        while (currentReferrerId && level < maxLevels) {
           const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
           if (!referrer) break
 
-          const shareAmount = (sharePoolAmount * REFERRAL_PERCENTS[level]) / 100
+          const rate = referralRates[level] !== undefined ? referralRates[level] : 0
+          const shareAmount = (sharePoolAmount * rate) / 100
           if (shareAmount > 0) {
             await db.earning.create({
               data: {
@@ -277,90 +452,70 @@ export async function POST(request: Request) {
         }
       }
 
-      // Credit Rewards & Platform Fee to Admin/Platform account
+      // Process Insurance reserve vault contribution
+      if (insuranceShare > 0) {
+        await db.planInsuranceVault.upsert({
+          where: { planId: plan.id },
+          update: { balance: { increment: insuranceShare } },
+          create: { planId: plan.id, balance: insuranceShare },
+        })
+      }
+
+      // Credit remaining platform splits to Admin/Platform account
       const admin = await db.user.findFirst({ where: { role: 'admin' } })
       if (admin) {
-        if (rewardsShare > 0) {
-          const adminBefore = admin.tradingBalance
-          const adminAfter = adminBefore + rewardsShare
-          
-          await db.user.update({
-            where: { id: admin.id },
-            data: {
-              tradingBalance: adminAfter,
-              totalEarnings: admin.totalEarnings + rewardsShare,
-            },
-          })
-          
-          await db.earning.create({
-            data: {
-              userId: admin.id,
-              depositId: deposit.id,
-              amount: rewardsShare,
-              type: 'rewards',
-              walletTarget: 'trading',
-            },
-          })
+        const splitsToAdmin = [
+          { amount: rewardsShare, pct: rewardsOffersPct, type: 'rewards', desc: 'Rewards allocation' },
+          { amount: platformFeeShare, pct: platformFeePct, type: 'platform_fee', desc: 'Platform fee allocation' },
+          { amount: charityShare, pct: charityPct, type: 'charity', desc: 'Charity donation allocation' },
+          { amount: developerShare, pct: developerPct, type: 'developer_fee', desc: 'Developer fund allocation' },
+          { amount: liquidityShare, pct: liquidityPct, type: 'liquidity_pool', desc: 'Liquidity pool allocation' },
+        ]
 
-          await db.transactionLog.create({
-            data: {
-              userId: admin.id,
-              type: 'bonus',
-              amount: rewardsShare,
-              balanceBefore: adminBefore,
-              balanceAfter: adminAfter,
-              wallet: 'trading',
-              description: `Rewards allocation (${rewardsOffersPct}%) from ${plan.name} profit distribution`,
-              referenceId: deposit.id,
-            },
-          })
-          
-          admin.tradingBalance = adminAfter
-          admin.totalEarnings += rewardsShare
-        }
+        for (const split of splitsToAdmin) {
+          if (split.amount > 0) {
+            const adminBefore = admin.tradingBalance
+            const adminAfter = adminBefore + split.amount
 
-        if (platformFeeShare > 0) {
-          const adminBefore = admin.tradingBalance
-          const adminAfter = adminBefore + platformFeeShare
-          
-          await db.user.update({
-            where: { id: admin.id },
-            data: {
-              tradingBalance: adminAfter,
-              totalEarnings: admin.totalEarnings + platformFeeShare,
-            },
-          })
-          
-          await db.earning.create({
-            data: {
-              userId: admin.id,
-              depositId: deposit.id,
-              amount: platformFeeShare,
-              type: 'platform_fee',
-              walletTarget: 'trading',
-            },
-          })
+            await db.user.update({
+              where: { id: admin.id },
+              data: {
+                tradingBalance: adminAfter,
+                totalEarnings: admin.totalEarnings + split.amount,
+              },
+            })
 
-          await db.transactionLog.create({
-            data: {
-              userId: admin.id,
-              type: 'fee',
-              amount: platformFeeShare,
-              balanceBefore: adminBefore,
-              balanceAfter: adminAfter,
-              wallet: 'trading',
-              description: `Platform fee allocation (${platformFeePct}%) from ${plan.name} profit distribution`,
-              referenceId: deposit.id,
-            },
-          })
-          
-          admin.tradingBalance = adminAfter
-          admin.totalEarnings += platformFeeShare
+            await db.earning.create({
+              data: {
+                userId: admin.id,
+                depositId: deposit.id,
+                amount: split.amount,
+                type: split.type,
+                walletTarget: 'trading',
+              },
+            })
+
+            await db.transactionLog.create({
+              data: {
+                userId: admin.id,
+                type: split.type === 'platform_fee' || split.type === 'developer_fee' ? 'fee' : 'bonus',
+                amount: split.amount,
+                balanceBefore: adminBefore,
+                balanceAfter: adminAfter,
+                wallet: 'trading',
+                description: `${split.desc} (${split.pct}%) from ${plan.name} profit distribution`,
+                referenceId: deposit.id,
+              },
+            })
+
+            admin.tradingBalance = adminAfter
+            admin.totalEarnings += split.amount
+          }
         }
       }
 
       processed++
-      credited += profitAmount
+      credited += investorShare
     }
 
     // Log the cron run

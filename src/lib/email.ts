@@ -1,3 +1,5 @@
+import nodemailer from 'nodemailer'
+
 // Email Integration: Resend (primary) + SMTP rotation (fallback)
 // Supports multiple SMTP servers with round-robin rotation
 
@@ -6,11 +8,21 @@ const RESEND_API_URL = 'https://api.resend.com/emails'
 const FROM_EMAIL = process.env.EMAIL_FROM || 'BNFX <onboarding@resend.dev>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://bnfx.eu.cc'
 
+// Gmail SMTP configuration
+const GMAIL_USER = process.env.GMAIL_USER || ''
+const GMAIL_PASS = process.env.GMAIL_PASS || ''
+
+// Proton SMTP configuration (ProtonMail Bridge local SMTP)
+const PROTON_USER = process.env.PROTON_USER || ''
+const PROTON_PASS = process.env.PROTON_PASS || ''
+const PROTON_HOST = process.env.PROTON_HOST || '127.0.0.1'
+const PROTON_PORT = parseInt(process.env.PROTON_PORT || '1025')
+const PROTON_SECURE = process.env.PROTON_SECURE === 'true'
+
 // SMTP Configuration (comma-separated for rotation)
 // Format per server: host:port:user:pass:from
 // Example: SMTP_SERVERS=smtp.gmail.com:587:user@gmail.com:apppassword:BNFX <user@gmail.com>,smtp2.example.com:465:user2:pass2:Sender <user2@example.com>
 const SMTP_SERVERS_RAW = process.env.SMTP_SERVERS || ''
-const SMTP_SECURE = process.env.SMTP_SECURE === 'true'
 
 interface SMTPConfig {
   host: string
@@ -53,39 +65,65 @@ interface EmailOptions {
   text?: string
 }
 
-// Send via SMTP using fetch to a nodemailer-compatible endpoint
-// Since we can't use nodemailer in edge/serverless easily, we use a lightweight SMTP approach
-async function sendViaSMTP(options: EmailOptions, smtp: SMTPConfig): Promise<boolean> {
-  try {
-    // Use a simple SMTP relay via fetch (works with most SMTP-to-HTTP bridges)
-    // For direct SMTP, we'll encode and send via the Resend-compatible format
-    // In production, you'd use a dedicated SMTP microservice or nodemailer in a Node.js API route
-    
-    // Fallback: Try sending via Resend with a different from address
-    // This works if you have multiple verified domains in Resend
-    const res = await fetch(RESEND_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: smtp.from || FROM_EMAIL,
-        to: [options.to],
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  // Strategy: Try Gmail first, then Proton, then Resend, then SMTP rotation
+  
+  // 1. Try Gmail
+  if (GMAIL_USER && GMAIL_PASS) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: GMAIL_USER,
+          pass: GMAIL_PASS,
+        },
+      })
+      
+      await transporter.sendMail({
+        from: FROM_EMAIL.includes('<') ? FROM_EMAIL : `BNFX <${GMAIL_USER}>`,
+        to: options.to,
         subject: options.subject,
         html: options.html,
-      }),
-    })
-    return res.ok
-  } catch {
-    return false
+        text: options.text || '',
+      })
+      console.log('Email sent successfully via Gmail')
+      return true
+    } catch (error) {
+      console.warn('Gmail sending failed, trying next provider...', error)
+    }
   }
-}
 
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  // Strategy: Try Resend first, then rotate through SMTP servers as fallback
-  
-  // 1. Try Resend (primary)
+  // 2. Try Proton (ProtonMail Bridge)
+  if (PROTON_USER && PROTON_PASS) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: PROTON_HOST,
+        port: PROTON_PORT,
+        secure: PROTON_SECURE,
+        auth: {
+          user: PROTON_USER,
+          pass: PROTON_PASS,
+        },
+        tls: {
+          rejectUnauthorized: false // Proton Bridge typically uses self-signed certificates
+        }
+      })
+      
+      await transporter.sendMail({
+        from: FROM_EMAIL.includes('<') ? FROM_EMAIL : `BNFX <${PROTON_USER}>`,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text || '',
+      })
+      console.log('Email sent successfully via Proton')
+      return true
+    } catch (error) {
+      console.warn('Proton sending failed, trying next provider...', error)
+    }
+  }
+
+  // 3. Try Resend (primary)
   if (RESEND_API_KEY) {
     try {
       const res = await fetch(RESEND_API_URL, {
@@ -103,27 +141,47 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
         }),
       })
 
-      if (res.ok) return true
+      if (res.ok) {
+        console.log('Email sent successfully via Resend')
+        return true
+      }
       console.warn('Resend failed, trying SMTP fallback...')
     } catch (error) {
       console.warn('Resend error, trying SMTP fallback...', error)
     }
   }
 
-  // 2. Try SMTP rotation (fallback)
+  // 4. Try SMTP rotation (fallback)
   const smtpServers = parseSMTPServers()
   for (let i = 0; i < smtpServers.length; i++) {
     const smtp = getNextSMTP()
     if (!smtp) break
     
     try {
-      const success = await sendViaSMTP(options, smtp)
-      if (success) {
-        console.log(`Email sent via SMTP: ${smtp.host}`)
-        return true
-      }
-    } catch {
-      console.warn(`SMTP ${smtp.host} failed, trying next...`)
+      const transporter = nodemailer.createTransport({
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.port === 465,
+        auth: {
+          user: smtp.user,
+          pass: smtp.pass,
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      })
+      
+      await transporter.sendMail({
+        from: smtp.from || FROM_EMAIL,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text || '',
+      })
+      console.log(`Email sent via SMTP: ${smtp.host}`)
+      return true
+    } catch (error) {
+      console.warn(`SMTP ${smtp.host} failed, trying next...`, error)
     }
   }
 
@@ -386,6 +444,25 @@ export async function sendDailyEarningsReport(to: string, name: string, stats: {
       </div>
 
       <p style="color:#666;font-size:11px;text-align:center;">Trading results are based on AI algorithm performance. Past results don't guarantee future returns.</p>
+    `),
+  })
+}
+
+export async function sendVerificationEmail(to: string, name: string, token: string) {
+  const verificationLink = `${APP_URL}/api/auth/verify-email?token=${token}`
+  return sendEmail({
+    to,
+    subject: 'Verify your email address - BNFX',
+    html: baseTemplate(`
+      <h2 style="color:#fff;margin:0 0 15px;">Verify your Email Address</h2>
+      <p style="color:#ccc;">Hi ${name},</p>
+      <p style="color:#ccc;line-height:1.6;">Thank you for registering on BNFX. To complete your registration and activate your email, please click the button below:</p>
+      <div style="text-align:center;margin-top:25px;margin-bottom:25px;">
+        <a href="${verificationLink}" style="background:#10b981;color:#fff;padding:12px 30px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Verify Email Address</a>
+      </div>
+      <p style="color:#666;font-size:12px;">Or copy and paste this link in your browser:</p>
+      <p style="color:#666;font-size:12px;word-break:break-all;"><a href="${verificationLink}" style="color:#10b981;">${verificationLink}</a></p>
+      <p style="color:#666;font-size:12px;">This link will expire in 24 hours.</p>
     `),
   })
 }

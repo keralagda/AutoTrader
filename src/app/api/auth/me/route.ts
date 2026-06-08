@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
       totalDeposited: calculatedTotalDeposited,
       kycStatus: user.kycStatus,
       twoFactorEnabled: user.twoFactorEnabled,
+      isEmailVerified: user.isEmailVerified,
     })
   } catch (error) {
     console.error('Get user error:', error)

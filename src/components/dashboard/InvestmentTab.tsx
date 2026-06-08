@@ -117,6 +117,10 @@ export function InvestmentTab() {
 
   const handleActivatePlan = async (planId: string) => {
     if (!user?.id) return
+    if (user?.isEmailVerified === false) {
+      toast({ title: 'Email verification required', description: 'Please verify your email address first.', variant: 'destructive' })
+      return
+    }
     setActivating(true)
     try {
       const res = await fetch('/api/plan-activation', {
@@ -176,6 +180,7 @@ export function InvestmentTab() {
   })()
 
   const validationError = (() => {
+    if (user?.isEmailVerified === false) return 'Email verification is required to invest.'
     if (!selectedPlan || parsedAmount <= 0) return null
     if (user?.role !== 'admin') {
       if (parsedAmount < selectedPlan.minDeposit) return `Minimum is $${selectedPlan.minDeposit}`
@@ -187,6 +192,10 @@ export function InvestmentTab() {
 
   const handleInvest = async () => {
     if (!user?.id || !selectedPlanId || parsedAmount <= 0) return
+    if (user?.isEmailVerified === false) {
+      toast({ title: 'Email verification required', description: 'Please verify your email address first.', variant: 'destructive' })
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -306,9 +315,17 @@ export function InvestmentTab() {
       </div>
     )
   }
-
   return (
     <div className="p-4 md:p-6 space-y-6">
+      {user?.isEmailVerified === false && (
+        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4 flex items-start gap-3">
+          <span className="text-amber-500 text-lg">⚠️</span>
+          <div>
+            <p className="font-semibold text-amber-400">Email Verification Required</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Please verify your email address to unlock investments and plan activations. Use the button in the banner at the top of the page to resend the verification email.</p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold">Investment</h2>
@@ -321,14 +338,14 @@ export function InvestmentTab() {
             <span className="font-bold text-emerald-400">${tradingBalance.toFixed(2)}</span>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setActivateModalOpen(true)} className="gap-1.5">
+            <Button variant="outline" onClick={() => setActivateModalOpen(true)} className="gap-1.5" disabled={user?.isEmailVerified === false}>
               <Zap className="size-4" />
               Activate Plan
             </Button>
             <Button
               onClick={() => setInvestModalOpen(true)}
               className="gap-1.5"
-              disabled={activatedPlanIds.length === 0}
+              disabled={user?.isEmailVerified === false || activatedPlanIds.length === 0}
               title={activatedPlanIds.length === 0 ? 'Activate a plan first' : ''}
             >
               <Plus className="size-4" />
@@ -625,7 +642,7 @@ export function InvestmentTab() {
                     size="sm"
                     className="w-full mt-3 gap-1.5 bg-amber-500 hover:bg-amber-600 text-black"
                     onClick={() => handleActivatePlan(plan.id)}
-                    disabled={activating || (user?.tradingBalance || 0) < plan.entryFee}
+                    disabled={activating || (user?.tradingBalance || 0) < plan.entryFee || user?.isEmailVerified === false}
                   >
                     {activating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
                     {(user?.tradingBalance || 0) < plan.entryFee ? `Need $${plan.entryFee}` : `Activate for $${plan.entryFee}`}

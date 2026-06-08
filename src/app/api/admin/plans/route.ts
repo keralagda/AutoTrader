@@ -3,7 +3,28 @@ import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    const plans = await db.plan.findMany({ orderBy: { sortOrder: 'asc' } })
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
+    const plans = await db.plan.findMany({
+      orderBy: { sortOrder: 'asc' },
+      include: { referralRules: true }
+    })
     return NextResponse.json(plans)
   } catch (error) {
     console.error('Get plans error:', error)
@@ -13,7 +34,25 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { id, ...data } = await request.json()
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
+    const { id, referralRules, ...data } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 })
@@ -51,7 +90,25 @@ export async function PUT(request: Request) {
       data: updateData,
     })
 
-    return NextResponse.json(plan)
+    if (referralRules && Array.isArray(referralRules)) {
+      await db.planReferralRule.deleteMany({ where: { planId: id } })
+      if (referralRules.length > 0) {
+        await db.planReferralRule.createMany({
+          data: referralRules.map((r: any) => ({
+            planId: id,
+            level: Number(r.level),
+            commission: Number(r.commission),
+          }))
+        })
+      }
+    }
+
+    const updatedPlan = await db.plan.findUnique({
+      where: { id },
+      include: { referralRules: true }
+    })
+
+    return NextResponse.json(updatedPlan)
   } catch (error) {
     console.error('Update plan error:', error)
     return NextResponse.json({ error: 'Failed to update plan' }, { status: 500 })
@@ -60,10 +117,28 @@ export async function PUT(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const data = await request.json()
 
     // Remove fields that shouldn't be in create
-    const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, ...createData } = data as any
+    const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, referralRules, ...createData } = data as any
 
     // Auto-generate plain English descriptions as fallback
     const daily = data.dailyEarningPercent ?? 0
@@ -88,7 +163,22 @@ export async function POST(request: Request) {
 
     const plan = await db.plan.create({ data: createData })
 
-    return NextResponse.json(plan, { status: 201 })
+    if (referralRules && Array.isArray(referralRules) && referralRules.length > 0) {
+      await db.planReferralRule.createMany({
+        data: referralRules.map((r: any) => ({
+          planId: plan.id,
+          level: Number(r.level),
+          commission: Number(r.commission),
+        }))
+      })
+    }
+
+    const createdPlan = await db.plan.findUnique({
+      where: { id: plan.id },
+      include: { referralRules: true }
+    })
+
+    return NextResponse.json(createdPlan, { status: 201 })
   } catch (error) {
     console.error('Create plan error:', error)
     return NextResponse.json({ error: 'Failed to create plan' }, { status: 500 })
@@ -97,6 +187,24 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { id } = await request.json()
 
     if (!id) {

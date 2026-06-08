@@ -34,6 +34,7 @@ interface EditablePlan extends PlanType {
   isEditing?: boolean
   isNew?: boolean
   isExpanded?: boolean
+  referralRules?: { level: number; commission: number }[]
 }
 
 // ─── Auto-generation helpers ─────────────────────────────────────────────────
@@ -67,6 +68,10 @@ const DIST_COLORS = {
   tradeProfit: 'bg-cyan-500',
   rewardsOffers: 'bg-amber-500',
   platformFee: 'bg-rose-500',
+  charity: 'bg-purple-500',
+  insurance: 'bg-blue-500',
+  developer: 'bg-indigo-500',
+  liquidity: 'bg-teal-500',
 }
 
 const SUB_DIST_COLORS = {
@@ -117,19 +122,19 @@ export function PlansTab() {
     setPlans(prev => prev.map(p => p.id === id ? { ...p, isExpanded: !p.isExpanded } : p))
   }
 
-  const handleChange = (id: string, field: keyof PlanType, value: string | number | boolean) => {
+  const handleChange = (id: string, field: keyof EditablePlan, value: any) => {
     setPlans(prev => prev.map(p => {
       if (p.id !== id) return p
-      const updated = { ...p, [field]: value }
+      const updated = { ...p, [field]: value } as any
 
       // Auto-generate plain English descriptions when related fields change
-      if (['dailyEarningPercent', 'maxEarningLimit', 'autoCompound'].includes(field)) {
+      if (['dailyEarningPercent', 'maxEarningLimit', 'autoCompound'].includes(field as string)) {
         updated.earningMechanism = generateEarningMechanism(updated)
       }
-      if (['lockPeriodDays', 'earlyExitPenalty', 'autoCompound'].includes(field)) {
+      if (['lockPeriodDays', 'earlyExitPenalty', 'autoCompound'].includes(field as string)) {
         updated.withdrawalRule = generateWithdrawalRule(updated)
       }
-      if (['stackingEnabled', 'maxStacks', 'stackingBonusPercent'].includes(field)) {
+      if (['stackingEnabled', 'maxStacks', 'stackingBonusPercent'].includes(field as string)) {
         updated.stackingRule = generateStackingRule(updated)
       }
 
@@ -138,8 +143,16 @@ export function PlansTab() {
   }
 
   const handleSave = async (plan: EditablePlan) => {
-    // Validate distribution totals
-    const distTotal = plan.accountHolderPercent + plan.tradeProfitSharePercent + plan.rewardsOffersPercent + plan.platformFeePercent
+    // Validate distribution totals (8-way split check)
+    const distTotal = plan.accountHolderPercent +
+      plan.tradeProfitSharePercent +
+      plan.rewardsOffersPercent +
+      plan.platformFeePercent +
+      (plan.charityDonationPercent || 0) +
+      (plan.insuranceReservePercent || 0) +
+      (plan.developerFundPercent || 0) +
+      (plan.liquidityPoolPercent || 0)
+
     if (Math.abs(distTotal - 100) > 0.01) {
       toast({ title: 'Validation Error', description: `Distribution percentages must total 100%. Currently: ${distTotal}%`, variant: 'destructive' })
       return
@@ -242,23 +255,53 @@ export function PlansTab() {
       isEditing: true,
       isNew: true,
       isExpanded: true,
+      // New configurations
+      depositMultipleOf: 100.0,
+      strictMultiples: true,
+      dailyEarningCapPercent: 200.0,
+      cappingAppliesTo: 'all',
+      registrationReferralLevels: 7,
+      minLossPercent: 0.1,
+      maxLossPercent: 5.0,
+      allowNegativeBalance: false,
+      maxConsecutiveLossDays: 3,
+      charityDonationPercent: 0,
+      insuranceReservePercent: 0,
+      developerFundPercent: 0,
+      liquidityPoolPercent: 0,
+      profitDays: 'mon,tue,wed,thu,fri',
+      gracePeriodDays: 0,
+      volatilityMode: 'moderate',
+      lossDayChance: 0,
+      bonusDayChance: 5,
+      minVipTier: 'Bronze',
+      spotsLimit: 0,
+      referralRules: [
+        { level: 1, commission: 25 },
+        { level: 2, commission: 20 },
+        { level: 3, commission: 15 },
+        { level: 4, commission: 10 },
+        { level: 5, commission: 10 },
+        { level: 6, commission: 10 },
+        { level: 7, commission: 10 },
+      ],
     }
     setNewPlanData(newPlan)
     setShowCreateDialog(true)
   }
 
   // Handle changes for the create dialog plan
-  const handleNewPlanChange = (id: string, field: keyof PlanType, value: string | number | boolean) => {
+  const handleNewPlanChange = (id: string, field: keyof EditablePlan, value: any) => {
     setNewPlanData(prev => {
       if (!prev) return prev
-      const updated = { ...prev, [field]: value }
-      if (['dailyEarningPercent', 'maxEarningLimit', 'autoCompound'].includes(field)) {
+      const updated = { ...prev, [field]: value } as any
+      if (['dailyEarningPercent', 'maxEarningLimit', 'autoCompound'].includes(field as string)) {
         updated.earningMechanism = generateEarningMechanism(updated)
       }
-      if (['lockPeriodDays', 'earlyExitPenalty', 'autoCompound'].includes(field)) {
+      if (['lockPeriodDays', 'earlyExitPenalty', 'autoCompound'].includes(field as string)) {
         updated.withdrawalRule = generateWithdrawalRule(updated)
       }
-      if (['stackingEnabled', 'maxStacks', 'stackingBonusPercent'].includes(field)) {
+      if (['stackingEnabled', 'maxStacks', 'stackingBonusPercent'].includes(field as string)) {
         updated.stackingRule = generateStackingRule(updated)
       }
       return updated
@@ -278,8 +321,16 @@ export function PlansTab() {
 
   const handleSaveNewPlan = async () => {
     if (!newPlanData) return
-    // Validate
-    const distTotal = newPlanData.accountHolderPercent + newPlanData.tradeProfitSharePercent + newPlanData.rewardsOffersPercent + newPlanData.platformFeePercent
+    // Validate (8-way split check)
+    const distTotal = newPlanData.accountHolderPercent +
+      newPlanData.tradeProfitSharePercent +
+      newPlanData.rewardsOffersPercent +
+      newPlanData.platformFeePercent +
+      (newPlanData.charityDonationPercent || 0) +
+      (newPlanData.insuranceReservePercent || 0) +
+      (newPlanData.developerFundPercent || 0) +
+      (newPlanData.liquidityPoolPercent || 0)
+
     if (Math.abs(distTotal - 100) > 0.01) {
       toast({ title: 'Validation Error', description: `Distribution percentages must total 100%. Currently: ${distTotal}%`, variant: 'destructive' })
       return
@@ -455,7 +506,7 @@ function PlanCard({
   onEdit: () => void
   onCancel: () => void
   onSave: () => void
-  onChange: (id: string, field: keyof PlanType, value: string | number | boolean) => void
+  onChange: (id: string, field: keyof EditablePlan, value: any) => void
   onToggleExpand: () => void
   onRegenerateField: (id: string, field: 'earningMechanism' | 'withdrawalRule' | 'stackingRule') => void
   isDeleteTarget: boolean
@@ -482,12 +533,63 @@ function PlanEditor({
   saving: boolean
   onCancel: () => void
   onSave: () => void
-  onChange: (id: string, field: keyof PlanType, value: string | number | boolean) => void
+  onChange: (id: string, field: keyof EditablePlan, value: any) => void
   onRegenerateField: (id: string, field: 'earningMechanism' | 'withdrawalRule' | 'stackingRule') => void
 }) {
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [generating, setGenerating] = useState(false)
+
+  const handleGenerateWithAI = async () => {
+    if (!aiPrompt.trim()) return
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/ai/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt })
+      })
+      if (!res.ok) throw new Error('AI generation failed')
+      const generated = await res.json()
+
+      // Populate fields in the form
+      Object.entries(generated).forEach(([k, v]) => {
+        onChange(plan.id, k as any, v)
+      })
+
+      // Also trigger regeneration of plain english descriptions
+      setTimeout(() => {
+        onRegenerateField(plan.id, 'earningMechanism')
+        onRegenerateField(plan.id, 'withdrawalRule')
+        onRegenerateField(plan.id, 'stackingRule')
+      }, 100)
+
+      toast({ title: 'AI Generation Successful', description: 'Plan configurations populated.' })
+    } catch (err) {
+      toast({ title: 'AI Generation Failed', description: 'Could not generate plan from prompt.', variant: 'destructive' })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const distTotal = useMemo(() =>
-    plan.accountHolderPercent + plan.tradeProfitSharePercent + plan.rewardsOffersPercent + plan.platformFeePercent,
-    [plan.accountHolderPercent, plan.tradeProfitSharePercent, plan.rewardsOffersPercent, plan.platformFeePercent]
+    plan.accountHolderPercent +
+    plan.tradeProfitSharePercent +
+    plan.rewardsOffersPercent +
+    plan.platformFeePercent +
+    (plan.charityDonationPercent || 0) +
+    (plan.insuranceReservePercent || 0) +
+    (plan.developerFundPercent || 0) +
+    (plan.liquidityPoolPercent || 0),
+    [
+      plan.accountHolderPercent,
+      plan.tradeProfitSharePercent,
+      plan.rewardsOffersPercent,
+      plan.platformFeePercent,
+      plan.charityDonationPercent,
+      plan.insuranceReservePercent,
+      plan.developerFundPercent,
+      plan.liquidityPoolPercent
+    ]
   )
 
   const subDistTotal = useMemo(() =>
@@ -498,7 +600,7 @@ function PlanEditor({
   const distValid = Math.abs(distTotal - 100) < 0.01
   const subDistValid = Math.abs(subDistTotal - 100) < 0.01
 
-  const ch = (field: keyof PlanType, value: string | number | boolean) => onChange(plan.id, field, value)
+  const ch = (field: keyof EditablePlan, value: any) => onChange(plan.id, field, value)
 
   return (
     <Card className="bg-card/50 border-emerald-500/30 shadow-lg shadow-emerald-500/5">
@@ -526,6 +628,33 @@ function PlanEditor({
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* AI Plan Assistant */}
+        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-emerald-400" />
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">AI Plan Assistant</h4>
+              <p className="text-[11px] text-muted-foreground">Describe your plan in plain text (e.g., "Create a VIP high yield plan with 1.2% daily profit, Mon-Fri schedule, minimum deposit $500, with 5 referral levels")</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Textarea
+              value={aiPrompt}
+              onChange={e => setAiPrompt(e.target.value)}
+              placeholder="Describe the plan rules, splits, or schedules..."
+              className="bg-muted/50 border-border/50 resize-none h-16 text-xs flex-1"
+            />
+            <Button
+              type="button"
+              onClick={handleGenerateWithAI}
+              disabled={generating || !aiPrompt.trim()}
+              className="sm:self-end bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs h-9"
+            >
+              {generating ? 'Thinking...' : 'Generate with AI'}
+            </Button>
+          </div>
+        </div>
+
         {/* Section 1: Basic Info */}
         <SectionCard icon={<Info className="h-4 w-4 text-emerald-400" />} title="Basic Info">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -578,6 +707,40 @@ function PlanEditor({
             <NumberField label="Max Deposit" prefix="$" value={plan.maxDeposit} onChange={v => ch('maxDeposit', v)} />
             <NumberField label="Base Daily % (display)" suffix="%" value={plan.dailyEarningPercent} onChange={v => ch('dailyEarningPercent', v)} />
             <NumberField label="Max Earning Limit" prefix="$" value={plan.maxEarningLimit} onChange={v => ch('maxEarningLimit', v)} />
+            <NumberField label="Deposit Increment" prefix="$" value={plan.depositMultipleOf || 1} onChange={v => ch('depositMultipleOf', v)} hint="Multiples of" />
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5">
+              <div>
+                <p className="text-xs font-semibold">Strict Multiples</p>
+                <p className="text-[9px] text-muted-foreground">Only allow deposit multiples</p>
+              </div>
+              <Switch checked={plan.strictMultiples !== false} onCheckedChange={v => ch('strictMultiples', v)} />
+            </div>
+            <NumberField label="Daily Earning Cap %" suffix="%" value={plan.dailyEarningCapPercent || 0} onChange={v => ch('dailyEarningCapPercent', v)} hint="0 = no cap" />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Capping Applies To</Label>
+              <div className="flex gap-1.5">
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'profits_only', label: 'Profits' },
+                  { value: 'referrals_only', label: 'Referrals' }
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => ch('cappingAppliesTo', opt.value)}
+                    className={cn(
+                      "flex-1 py-1.5 px-2 rounded-lg border text-[10px] font-semibold transition-all",
+                      plan.cappingAppliesTo === opt.value
+                        ? "bg-primary/15 border-primary/30 text-primary"
+                        : "border-border/50 text-muted-foreground"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <NumberField label="Registration Levels" value={plan.registrationReferralLevels || 7} onChange={v => ch('registrationReferralLevels', Math.max(1, Math.min(20, Math.round(v))))} hint="Upline levels" />
           </div>
 
           {/* Variable Win % Configuration */}
@@ -626,6 +789,22 @@ function PlanEditor({
                 <Switch checked={(plan as any).rotateWinPercent !== false} onCheckedChange={v => ch('rotateWinPercent' as any, v)} />
               </div>
               <NumberField label="Rotation Increment per Stack" suffix="%" value={(plan as any).rotationIncrement || 0.5} onChange={v => ch('rotationIncrement' as any, v)} />
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Section 2.7: Advanced P&L Configuration */}
+        <SectionCard icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} title="Advanced P&L Configuration" description="Configure volatility, negative returns, and consecutive loss ceilings">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <NumberField label="Min Loss %" suffix="%" value={plan.minLossPercent || 0.1} onChange={v => ch('minLossPercent', v)} />
+            <NumberField label="Max Loss %" suffix="%" value={plan.maxLossPercent || 5.0} onChange={v => ch('maxLossPercent', v)} />
+            <NumberField label="Max Consecutive Loss Days" value={plan.maxConsecutiveLossDays || 3} onChange={v => ch('maxConsecutiveLossDays', Math.max(1, Math.round(v)))} />
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5 col-span-2 sm:col-span-1">
+              <div>
+                <p className="text-xs font-semibold">Allow Negative Balance</p>
+                <p className="text-[9px] text-muted-foreground">User balance can drop below 0</p>
+              </div>
+              <Switch checked={plan.allowNegativeBalance || false} onCheckedChange={v => ch('allowNegativeBalance', v)} />
             </div>
           </div>
         </SectionCard>
@@ -936,6 +1115,67 @@ function PlanEditor({
                 <Switch checked={(plan as any).requireKyc || false} onCheckedChange={v => ch('requireKyc' as any, v)} />
               </div>
             </div>
+
+            {/* Level-by-Level Sponsor Overrides */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Level-by-Level Sponsor Payout Overrides</Label>
+                <span className="text-[10px] text-muted-foreground">Up to {plan.registrationReferralLevels || 7} levels</span>
+              </div>
+              <div className="border border-border/50 rounded-lg overflow-hidden bg-muted/20">
+                <table className="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr className="border-b border-border/30 bg-muted/40 text-muted-foreground font-semibold">
+                      <th className="p-2">Level</th>
+                      <th className="p-2">Sponsor Payout (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: plan.registrationReferralLevels || 7 }).map((_, idx) => {
+                      const lvl = idx + 1
+                      const rules = plan.referralRules || []
+                      const rule = rules.find((r: any) => r.level === lvl)
+                      const defaultRates = [25, 20, 15, 10, 10, 10, 10]
+                      const val = rule ? rule.commission : (defaultRates[idx] ?? 0)
+                      return (
+                        <tr key={lvl} className="border-b border-border/20 last:border-0 hover:bg-muted/10">
+                          <td className="p-2 font-medium">Level {lvl}</td>
+                          <td className="p-2">
+                            <div className="relative max-w-[100px]">
+                              <Input
+                                type="number"
+                                value={val}
+                                onChange={e => {
+                                  const comm = parseFloat(e.target.value) || 0
+                                  const newRules = [...rules]
+                                  const existIdx = newRules.findIndex((r: any) => r.level === lvl)
+                                  if (existIdx >= 0) {
+                                    newRules[existIdx] = { ...newRules[existIdx], commission: comm }
+                                  } else {
+                                    if (newRules.length === 0) {
+                                      for (let i = 1; i <= (plan.registrationReferralLevels || 7); i++) {
+                                        newRules.push({ level: i, commission: defaultRates[i-1] ?? 0 })
+                                      }
+                                      const idxToReplace = newRules.findIndex((r: any) => r.level === lvl)
+                                      newRules[idxToReplace] = { ...newRules[idxToReplace], commission: comm }
+                                    } else {
+                                      newRules.push({ level: lvl, commission: comm })
+                                    }
+                                  }
+                                  ch('referralRules', newRules)
+                                }}
+                                className="bg-muted/50 border-border/50 h-7 pr-6 text-[11px]"
+                              />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </SectionCard>
 
@@ -971,6 +1211,34 @@ function PlanEditor({
                 onChange={v => ch('platformFeePercent', v)}
                 color="text-rose-400"
               />
+              <NumberField
+                label="Charity Donation"
+                suffix="%"
+                value={plan.charityDonationPercent || 0}
+                onChange={v => ch('charityDonationPercent', v)}
+                color="text-purple-400"
+              />
+              <NumberField
+                label="Insurance Reserve"
+                suffix="%"
+                value={plan.insuranceReservePercent || 0}
+                onChange={v => ch('insuranceReservePercent', v)}
+                color="text-blue-400"
+              />
+              <NumberField
+                label="Developer Fund"
+                suffix="%"
+                value={plan.developerFundPercent || 0}
+                onChange={v => ch('developerFundPercent', v)}
+                color="text-indigo-400"
+              />
+              <NumberField
+                label="Liquidity Pool"
+                suffix="%"
+                value={plan.liquidityPoolPercent || 0}
+                onChange={v => ch('liquidityPoolPercent', v)}
+                color="text-teal-400"
+              />
             </div>
 
             {/* Visual Distribution Bar */}
@@ -980,6 +1248,10 @@ function PlanEditor({
                 { value: plan.tradeProfitSharePercent, color: DIST_COLORS.tradeProfit, label: 'Trade Profit' },
                 { value: plan.rewardsOffersPercent, color: DIST_COLORS.rewardsOffers, label: 'Rewards' },
                 { value: plan.platformFeePercent, color: DIST_COLORS.platformFee, label: 'Platform' },
+                { value: plan.charityDonationPercent || 0, color: DIST_COLORS.charity, label: 'Charity' },
+                { value: plan.insuranceReservePercent || 0, color: DIST_COLORS.insurance, label: 'Insurance' },
+                { value: plan.developerFundPercent || 0, color: DIST_COLORS.developer, label: 'Developer' },
+                { value: plan.liquidityPoolPercent || 0, color: DIST_COLORS.liquidity, label: 'Liquidity' },
               ]}
               total={distTotal}
               valid={distValid}
@@ -1213,13 +1485,21 @@ function PlanSummary({
                 <div className={cn(DIST_COLORS.accountHolder, " rounded-l-full")} style={{ width: `${plan.accountHolderPercent}%` }} />
                 <div className={cn(DIST_COLORS.tradeProfit)} style={{ width: `${plan.tradeProfitSharePercent}%` }} />
                 <div className={cn(DIST_COLORS.rewardsOffers)} style={{ width: `${plan.rewardsOffersPercent}%` }} />
-                <div className={cn(DIST_COLORS.platformFee, " rounded-r-full")} style={{ width: `${plan.platformFeePercent}%` }} />
+                <div className={cn(DIST_COLORS.platformFee)} style={{ width: `${plan.platformFeePercent}%` }} />
+                <div className={cn(DIST_COLORS.charity)} style={{ width: `${(plan as any).charityDonationPercent || 0}%` }} />
+                <div className={cn(DIST_COLORS.insurance)} style={{ width: `${(plan as any).insuranceReservePercent || 0}%` }} />
+                <div className={cn(DIST_COLORS.developer)} style={{ width: `${(plan as any).developerFundPercent || 0}%` }} />
+                <div className={cn(DIST_COLORS.liquidity, " rounded-r-full")} style={{ width: `${(plan as any).liquidityPoolPercent || 0}%` }} />
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
                 <span className="text-xs text-emerald-400">Holder {plan.accountHolderPercent}%</span>
                 <span className="text-xs text-cyan-400">Trade {plan.tradeProfitSharePercent}%</span>
                 <span className="text-xs text-amber-400">Rewards {plan.rewardsOffersPercent}%</span>
                 <span className="text-xs text-rose-400">Platform {plan.platformFeePercent}%</span>
+                <span className="text-xs text-purple-400 font-medium">Charity {(plan as any).charityDonationPercent || 0}%</span>
+                <span className="text-xs text-blue-400 font-medium">Insurance {(plan as any).insuranceReservePercent || 0}%</span>
+                <span className="text-xs text-indigo-400 font-medium">Dev {(plan as any).developerFundPercent || 0}%</span>
+                <span className="text-xs text-teal-400 font-medium">Liquidity {(plan as any).liquidityPoolPercent || 0}%</span>
               </div>
             </div>
 

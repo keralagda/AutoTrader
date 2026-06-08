@@ -233,6 +233,16 @@ export function WithdrawTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {user?.isEmailVerified === false && (
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex items-start gap-2.5">
+              <span className="text-amber-500 text-sm">⚠️</span>
+              <div className="text-xs">
+                <p className="font-semibold text-amber-400">Email Verification Required</p>
+                <p className="text-muted-foreground mt-0.5">Please verify your email address to unlock withdrawals. Use the button in the banner at the top of the page to resend the verification email.</p>
+              </div>
+            </div>
+          )}
+
           {/* Payment Method */}
           <div className="space-y-2">
             <Label>Payment Method</Label>
@@ -244,13 +254,14 @@ export function WithdrawTab() {
                     setPaymentMethod(gw.type === 'crypto' ? `crypto_${gw.network || 'usdc'}` : gw.name.toLowerCase().replace(/\s+/g, '_'))
                     setWalletAddress('')
                   }}
+                  disabled={user?.isEmailVerified === false}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${
                     paymentMethod === (gw.type === 'crypto' ? `crypto_${gw.network || 'usdc'}` : gw.name.toLowerCase().replace(/\s+/g, '_'))
                       ? gw.type === 'crypto'
                         ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
                         : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
                       : 'border-border/50 text-muted-foreground hover:border-border'
-                  }`}
+                  } ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {gw.type === 'crypto' ? (
                     <Bitcoin className="size-4" />
@@ -264,11 +275,12 @@ export function WithdrawTab() {
                   <button
                     key={method.value}
                     onClick={() => { setPaymentMethod(method.value); setWalletAddress('') }}
+                    disabled={user?.isEmailVerified === false}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${
                       paymentMethod === method.value
                         ? 'bg-primary/15 border-primary/30 text-primary'
                         : 'border-border/50 text-muted-foreground hover:border-border'
-                    }`}
+                    } ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <span>{method.icon}</span>
                     <span className="truncate">{method.label}</span>
@@ -292,6 +304,7 @@ export function WithdrawTab() {
                 className="pl-9"
                 min="0"
                 step="0.01"
+                disabled={user?.isEmailVerified === false}
               />
             </div>
             <div className="flex gap-2">
@@ -302,6 +315,7 @@ export function WithdrawTab() {
                   size="sm"
                   onClick={() => handleQuickSelect(val)}
                   className="flex-1 text-xs"
+                  disabled={user?.isEmailVerified === false}
                 >
                   ${val}
                 </Button>
@@ -311,6 +325,7 @@ export function WithdrawTab() {
                 size="sm"
                 onClick={() => handleQuickSelect(withdrawalBalance)}
                 className="flex-1 text-xs text-primary"
+                disabled={user?.isEmailVerified === false}
               >
                 Max
               </Button>
@@ -335,6 +350,7 @@ export function WithdrawTab() {
               }
               value={walletAddress}
               onChange={(e) => setWalletAddress(e.target.value)}
+              disabled={user?.isEmailVerified === false}
             />
           </div>
 
@@ -365,7 +381,7 @@ export function WithdrawTab() {
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={submitting || parsedAmount <= 0 || parsedAmount > withdrawalBalance || !walletAddress.trim()}
+            disabled={submitting || parsedAmount <= 0 || parsedAmount > withdrawalBalance || !walletAddress.trim() || user?.isEmailVerified === false}
           >
             {submitting ? (
               <>

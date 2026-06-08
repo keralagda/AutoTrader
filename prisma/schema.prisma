@@ -24,6 +24,8 @@ model User {
   totalEarnings    Float     @default(0)
   totalDeposited   Float     @default(0)
   isActive         Boolean   @default(true)
+  isEmailVerified  Boolean   @default(false)
+  emailVerificationToken String?
   isFake           Boolean   @default(false)
   fakeAvatar       String?
   kycStatus        String    @default("none") // "none", "pending", "approved", "rejected"
@@ -112,7 +114,82 @@ model Plan {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
+  // Plan A Customization & Capping Fields
+  depositMultipleOf          Float    @default(1.0)
+  strictMultiples            Boolean  @default(true)
+  dailyEarningCapPercent     Float    @default(0.0)
+  cappingAppliesTo           String   @default("all")
+  registrationReferralLevels Int      @default(7)
+
+  // Advanced Profit & Loss Configuration
+  minLossPercent             Float    @default(0.1)
+  maxLossPercent             Float    @default(5.0)
+  allowNegativeBalance       Boolean  @default(false)
+  maxConsecutiveLossDays     Int      @default(3)
+
+  // Extra Fund-Sharing Percentages
+  charityDonationPercent     Float    @default(0)
+  insuranceReservePercent    Float    @default(0)
+  developerFundPercent       Float    @default(0)
+  liquidityPoolPercent       Float    @default(0)
+
+  // Scheduling & Limits
+  profitDays          String   @default("mon,tue,wed,thu,fri")
+  profitHours         String?
+  holidayPauses       String?
+  gracePeriodDays     Int      @default(0)
+  autoReinvest        Boolean  @default(false)
+  reinvestBonus       Float    @default(2)
+  customReferralPct   Float?
+  volatilityMode      String   @default("moderate")
+  lossDayChance       Float    @default(0)
+  bonusDayChance      Float    @default(5)
+  minVipTier          String   @default("Bronze")
+  spotsLimit          Int      @default(0)
+  planBadge           String?
+  teamRequirement     Int      @default(0)
+  countdownEnd        DateTime?
+
   deposits Deposit[]
+  referralRules       PlanReferralRule[]
+  pnlLogs             PlanPnLLog[]
+  insuranceVault      PlanInsuranceVault?
+}
+
+// Custom Level-by-Level Referral Payouts per Plan
+model PlanReferralRule {
+  id         String   @id @default(cuid())
+  planId     String
+  level      Int      // Level 1, 2, 3, etc.
+  commission Float    // Percentage commission for this level
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, level])
+}
+
+// Daily Payout Logs for Analytics & Transparency
+model PlanPnLLog {
+  id          String   @id @default(cuid())
+  planId      String
+  yield       Float    // Actual percentage yield credited/deducted (+/-)
+  isLoss      Boolean  @default(false)
+  distributed Float    // Total USD/USDC distributed in this run
+  createdAt   DateTime @default(now())
+
+  plan        Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+// Risk Protection & Capital Reserve Vault per Plan
+model PlanInsuranceVault {
+  id         String   @id @default(cuid())
+  planId     String   @unique
+  balance    Float    @default(0)
+  updatedAt  DateTime @updatedAt
+
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
 }
 
 model Deposit {

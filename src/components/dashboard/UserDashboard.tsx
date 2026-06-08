@@ -85,6 +85,37 @@ export function UserDashboard() {
   const [transferDirection, setTransferDirection] = useState<'trading_to_withdrawal' | 'withdrawal_to_trading'>('trading_to_withdrawal')
   const [unreadNotifs, setUnreadNotifs] = useState(0)
   const { toast } = useToast()
+  const [resendingEmail, setResendingEmail] = useState(false)
+
+  const handleResendVerification = async () => {
+    setResendingEmail(true)
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+      })
+      if (res.ok) {
+        toast({
+          title: 'Verification Link Sent',
+          description: 'A new verification link has been sent to your email address.',
+        })
+      } else {
+        const data = await res.json()
+        toast({
+          title: 'Failed to Send',
+          description: data.error || 'Something went wrong',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Network connection failed',
+        variant: 'destructive',
+      })
+    } finally {
+      setResendingEmail(false)
+    }
+  }
 
   const currentTab = TAB_META[dashboardTab] || TAB_META.overview
   const TabIcon = currentTab.icon
@@ -227,6 +258,30 @@ export function UserDashboard() {
             </div>
           </div>
         </header>
+
+        {/* Verification Warning Banner */}
+        {user && user.isEmailVerified === false && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-md shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 border border-amber-500/30">
+                <Bell className="size-4 text-amber-500 animate-pulse" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-amber-400">Email Verification Pending</p>
+                <p className="text-xs text-muted-foreground">Please check your inbox or resend the link to unlock deposits, withdrawals, and plan activations.</p>
+              </div>
+            </div>
+            <Button
+              onClick={handleResendVerification}
+              disabled={resendingEmail}
+              variant="outline"
+              size="sm"
+              className="border-amber-500/30 text-amber-400 hover:bg-amber-500/20 active:scale-95 transition-all text-xs h-8 font-semibold self-start sm:self-center shrink-0"
+            >
+              {resendingEmail ? 'Sending...' : 'Resend Verification Link'}
+            </Button>
+          </div>
+        )}
 
         {/* Tab Content - extra bottom padding on mobile for bottom nav */}
         <div className="flex-1 overflow-y-auto pb-20 md:pb-0 overscroll-y-contain">

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { db } from '@/lib/db'
 
 // Major EU/US banks for deposit
 const SUPPORTED_BANKS = {
@@ -34,10 +32,38 @@ const SUPPORTED_BANKS = {
 // Submit bank transfer deposit request
 export async function POST(req: NextRequest) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { userId, amount, referenceNumber, bankName, senderName, senderIban, screenshotUrl } = await req.json()
 
     if (!userId || !amount || !referenceNumber) {
       return NextResponse.json({ error: 'userId, amount, and referenceNumber are required' }, { status: 400 })
+    }
+
+    const user = await db.user.findUnique({ where: { id: userId } })
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Email verification check
+    if (!user.isEmailVerified) {
+      return NextResponse.json({ error: 'Email verification is required to initiate deposits.' }, { status: 403 })
     }
 
     const depositAmount = parseFloat(amount)
@@ -46,7 +72,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create payment record
-    const payment = await prisma.payment.create({
+    const payment = await db.payment.create({
       data: {
         userId,
         amount: depositAmount,
@@ -64,9 +90,9 @@ export async function POST(req: NextRequest) {
     })
 
     // Notify admins
-    const admins = await prisma.user.findMany({ where: { role: { in: ['admin', 'super_admin'] } } })
+    const admins = await db.user.findMany({ where: { role: { in: ['admin', 'super_admin'] } } })
     for (const admin of admins) {
-      await prisma.notification.create({
+      await db.notification.create({
         data: {
           userId: admin.id,
           title: 'New Wire Transfer Deposit',
@@ -77,7 +103,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Notify user
-    await prisma.notification.create({
+    await db.notification.create({
       data: {
         userId,
         title: 'Wire Transfer Submitted',
@@ -86,7 +112,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    await prisma.activityLog.create({
+    await db.activityLog.create({
       data: {
         userId,
         action: 'wire_transfer_submitted',
@@ -108,8 +134,26 @@ export async function POST(req: NextRequest) {
 // Get bank transfer details and supported banks
 export async function GET() {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     // Get platform receiving bank details from settings
-    const bankDetails = await prisma.setting.findUnique({
+    const bankDetails = await db.setting.findUnique({
       where: { key: 'bank_transfer_details' },
     })
 

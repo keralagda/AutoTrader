@@ -93,13 +93,64 @@ export async function POST(request: Request) {
 
     const isAdmin = user.role === 'admin' || user.role === 'super_admin'
 
+    // 1. VIP Tier Check
+    const VIP_TIERS = { Bronze: 0, Silver: 1, Gold: 2, Platinum: 3 }
+    type VipTier = keyof typeof VIP_TIERS
+    const getVipTier = (total: number): VipTier => {
+      if (total >= 25000) return 'Platinum'
+      if (total >= 5000) return 'Gold'
+      if (total >= 500) return 'Silver'
+      return 'Bronze'
+    }
+
+    const userDeposits = await db.deposit.findMany({
+      where: { userId, status: { in: ['active', 'locked'] } },
+      select: { amount: true }
+    })
+    const totalDeposited = userDeposits.reduce((sum, d) => sum + d.amount, 0)
+    const userTier = getVipTier(totalDeposited)
+    const minVip = (plan.minVipTier || 'Bronze') as VipTier
+    if ((VIP_TIERS[userTier] ?? 0) < (VIP_TIERS[minVip] ?? 0)) {
+      if (!isAdmin) {
+        return NextResponse.json({
+          error: `Your VIP tier is ${userTier}. This plan requires ${minVip} tier.`
+        }, { status: 400 })
+      }
+    }
+
+    // 2. Spots Limit Check
+    if (plan.spotsLimit > 0) {
+      const activeSpotsCount = await db.deposit.count({
+        where: { planId: plan.id, status: { in: ['active', 'locked', 'pending'] } }
+      })
+      if (activeSpotsCount >= plan.spotsLimit) {
+        if (!isAdmin) {
+          return NextResponse.json({
+            error: `This plan has reached its limit of ${plan.spotsLimit} active spots.`
+          }, { status: 400 })
+        }
+      }
+    }
+
+    // 3. Deposit Multiples Validation
+    if (plan.strictMultiples && plan.depositMultipleOf > 0) {
+      const isMultiple = Math.abs(amount / plan.depositMultipleOf - Math.round(amount / plan.depositMultipleOf)) < 1e-5
+      if (!isMultiple) {
+        if (!isAdmin) {
+          return NextResponse.json({
+            error: `Deposit amount must be a multiple of $${plan.depositMultipleOf}`
+          }, { status: 400 })
+        }
+      }
+    }
+
     // Check stacking limits (skip for admin)
     if (!isAdmin) {
       if (plan.stackingEnabled) {
-        const existingDeposits = await db.deposit.count({
+        const existingDepositsCount = await db.deposit.count({
           where: { userId, planId, status: 'active' },
         })
-        if (existingDeposits >= plan.maxStacks) {
+        if (existingDepositsCount >= plan.maxStacks) {
           return NextResponse.json({
             error: `Maximum ${plan.maxStacks} active deposits allowed for ${plan.name} plan`
           }, { status: 400 })
@@ -138,7 +189,10 @@ export async function POST(request: Request) {
     const endsAt = plan.durationDays > 0
       ? new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000)
       : null
-    const nextProfitAt = new Date(now.getTime() + plan.returnPeriodHours * 60 * 60 * 1000)
+    
+    // Add gracePeriodDays to nextProfitAt delay
+    const graceDays = plan.gracePeriodDays || 0
+    const nextProfitAt = new Date(now.getTime() + (plan.returnPeriodHours * 60 * 60 * 1000) + (graceDays * 24 * 60 * 60 * 1000))
 
     // Check if user has enough balance in trading wallet (skip for admin)
     if (!isAdmin && amount > user.tradingBalance) {

@@ -4,6 +4,24 @@ import { verifyPassword, setSessionCookie, createToken, hashPassword } from '@/l
 
 export async function POST(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { email, password } = await request.json()
 
     if (!email || !password) {
@@ -73,6 +91,7 @@ export async function POST(request: Request) {
         role: user.role, referralCode: user.referralCode, walletAddress: user.walletAddress,
         tradingBalance: user.tradingBalance, withdrawalBalance: user.withdrawalBalance,
         totalEarnings: user.totalEarnings, totalDeposited: user.totalDeposited,
+        isEmailVerified: user.isEmailVerified,
       },
     })
   } catch (error) {

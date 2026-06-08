@@ -4,6 +4,24 @@ import { db } from '@/lib/db'
 // GET - Get user's activated plans
 export async function GET(req: NextRequest) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const userId = req.nextUrl.searchParams.get('userId')
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
 
@@ -33,11 +51,34 @@ export async function GET(req: NextRequest) {
 // POST - Activate a plan (pay entry fee)
 export async function POST(req: NextRequest) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { userId, planId } = await req.json()
     if (!userId || !planId) return NextResponse.json({ error: 'userId and planId required' }, { status: 400 })
 
     const user = await db.user.findUnique({ where: { id: userId } })
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+    // Email verification check
+    if (!user.isEmailVerified) {
+      return NextResponse.json({ error: 'Email verification is required to activate plans.' }, { status: 403 })
+    }
 
     const plan = await db.plan.findUnique({ where: { id: planId } })
     if (!plan || !plan.isActive) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })

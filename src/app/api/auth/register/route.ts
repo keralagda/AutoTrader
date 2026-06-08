@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { hashPassword, setSessionCookie } from '@/lib/auth'
-import { sendWelcomeEmail } from '@/lib/email'
+import { sendVerificationEmail } from '@/lib/email'
+import crypto from 'crypto'
 
 export async function POST(request: Request) {
   try {
@@ -41,6 +42,8 @@ export async function POST(request: Request) {
       referredById = referrer.id
     }
 
+    const verificationToken = crypto.randomUUID()
+
     const user = await db.user.create({
       data: {
         name: name.trim(),
@@ -53,14 +56,16 @@ export async function POST(request: Request) {
         withdrawalBalance: 0,
         totalEarnings: 0,
         totalDeposited: 0,
+        isEmailVerified: false,
+        emailVerificationToken: verificationToken,
       },
     })
 
     // Create session cookie
     const token = await setSessionCookie({ userId: user.id, email: user.email, role: user.role })
 
-    // Send welcome email (non-blocking)
-    sendWelcomeEmail(user.email, user.name).catch(() => {})
+    // Send verification email (non-blocking)
+    sendVerificationEmail(user.email, user.name, verificationToken).catch(() => {})
 
     // Signup referral bonus: notify referrer
     if (referredById) {

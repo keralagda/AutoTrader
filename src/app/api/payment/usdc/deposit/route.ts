@@ -7,6 +7,24 @@ const USDC_DECIMALS = 6
 
 export async function POST(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { userId, amount, txHash, walletAddress } = await request.json()
 
     if (!userId || !amount || !txHash) {
@@ -16,6 +34,11 @@ export async function POST(request: Request) {
     const user = await db.user.findUnique({ where: { id: userId } })
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Email verification check
+    if (!user.isEmailVerified) {
+      return NextResponse.json({ error: 'Email verification is required to initiate deposits.' }, { status: 403 })
     }
 
     // Validate amount
@@ -51,6 +74,24 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
     const txHash = searchParams.get('txHash')
