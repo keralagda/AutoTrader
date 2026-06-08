@@ -38,6 +38,7 @@ export interface SessionPayload {
   userId: string
   email: string
   role: string
+  spectating?: boolean
   iat?: number
   exp?: number
 }

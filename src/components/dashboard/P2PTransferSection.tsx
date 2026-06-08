@@ -15,7 +15,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
-import { Send, ArrowUpRight, ArrowDownLeft, Loader2, Users } from 'lucide-react'
+import { Send, ArrowUpRight, ArrowDownLeft, Loader2, Users, Lock } from 'lucide-react'
 
 interface Transfer {
   id: string
@@ -27,13 +27,17 @@ interface Transfer {
 }
 
 export function P2PTransferSection() {
-  const { user, updateUserWallets } = useAppStore()
+  const { user, updateUserWallets, setDashboardTab } = useAppStore()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [transfers, setTransfers] = useState<{ sent: Transfer[]; received: Transfer[] }>({ sent: [], received: [] })
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [form, setForm] = useState({ email: '', amount: '', note: '' })
+
+  // PIN verification states
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [transactionPin, setTransactionPin] = useState('')
 
   useEffect(() => {
     if (!user?.id) return
@@ -61,6 +65,29 @@ export function P2PTransferSection() {
       return
     }
 
+    if (!user?.hasTransactionPin) {
+      toast({
+        title: 'Transaction PIN Required',
+        description: 'Please set up a 6-digit transaction PIN in your Security tab before requesting a transfer.',
+        variant: 'destructive',
+      })
+      setDashboardTab('security')
+      setOpen(false)
+      return
+    }
+
+    setTransactionPin('')
+    setShowPinModal(true)
+  }
+
+  const handleVerifyAndSend = async () => {
+    if (!transactionPin || transactionPin.length !== 6) {
+      toast({ title: 'Enter a valid 6-digit PIN', variant: 'destructive' })
+      return
+    }
+
+    const amount = parseFloat(form.amount)
+
     setSending(true)
     try {
       const res = await fetch('/api/p2p-transfer', {
@@ -71,6 +98,7 @@ export function P2PTransferSection() {
           receiverEmail: form.email,
           amount,
           note: form.note || undefined,
+          pin: transactionPin,
         }),
       })
       const data = await res.json()
@@ -78,6 +106,8 @@ export function P2PTransferSection() {
         toast({ title: 'Transfer sent!', description: `$${amount.toFixed(2)} sent successfully` })
         setForm({ email: '', amount: '', note: '' })
         setOpen(false)
+        setShowPinModal(false)
+        setTransactionPin('')
         loadTransfers()
         // Refresh balances
         const meRes = await fetch(`/api/auth/me?userId=${user?.id}`)
@@ -190,6 +220,38 @@ export function P2PTransferSection() {
             <Button onClick={handleSend} disabled={sending} className="w-full gap-2">
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {sending ? 'Sending...' : 'Send Transfer'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PIN Verification Dialog */}
+      <Dialog open={showPinModal} onOpenChange={setShowPinModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
+              Enter Transaction PIN
+            </DialogTitle>
+            <DialogDescription>
+              Please enter your 6-digit transaction PIN to authorize this transfer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2 text-center">
+              <Label className="block mb-2">6-Digit PIN</Label>
+              <Input
+                value={transactionPin}
+                onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                type="password"
+                maxLength={6}
+                className="font-mono text-center text-lg tracking-widest max-w-[200px] mx-auto"
+              />
+            </div>
+            <Button onClick={handleVerifyAndSend} disabled={sending} className="w-full gap-2">
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+              {sending ? 'Verifying...' : 'Authorize Transfer'}
             </Button>
           </div>
         </DialogContent>

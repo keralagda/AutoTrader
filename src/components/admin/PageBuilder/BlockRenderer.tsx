@@ -16,7 +16,7 @@ export function BlockRenderer({ block }: { block: PageBlock }) {
 
   switch (block.type) {
     case 'heading': {
-      const Tag = (block.content.level || 'h2') as keyof JSX.IntrinsicElements
+      const Tag = (block.content.level || 'h2') as any
       const sizes: Record<string, string> = { h1: 'text-4xl', h2: 'text-3xl', h3: 'text-2xl', h4: 'text-xl', h5: 'text-lg', h6: 'text-base' }
       return <div style={style}><Tag className={`font-bold ${sizes[block.content.level] || 'text-2xl'}`}>{block.content.text}</Tag></div>
     }

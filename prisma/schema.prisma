@@ -54,6 +54,19 @@ model User {
   p2pReceived         P2PTransfer[]    @relation("P2PReceived")
   loginHistory        LoginHistory[]
   transactionLogs     TransactionLog[]
+
+  telegramChatId        String?   @unique
+  telegramVerificationCode String?
+  transactionPin        String?
+  usdcBscAddress        String?   @unique
+  usdcTronAddress       String?   @unique
+  usdcDerivationIndex   Int       @default(0)
+  isAffiliate           Boolean   @default(false)
+  affiliateClicks       Int       @default(0)
+  customPromoHeadline   String?
+  customPromoLogo       String?
+
+  affiliateApplications AffiliateApplication[]
 }
 
 model Plan {
@@ -663,5 +676,28 @@ model MediaUpload {
   url         String   // Stored path or base64 data URL
   alt         String?
   uploadedBy  String?
+  createdAt   DateTime @default(now())
+}
+
+model AffiliateApplication {
+  id            String   @id @default(cuid())
+  userId        String
+  trafficSource String
+  audienceSize  Int
+  telegram      String
+  status        String   @default("pending") // "pending", "approved", "rejected"
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PromoBanner {
+  id          String   @id @default(cuid())
+  title       String
+  imageUrl    String
+  size        String   // e.g. "728x90", "300x250", "1080x1080"
+  downloadUrl String
   createdAt   DateTime @default(now())
 }

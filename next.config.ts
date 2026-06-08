@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // Remove "standalone" for Vercel - Vercel handles this automatically
   // Use "standalone" only for Docker/self-hosted deployments
   ...(process.env.VERCEL ? {} : { output: "standalone" }),
+  turbopack: {
+    root: __dirname,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

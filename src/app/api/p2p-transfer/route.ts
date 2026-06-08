@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import bcrypt from 'bcryptjs'
 
 export async function GET(request: Request) {
   try {
@@ -19,12 +20,39 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { senderId, receiverCode, receiverEmail, amount, note } = await request.json()
-    if (!senderId || !amount || amount <= 0) return NextResponse.json({ error: 'Sender and valid amount required' }, { status: 400 })
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
+    const { senderId, receiverCode, receiverEmail, amount, note, pin } = await request.json()
+    if (!senderId || !amount || amount <= 0 || !pin) return NextResponse.json({ error: 'Sender, valid amount, and transaction PIN are required' }, { status: 400 })
     if (!receiverCode && !receiverEmail) return NextResponse.json({ error: 'Receiver referral code or email required' }, { status: 400 })
 
     const sender = await db.user.findUnique({ where: { id: senderId } })
     if (!sender) return NextResponse.json({ error: 'Sender not found' }, { status: 404 })
+
+    // Transaction PIN verification
+    if (!sender.transactionPin) {
+      return NextResponse.json({ error: 'Transaction PIN is not set. Please set it in Settings.' }, { status: 400 })
+    }
+    const pinMatch = await bcrypt.compare(pin, sender.transactionPin)
+    if (!pinMatch) {
+      return NextResponse.json({ error: 'Incorrect transaction PIN' }, { status: 400 })
+    }
 
     if (sender.role !== 'admin' && amount > sender.tradingBalance) {
       return NextResponse.json({ error: 'Insufficient trading balance' }, { status: 400 })

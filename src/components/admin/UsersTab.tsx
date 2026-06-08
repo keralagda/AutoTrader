@@ -24,6 +24,9 @@ interface UserRecord {
   isActive: boolean
   createdAt: string
   referredById: string | null
+  riskCategory?: string
+  phone?: string | null
+  walletAddress?: string | null
   _count: {
     deposits: number
     referrals: number

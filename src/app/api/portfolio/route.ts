@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     const portfolioValue = user.tradingBalance + user.withdrawalBalance + totalInvested
 
     // Daily earnings chart data (last 30 days)
-    const chartData = []
+    const chartData: { date: string; earnings: number }[] = []
     for (let i = 29; i >= 0; i--) {
       const date = new Date()
       date.setDate(date.getDate() - i)

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
-import { Shield, Key, Smartphone, History, Monitor, Globe, Clock, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { Shield, Key, Smartphone, History, Monitor, Globe, Clock, CheckCircle2, XCircle, Loader2, Lock } from 'lucide-react'
 
 interface LoginEntry {
   id: string
@@ -21,7 +21,7 @@ interface LoginEntry {
 }
 
 export function SecurityTab() {
-  const { user } = useAppStore()
+  const { user, updateUserProfile } = useAppStore()
   const { toast } = useToast()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -34,6 +34,54 @@ export function SecurityTab() {
   const [qrCodeUrl, setQrCodeUrl] = useState('')
   const [totpCode, setTotpCode] = useState('')
   const [show2FASetup, setShow2FASetup] = useState(false)
+
+  // Transaction PIN states
+  const [transactionPin, setTransactionPin] = useState('')
+  const [confirmTransactionPin, setConfirmTransactionPin] = useState('')
+  const [pinAccountPassword, setPinAccountPassword] = useState('')
+  const [settingPin, setSettingPin] = useState(false)
+
+  const handleSetTransactionPin = async () => {
+    if (!transactionPin || !confirmTransactionPin || !pinAccountPassword) {
+      toast({ title: 'All fields are required', variant: 'destructive' })
+      return
+    }
+    if (!/^\d{6}$/.test(transactionPin)) {
+      toast({ title: 'PIN must be exactly 6 digits', variant: 'destructive' })
+      return
+    }
+    if (transactionPin !== confirmTransactionPin) {
+      toast({ title: 'PINs do not match', variant: 'destructive' })
+      return
+    }
+
+    setSettingPin(true)
+    try {
+      const res = await fetch('/api/profile/transaction-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          pin: transactionPin,
+          password: pinAccountPassword,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast({ title: 'Transaction PIN set successfully' })
+        setTransactionPin('')
+        setConfirmTransactionPin('')
+        setPinAccountPassword('')
+        updateUserProfile({ hasTransactionPin: true })
+      } else {
+        toast({ title: data.error || 'Failed to set transaction PIN', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
+    } finally {
+      setSettingPin(false)
+    }
+  }
 
   useEffect(() => {
     if (!user?.id) return
@@ -229,6 +277,60 @@ export function SecurityTab() {
           <Button onClick={handleChangePassword} disabled={changingPassword} className="gap-2">
             {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
             {changingPassword ? 'Changing...' : 'Change Password'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Transaction PIN */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-primary" />
+            Transaction PIN
+          </CardTitle>
+          <CardDescription>
+            {user?.hasTransactionPin
+              ? 'Your account is secured with a 6-digit transaction PIN. You can change it below.'
+              : 'Set a 6-digit transaction PIN to secure your withdrawals and P2P transfers.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>6-Digit PIN</Label>
+              <Input
+                type="password"
+                maxLength={6}
+                value={transactionPin}
+                onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="Enter 6-digit PIN"
+                className="font-mono tracking-widest text-center"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm 6-Digit PIN</Label>
+              <Input
+                type="password"
+                maxLength={6}
+                value={confirmTransactionPin}
+                onChange={(e) => setConfirmTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="Confirm 6-digit PIN"
+                className="font-mono tracking-widest text-center"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Account Password</Label>
+            <Input
+              type="password"
+              value={pinAccountPassword}
+              onChange={(e) => setPinAccountPassword(e.target.value)}
+              placeholder="Confirm account password to verify your identity"
+            />
+          </div>
+          <Button onClick={handleSetTransactionPin} disabled={settingPin} className="gap-2">
+            {settingPin ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+            {settingPin ? 'Saving...' : user?.hasTransactionPin ? 'Change PIN' : 'Set PIN'}
           </Button>
         </CardContent>
       </Card>

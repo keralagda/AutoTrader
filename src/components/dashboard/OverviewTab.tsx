@@ -13,6 +13,7 @@ import { AITradingSignal } from './AITradingSignal'
 import { AIMarketCommentary } from './AIMarketCommentary'
 import { LiveEarningsCounter } from './LiveEarningsCounter'
 import { VIPTierCard } from './VIPTierCard'
+import { TradingTerminalWidget } from './TradingTerminalWidget'
 
 interface ProfileData {
   activePlan: string | null
@@ -158,6 +159,9 @@ export function OverviewTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Trading Terminal Widget */}
+      <TradingTerminalWidget />
 
       {/* Portfolio & Earnings Chart */}
       <PortfolioChart />

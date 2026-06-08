@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       }, { status: 503 })
     }
 
-    const { userId, amount, txHash, walletAddress } = await request.json()
+    const { userId, amount, txHash, walletAddress, method } = await request.json()
 
     if (!userId || !amount || !txHash) {
       return NextResponse.json({ error: 'User ID, amount, and transaction hash required' }, { status: 400 })
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       data: {
         userId,
         amount: amountNum,
-        method: 'crypto_usdc',
+        method: method || 'crypto_usdc',
         status: 'pending',
         txHash,
         gatewayRef: txHash, // Use txHash as gateway reference

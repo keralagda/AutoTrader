@@ -68,6 +68,9 @@ export async function GET(request: NextRequest) {
       kycStatus: user.kycStatus,
       twoFactorEnabled: user.twoFactorEnabled,
       isEmailVerified: user.isEmailVerified,
+      hasTransactionPin: !!user.transactionPin,
+      usdcBscAddress: user.usdcBscAddress,
+      usdcTronAddress: user.usdcTronAddress,
     })
   } catch (error) {
     console.error('Get user error:', error)

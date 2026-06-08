@@ -19,9 +19,16 @@ import {
 } from '@/components/ui/table'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DollarSign, Wallet, AlertCircle, Loader2, ArrowRightLeft, Bitcoin, Landmark } from 'lucide-react'
+import { DollarSign, Wallet, AlertCircle, Loader2, ArrowRightLeft, Bitcoin, Landmark, Lock } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { ALL_PAYMENT_METHODS } from '@/lib/types'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 
 const NETWORK_FEE_PERCENT = 2
 
@@ -58,7 +65,7 @@ function getMethodLabel(method: string) {
 }
 
 export function WithdrawTab() {
-  const { user } = useAppStore()
+  const { user, setDashboardTab } = useAppStore()
   const { toast } = useToast()
   const [withdrawals, setWithdrawals] = useState<WithdrawalType[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,6 +74,10 @@ export function WithdrawTab() {
   const [walletAddress, setWalletAddress] = useState(user?.walletAddress || '')
   const [paymentMethod, setPaymentMethod] = useState('crypto_usdc')
   const [gateways, setGateways] = useState<PaymentGatewayType[]>([])
+
+  // PIN verification states
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [transactionPin, setTransactionPin] = useState('')
 
   const withdrawalBalance = user?.withdrawalBalance || 0
   const tradingBalance = user?.tradingBalance || 0
@@ -165,29 +176,52 @@ export function WithdrawTab() {
       }
     }
 
+    if (!user?.hasTransactionPin) {
+      toast({
+        title: 'Transaction PIN Required',
+        description: 'Please set up a 6-digit transaction PIN in your Security tab before requesting a withdrawal.',
+        variant: 'destructive',
+      })
+      setDashboardTab('security')
+      return
+    }
+
+    setTransactionPin('')
+    setShowPinModal(true)
+  }
+
+  const handleVerifyAndSubmit = async () => {
+    if (!transactionPin || transactionPin.length !== 6) {
+      toast({ title: 'Enter a valid 6-digit PIN', variant: 'destructive' })
+      return
+    }
+
     try {
       setSubmitting(true)
       const res = await fetch('/api/withdrawals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user?.id,
           amount: parsedAmount,
           walletAddress: walletAddress.trim(),
           paymentMethod,
+          pin: transactionPin,
         }),
       })
 
+      const json = await res.json()
       if (res.ok) {
         toast({
           title: 'Withdrawal submitted!',
           description: `${formatCurrency(parsedAmount)} withdrawal request has been submitted via ${getMethodLabel(paymentMethod)}.`,
         })
         setAmount('')
+        setTransactionPin('')
+        setShowPinModal(false)
         fetchWithdrawals()
       } else {
-        const json = await res.json()
-        toast({ title: 'Withdrawal failed', description: json.error, variant: 'destructive' })
+        toast({ title: 'Withdrawal failed', description: json.error || 'Check details and try again', variant: 'destructive' })
       }
     } catch {
       toast({ title: 'Network error', description: 'Please try again later', variant: 'destructive' })
@@ -461,6 +495,38 @@ export function WithdrawTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* PIN Verification Dialog */}
+      <Dialog open={showPinModal} onOpenChange={setShowPinModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-primary" />
+              Enter Transaction PIN
+            </DialogTitle>
+            <DialogDescription>
+              Please enter your 6-digit transaction PIN to authorize this withdrawal.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2 text-center">
+              <Label className="block mb-2">6-Digit PIN</Label>
+              <Input
+                value={transactionPin}
+                onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                type="password"
+                maxLength={6}
+                className="font-mono text-center text-lg tracking-widest max-w-[200px] mx-auto"
+              />
+            </div>
+            <Button onClick={handleVerifyAndSubmit} disabled={submitting} className="w-full gap-2">
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+              {submitting ? 'Verifying...' : 'Authorize Withdrawal'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

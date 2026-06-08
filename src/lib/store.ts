@@ -46,6 +46,9 @@ export interface UserData {
   planName?: string
   planCategory?: string
   isEmailVerified?: boolean
+  hasTransactionPin?: boolean
+  usdcBscAddress?: string
+  usdcTronAddress?: string
 }
 
 export const useAppStore = create<AppState>((set) => ({

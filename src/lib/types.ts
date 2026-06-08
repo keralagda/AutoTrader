@@ -34,8 +34,51 @@ export interface PlanType {
   earningMechanism?: string
   withdrawalRule?: string
   stackingRule?: string
+  
+  // Customization & Capping Fields
+  depositMultipleOf?: number
+  strictMultiples?: boolean
+  dailyEarningCapPercent?: number
+  cappingAppliesTo?: string
+  registrationReferralLevels?: number
+
+  // Advanced Profit & Loss Configuration
+  minLossPercent?: number
+  maxLossPercent?: number
+  allowNegativeBalance?: boolean
+  maxConsecutiveLossDays?: number
+  drawdownLimit?: number
+  profitTarget?: number
+  hedgingRatio?: number
+  lossLimitAction?: string
+  pnlLogicDescription?: string
+
+  // Extra Fund-Sharing Percentages
+  charityDonationPercent?: number
+  insuranceReservePercent?: number
+  developerFundPercent?: number
+  liquidityPoolPercent?: number
+
+  // Scheduling & Limits
+  profitDays?: string
+  profitHours?: string
+  holidayPauses?: string
+  gracePeriodDays?: number
+  autoReinvest?: boolean
+  reinvestBonus?: number
+  customReferralPct?: number
+  volatilityMode?: string
+  lossDayChance?: number
+  bonusDayChance?: number
+  minVipTier?: string
+  spotsLimit?: number
+  planBadge?: string
+  teamRequirement?: number
+  countdownEnd?: string
+
   isActive: boolean
   sortOrder: number
+  referralRules?: any[]
 }
 
 export interface DepositType {

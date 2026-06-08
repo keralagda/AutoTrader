@@ -46,6 +46,9 @@ export async function GET() {
         totalDeposited: user.totalDeposited,
         kycStatus: user.kycStatus,
         twoFactorEnabled: user.twoFactorEnabled,
+        hasTransactionPin: !!user.transactionPin,
+        usdcBscAddress: user.usdcBscAddress,
+        usdcTronAddress: user.usdcTronAddress,
       },
     })
   } catch (error) {

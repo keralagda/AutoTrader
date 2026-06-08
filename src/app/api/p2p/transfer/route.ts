@@ -1,15 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
 // Create P2P transfer
 export async function POST(req: NextRequest) {
   try {
-    const { senderId, receiverEmail, amount, note } = await req.json()
+    // Database connectivity guard
+    try {
+      await prisma.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
 
-    if (!senderId || !receiverEmail || !amount) {
-      return NextResponse.json({ error: 'senderId, receiverEmail, and amount are required' }, { status: 400 })
+    const { senderId, receiverEmail, amount, note, pin } = await req.json()
+
+    if (!senderId || !receiverEmail || !amount || !pin) {
+      return NextResponse.json({ error: 'senderId, receiverEmail, amount, and pin are required' }, { status: 400 })
     }
 
     const transferAmount = parseFloat(amount)
@@ -21,6 +40,15 @@ export async function POST(req: NextRequest) {
     const sender = await prisma.user.findUnique({ where: { id: senderId } })
     if (!sender) {
       return NextResponse.json({ error: 'Sender not found' }, { status: 404 })
+    }
+
+    // Transaction PIN verification
+    if (!sender.transactionPin) {
+      return NextResponse.json({ error: 'Transaction PIN is not set. Please set it in Settings.' }, { status: 400 })
+    }
+    const pinMatch = await bcrypt.compare(pin, sender.transactionPin)
+    if (!pinMatch) {
+      return NextResponse.json({ error: 'Incorrect transaction PIN' }, { status: 400 })
     }
 
     // Check balance (use withdrawal wallet for P2P)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import bcrypt from 'bcryptjs'
 
 export async function GET(request: Request) {
   try {
@@ -60,10 +61,10 @@ export async function POST(request: Request) {
       }, { status: 503 })
     }
 
-    const { userId, amount, walletAddress, paymentMethod } = await request.json()
+    const { userId, amount, walletAddress, paymentMethod, pin } = await request.json()
 
-    if (!userId || !amount || !walletAddress) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
+    if (!userId || !amount || !walletAddress || !pin) {
+      return NextResponse.json({ error: 'All fields are required, including transaction PIN' }, { status: 400 })
     }
 
     if (amount < 10) {
@@ -73,6 +74,15 @@ export async function POST(request: Request) {
     const user = await db.user.findUnique({ where: { id: userId } })
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Transaction PIN verification
+    if (!user.transactionPin) {
+      return NextResponse.json({ error: 'Transaction PIN is not set. Please set it in Settings.' }, { status: 400 })
+    }
+    const pinMatch = await bcrypt.compare(pin, user.transactionPin)
+    if (!pinMatch) {
+      return NextResponse.json({ error: 'Incorrect transaction PIN' }, { status: 400 })
     }
 
     // Email verification check

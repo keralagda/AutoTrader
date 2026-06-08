@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
 
     const plans = await db.plan.findMany({
       where: { isActive: true },
+      include: { referralRules: true },
       orderBy: { entryFee: 'asc' },
     })
     return NextResponse.json(plans)

@@ -138,7 +138,7 @@ export async function PUT(request: Request) {
             await db.earning.create({
               data: {
                 userId: referrer.id,
-                depositId: deposit.id,
+                depositId: null,
                 amount: bonus,
                 type: 'referral',
                 level: level + 1,

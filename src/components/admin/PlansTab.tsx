@@ -40,11 +40,11 @@ interface EditablePlan extends PlanType {
     level: number
     commission: number
     amount: number
-    type: string
-    minSponsorDeposit: number
-    minDirectReferrals: number
-    targetWallet: string
-    enabled: boolean
+    type?: string
+    minSponsorDeposit?: number
+    minDirectReferrals?: number
+    targetWallet?: string
+    enabled?: boolean
   }[]
   conditionalLogics?: {
     id?: string
