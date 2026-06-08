@@ -35,13 +35,15 @@ export function SplitTextReveal({
 
   const childVariants = {
     hidden: {
-      y: '100%',
+      y: '110%',
+      rotate: 8,
     },
     visible: {
       y: 0,
+      rotate: 0,
       transition: {
-        duration: duration,
-        ease: [0.215, 0.61, 0.355, 1] as const, // Cubic-bezier for smooth deceleration
+        duration: duration || 0.9,
+        ease: [0.16, 1, 0.3, 1] as const,
       },
     },
   }

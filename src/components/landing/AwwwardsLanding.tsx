@@ -14,19 +14,24 @@ import { InfiniteMarquee } from './InfiniteMarquee'
 import { SplitTextReveal } from './SplitTextReveal'
 import { EarningsCalculator } from './EarningsCalculator'
 import { ReferralCalculator } from './ReferralCalculator'
+import { MagneticButton } from './MagneticButton'
 
 export function AwwwardsLanding() {
   const { setShowAuthModal, setAuthMode } = useAppStore()
   const [plans, setPlans] = useState<PlanType[]>([])
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+  const [time, setTime] = useState<string>('00:00:00')
   const heroRef = useRef<HTMLDivElement>(null)
+  
   const { scrollYProgress } = useScroll()
   
-  // Subtle scaling and opacity transition linked directly to page scroll
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0])
-  const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.96])
+  // Parallax translation, fade, and scale values directly tied to scroll timeline
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, 200])
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
+  const heroScale = useTransform(scrollYProgress, [0, 0.2], [1, 0.92])
 
   useEffect(() => {
+    // Fetch active plans from db
     fetch('/api/plans')
       .then((r) => r.json())
       .then((d) => {
@@ -34,6 +39,15 @@ export function AwwwardsLanding() {
       })
       .catch(() => {})
 
+    // Sync GMT time clock ticker
+    const updateClock = () => {
+      const d = new Date()
+      setTime(d.toLocaleTimeString('en-US', { hour12: false, timeZone: 'UTC' }))
+    }
+    updateClock()
+    const timerId = setInterval(updateClock, 1000)
+
+    // Mouse movement coordinates tracker
     const handleMouse = (e: MouseEvent) => {
       setMousePos({
         x: e.clientX / window.innerWidth,
@@ -41,7 +55,11 @@ export function AwwwardsLanding() {
       })
     }
     window.addEventListener('mousemove', handleMouse)
-    return () => window.removeEventListener('mousemove', handleMouse)
+
+    return () => {
+      clearInterval(timerId)
+      window.removeEventListener('mousemove', handleMouse)
+    }
   }, [])
 
   const handleRegister = () => {
@@ -65,263 +83,291 @@ export function AwwwardsLanding() {
   ]
 
   return (
-    <div className="bg-[#030303] text-white min-h-screen overflow-x-hidden selection:bg-amber-400/20 selection:text-amber-200">
+    <div className="bg-[#030303] text-[#f5f5f0] min-h-screen overflow-x-hidden selection:bg-amber-400/20 selection:text-amber-200">
       {/* ─── Premium Custom Cursor ─── */}
       <CustomCursor />
 
-      {/* ─── Floating Nav ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 backdrop-blur-md bg-black/10 border-b border-white/[0.02]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      {/* ─── Floating Mono Nav ─── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 backdrop-blur-md bg-black/10 border-b border-white/[0.03]">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2 select-none">
             <img
               src="/bnfx-logo.svg"
               alt="BNFX"
-              className="h-6 w-auto"
+              className="h-5 w-auto"
               onError={(e) => {
                 ;(e.target as HTMLImageElement).style.display = 'none'
               }}
             />
-            <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-white to-white/60 bg-clip-text text-transparent">
-              BNFX
+            <span className="font-mono text-sm tracking-wider uppercase font-bold text-white">
+              BNFX // CORE
             </span>
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm text-white/60">
+          <div className="hidden md:flex items-center gap-8 text-xs font-mono uppercase tracking-[0.2em] text-white/50">
             <a href="#features" className="hover:text-white transition-colors">
-              Features
+              [ Features ]
             </a>
             <a href="#plans" className="hover:text-white transition-colors">
-              Plans
+              [ Plans ]
             </a>
             <a href="#calculator" className="hover:text-white transition-colors">
-              Calculator
+              [ Returns Engine ]
             </a>
             <a href="#referrals" className="hover:text-white transition-colors">
-              Referrals
+              [ Referral Network ]
             </a>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={handleLogin}
-              className="text-sm text-white/60 hover:text-white transition-colors"
+              className="text-xs font-mono uppercase tracking-wider text-white/60 hover:text-white transition-colors mr-2"
             >
               Sign in
             </button>
-            <button
+            <MagneticButton
               onClick={handleRegister}
-              className="text-sm px-4 py-2 rounded-full bg-white text-black font-medium hover:bg-white/90 transition-all active:scale-95"
+              className="text-xs font-mono uppercase tracking-widest px-4 py-2 rounded-full bg-white text-black font-semibold hover:bg-white/90 transition-colors"
             >
-              Get Started
-            </button>
+              Enter System
+            </MagneticButton>
           </div>
         </div>
       </nav>
 
-      {/* ─── Hero Section with Interactive Canvas Particles ─── */}
-      <motion.section
+      {/* ─── Hero Section with Arena Aesthetics ─── */}
+      <section
         ref={heroRef}
-        style={{ opacity: heroOpacity, scale: heroScale }}
-        className="relative min-h-screen flex items-center justify-center px-6 pt-20 overflow-hidden"
+        className="relative min-h-screen w-full flex items-center justify-center px-6 pt-24 pb-12 overflow-hidden"
       >
         {/* Particle Canvas Background */}
         <ParticleBackground />
 
-        {/* Gradient Orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-amber-500/5 blur-[120px]"
-            style={{
-              transform: `translate3d(${mousePos.x * 40}px, ${mousePos.y * 40}px, 0)`,
-            }}
-          />
-          <div
-            className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-violet-500/5 blur-[100px]"
-            style={{
-              transform: `translate3d(${-mousePos.x * 30}px, ${-mousePos.y * 30}px, 0)`,
-            }}
-          />
-        </div>
+        {/* Floating Ambient Glow Layer */}
+        <motion.div
+          animate={{
+            x: [0, 80, -40, 0],
+            y: [0, -60, 40, 0],
+            scale: [1, 1.25, 0.95, 1],
+          }}
+          transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full blur-[150px] opacity-30 bg-amber-500/10 pointer-events-none"
+        />
 
-        <div className="relative max-w-5xl mx-auto text-center space-y-8 z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <Badge className="bg-white/5 text-white/70 border-white/10 backdrop-blur-sm px-4 py-1.5 text-xs font-medium">
-              <Sparkles className="size-3 mr-1.5 text-amber-400" />
-              AI-Powered Wealth Generation
-            </Badge>
-          </motion.div>
-
-          {/* Kinetic typography split reveal */}
-          <div className="flex flex-col items-center justify-center select-none">
-            <SplitTextReveal
-              text="Your money"
-              tag="h1"
-              className="text-5xl sm:text-7xl md:text-8xl font-extrabold tracking-tight leading-[0.95]"
-              delay={0.1}
-            />
-            <SplitTextReveal
-              text="works harder."
-              tag="h1"
-              className="text-5xl sm:text-7xl md:text-8xl font-extrabold tracking-tight leading-[0.95] bg-gradient-to-r from-amber-300 via-amber-400 to-orange-400 bg-clip-text text-transparent"
-              delay={0.3}
-            />
+        <motion.div
+          style={{ y: heroY, opacity: heroOpacity, scale: heroScale }}
+          className="relative z-10 w-full max-w-[1600px] mx-auto space-y-12"
+        >
+          {/* Eyebrow & Live Time */}
+          <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.25em] text-white/50 border-b border-white/[0.03] pb-6">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              ◉ EST. 2026 // WEALTH ENGINE COLLECTIVE
+            </div>
+            <div className="hidden md:flex items-center gap-6">
+              <span>[ {time} GMT ]</span>
+              <span>YIELD SYSTEM: ONLINE</span>
+              <span>SESSION /001</span>
+            </div>
           </div>
 
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.7 }}
-            className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto leading-relaxed"
-          >
-            Automated crypto trading with institutional-grade AI. Earn daily returns while you sleep.
-            No trading experience required.
-          </motion.p>
+          {/* Giant Typography Header Structure */}
+          <div className="leading-[0.85] font-black tracking-[-0.04em] text-[clamp(2.8rem,11vw,11rem)] select-none">
+            <div className="flex items-baseline gap-4 flex-wrap">
+              <SplitTextReveal text="Your money" tag="h1" delay={0.1} />
+              <motion.span
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 1, delay: 0.4, type: 'spring' }}
+                className="text-amber-400 text-[0.4em] inline-block font-sans"
+              >
+                ✱
+              </motion.span>
+            </div>
+            <div className="text-right">
+              <SplitTextReveal
+                text="works harder."
+                tag="h1"
+                delay={0.3}
+                className="italic font-light text-white/70"
+              />
+            </div>
+            <div>
+              <span className="relative inline-block text-amber-400">
+                <SplitTextReveal text="yield is power." tag="h1" delay={0.5} />
+                <motion.span
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 1.2, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="absolute -bottom-2 left-0 h-1 w-full origin-left bg-amber-400"
+                />
+              </span>
+            </div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.9 }}
-            className="flex items-center justify-center gap-4"
-          >
-            <button
-              onClick={handleRegister}
-              className="group px-8 py-4 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-black font-semibold text-base hover:shadow-lg hover:shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all"
+          {/* Subtitle & Magnetic Action Button */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mt-16 items-end">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.4, duration: 0.8 }}
+              className="md:col-span-5"
             >
-              Start Earning
-              <ArrowRight className="inline-block ml-2 size-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <a
-              href="#plans"
-              className="px-6 py-4 rounded-full border border-white/10 text-white/70 hover:text-white hover:border-white/20 transition-all text-sm"
+              <p className="text-lg md:text-xl leading-relaxed text-white/50 max-w-md">
+                Automated crypto trading with institutional-grade AI. Earn daily yields from verified plans. No trading experience required.
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.6 }}
+              className="md:col-span-4 md:col-start-9"
             >
-              View Performance
-            </a>
-          </motion.div>
+              <MagneticButton
+                onClick={handleRegister}
+                className="group w-full text-left p-6 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-md hover:bg-white/5 transition-colors"
+              >
+                <div className="text-[9px] font-mono uppercase tracking-[0.3em] text-white/40 mb-3">
+                  /001 START_HERE
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xl font-bold">Start Earning Yield</span>
+                  <div className="p-3 rounded-full bg-amber-400 text-black group-hover:rotate-45 transition-transform duration-500">
+                    <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
+                  </div>
+                </div>
+              </MagneticButton>
+            </motion.div>
+          </div>
 
-          {/* Scroll indicator */}
+          {/* Scroll down indicator */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2"
+            animate={{ opacity: 0.5 }}
+            transition={{ delay: 2 }}
+            className="flex items-center gap-3 pt-6"
           >
-            <motion.div animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
-              <ArrowDown className="size-5 text-white/30" />
-            </motion.div>
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="w-px h-12 bg-white opacity-50"
+            />
+            <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-white/40">
+              Scroll
+            </span>
           </motion.div>
-        </div>
-      </motion.section>
+        </motion.div>
+      </section>
 
       {/* ─── Infinite Live Stats Marquee ─── */}
       <InfiniteMarquee items={liveStatsMarquee} speed={20} />
 
       {/* ─── Bento Features Grid ─── */}
-      <section id="features" className="py-24 md:py-32 px-6 relative">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-16">
-            <p className="text-sm text-amber-400 font-medium mb-2 font-mono">WHY BNFX</p>
-            <SplitTextReveal
-              text="Built for the modern investor."
-              tag="h2"
-              className="text-4xl md:text-5xl font-bold tracking-tight leading-tight"
-            />
-          </div>
+      <section id="features" className="py-32 px-6 relative max-w-[1600px] mx-auto">
+        <div className="mb-16">
+          <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/PILLARS · 05 CORE FEATURES</p>
+          <SplitTextReveal
+            text="Built for the modern investor."
+            tag="h2"
+            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight"
+          />
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Large card */}
-            <FadeInView className="md:col-span-2 lg:col-span-2">
-              <div className="relative h-72 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.06] p-8 overflow-hidden group hover:border-white/10 transition-all duration-500 backdrop-blur-sm">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] group-hover:bg-amber-500/10 transition-colors duration-500" />
-                <Zap className="size-10 text-amber-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">AI-Powered Trading Engine</h3>
-                <p className="text-white/50 text-sm max-w-md leading-relaxed">
-                  Our neural network processes 10,000+ market signals per second, executing trades with sub-millisecond precision across 200+ pairs.
-                </p>
-              </div>
-            </FadeInView>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <FadeInView className="md:col-span-2">
+            <div className="relative h-80 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/10 p-8 overflow-hidden group hover:border-white/20 transition-all duration-500 backdrop-blur-sm">
+              <div className="absolute top-0 right-0 w-72 h-72 bg-amber-500/5 rounded-full blur-[80px] group-hover:bg-amber-500/10 transition-colors duration-500" />
+              <Zap className="size-10 text-amber-400 mb-6" />
+              <h3 className="text-2xl font-bold mb-3">AI-Powered Trading Engine</h3>
+              <p className="text-white/50 text-base max-w-lg leading-relaxed">
+                Our neural network processes 10,000+ market signals per second, executing trades with sub-millisecond precision across 200+ pairs.
+              </p>
+              <div className="absolute bottom-6 right-8 text-white/20 font-mono text-xs">/01 ENGINE</div>
+            </div>
+          </FadeInView>
 
-            <FadeInView>
-              <div className="h-72 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.06] p-8 group hover:border-white/10 transition-all duration-500 backdrop-blur-sm">
-                <Shield className="size-10 text-emerald-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Bank-Grade Security</h3>
-                <p className="text-white/50 text-sm leading-relaxed">
-                  256-bit encryption, multi-sig wallets, and cold storage. Your funds are protected by institutional security.
-                </p>
-              </div>
-            </FadeInView>
+          <FadeInView>
+            <div className="relative h-80 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/10 p-8 group hover:border-white/20 transition-all duration-500 backdrop-blur-sm">
+              <Shield className="size-10 text-emerald-400 mb-6" />
+              <h3 className="text-2xl font-bold mb-3">Bank-Grade Security</h3>
+              <p className="text-white/50 text-sm leading-relaxed">
+                256-bit encryption, multi-sig wallets, and cold storage. Your funds are protected by institutional security.
+              </p>
+              <div className="absolute bottom-6 right-8 text-white/20 font-mono text-xs">/02 SAFETY</div>
+            </div>
+          </FadeInView>
 
-            <FadeInView>
-              <div className="h-72 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.06] p-8 group hover:border-white/10 transition-all duration-500 backdrop-blur-sm">
-                <Globe className="size-10 text-cyan-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Global Access</h3>
-                <p className="text-white/50 text-sm leading-relaxed">
-                  Available in 50+ countries. Deposit via MetaMask, USDC, or transfer pipelines. Multi-language support.
-                </p>
-              </div>
-            </FadeInView>
+          <FadeInView>
+            <div className="relative h-80 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/10 p-8 group hover:border-white/20 transition-all duration-500 backdrop-blur-sm">
+              <Globe className="size-10 text-cyan-400 mb-6" />
+              <h3 className="text-2xl font-bold mb-3">Global Access</h3>
+              <p className="text-white/50 text-sm leading-relaxed">
+                Available in 50+ countries. Deposit via MetaMask, USDC, or transfer pipelines. Multi-language support.
+              </p>
+              <div className="absolute bottom-6 right-8 text-white/20 font-mono text-xs">/03 GLOBAL</div>
+            </div>
+          </FadeInView>
 
-            <FadeInView>
-              <div className="h-72 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.06] p-8 group hover:border-white/10 transition-all duration-500 backdrop-blur-sm">
-                <Users className="size-10 text-violet-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">7-Level Referrals</h3>
-                <p className="text-white/50 text-sm leading-relaxed">
-                  Earn from your entire network. Up to 25% commission on Level 1, cascading through 7 levels of depth.
-                </p>
-              </div>
-            </FadeInView>
+          <FadeInView>
+            <div className="relative h-80 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/10 p-8 group hover:border-white/20 transition-all duration-500 backdrop-blur-sm">
+              <Users className="size-10 text-violet-400 mb-6" />
+              <h3 className="text-2xl font-bold mb-3">7-Level Referrals</h3>
+              <p className="text-white/50 text-sm leading-relaxed">
+                Earn from your entire network. Up to 25% commission on Level 1, cascading through 7 levels of depth.
+              </p>
+              <div className="absolute bottom-6 right-8 text-white/20 font-mono text-xs">/04 NETWORK</div>
+            </div>
+          </FadeInView>
 
-            <FadeInView>
-              <div className="h-72 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/[0.06] p-8 group hover:border-white/10 transition-all duration-500 backdrop-blur-sm">
-                <TrendingUp className="size-10 text-rose-400 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Variable Returns</h3>
-                <p className="text-white/50 text-sm leading-relaxed">
-                  Choose your risk level. Low (0.3-1.2%), Medium (1-3%), or High (2.5-8%) daily returns based on market conditions.
-                </p>
-              </div>
-            </FadeInView>
-          </div>
+          <FadeInView>
+            <div className="relative h-80 rounded-3xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] border border-white/10 p-8 group hover:border-white/20 transition-all duration-500 backdrop-blur-sm">
+              <TrendingUp className="size-10 text-rose-400 mb-6" />
+              <h3 className="text-2xl font-bold mb-3">Variable Returns</h3>
+              <p className="text-white/50 text-sm leading-relaxed">
+                Choose your risk level. Low (0.3-1.2%), Medium (1-3%), or High (2.5-8%) daily returns based on market conditions.
+              </p>
+              <div className="absolute bottom-6 right-8 text-white/20 font-mono text-xs">/05 YIELD</div>
+            </div>
+          </FadeInView>
         </div>
       </section>
 
       {/* ─── Plans Section ─── */}
-      <section id="plans" className="py-24 md:py-32 px-6 bg-[#050506]/40">
-        <div className="max-w-6xl mx-auto">
+      <section id="plans" className="py-32 px-6 bg-[#050506]/40 relative border-t border-white/[0.03]">
+        <div className="max-w-[1600px] mx-auto">
           <div className="mb-16">
-            <p className="text-sm text-amber-400 font-medium mb-2 font-mono">INVESTMENT PLANS</p>
+            <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/INDEX_002 · OPERATIONAL PLANS</p>
             <SplitTextReveal
               text="Choose your path."
               tag="h2"
-              className="text-4xl md:text-5xl font-bold tracking-tight mb-4"
+              className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-4"
             />
-            <p className="text-white/50 max-w-lg">
-              From conservative to aggressive — pick the strategy that matches your goals.
+            <p className="text-white/40 max-w-lg">
+              From conservative to aggressive — pick the strategy that matches your wealth goals.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {(plans || []).slice(0, 4).map((plan, i) => (
               <FadeInView key={plan.id} delay={i * 0.1}>
-                <div className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent border border-white/[0.06] p-6 hover:border-amber-500/20 transition-all duration-500 group backdrop-blur-sm flex flex-col justify-between h-full">
+                <div className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 p-6 hover:border-amber-500/20 transition-all duration-500 group backdrop-blur-sm flex flex-col justify-between h-full">
                   <div>
                     <div className="text-3xl mb-4">{['🛡️', '💎', '👑', '🚀'][i] || '📈'}</div>
                     <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
                     <p className="text-white/40 text-xs mb-4">From ${plan.minDeposit}</p>
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-2 text-sm border-t border-white/[0.05] pt-4">
                       <div className="flex justify-between text-white/60">
                         <span>Daily Return</span>
-                        <span className="text-amber-400 font-medium" dir="ltr">
+                        <span className="text-amber-400 font-medium font-mono" dir="ltr">
                           {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}%
                         </span>
                       </div>
                       <div className="flex justify-between text-white/60">
                         <span>Max Deposit</span>
-                        <span dir="ltr">${plan.maxDeposit.toLocaleString()}</span>
+                        <span dir="ltr" className="font-mono">${plan.maxDeposit.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-white/60">
                         <span>Daily Earning Cap</span>
-                        <span dir="ltr">
+                        <span dir="ltr" className="font-mono">
                           {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
                         </span>
                       </div>
@@ -341,19 +387,19 @@ export function AwwwardsLanding() {
       </section>
 
       {/* ─── Integrated Dynamic Earnings Calculator ─── */}
-      <section id="calculator" className="relative py-24 md:py-32 px-6 border-t border-white/[0.03]">
+      <section id="calculator" className="relative py-32 px-6 border-t border-white/[0.03]">
         <EarningsCalculator />
       </section>
 
       {/* ─── How It Works ─── */}
-      <section id="returns" className="py-24 md:py-32 px-6 border-t border-white/[0.03]">
+      <section id="returns" className="py-32 px-6 border-t border-white/[0.03]">
         <div className="max-w-4xl mx-auto">
           <div className="mb-16">
-            <p className="text-sm text-amber-400 font-medium mb-2 font-mono">HOW IT WORKS</p>
+            <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/SYSTEM_METRIC · HOW IT WORKS</p>
             <SplitTextReveal
               text="Three steps to passive income."
               tag="h2"
-              className="text-4xl md:text-5xl font-bold tracking-tight"
+              className="text-4xl md:text-5xl font-black tracking-tight"
             />
           </div>
 
@@ -377,7 +423,7 @@ export function AwwwardsLanding() {
             ].map((item, i) => (
               <FadeInView key={i} delay={i * 0.15}>
                 <div className="flex items-start gap-8 group">
-                  <span className="text-5xl font-bold text-white/10 group-hover:text-amber-400/20 transition-colors duration-500 shrink-0">
+                  <span className="text-5xl font-bold font-mono text-white/10 group-hover:text-amber-400/20 transition-colors duration-500 shrink-0">
                     {item.step}
                   </span>
                   <div>
@@ -392,41 +438,42 @@ export function AwwwardsLanding() {
       </section>
 
       {/* ─── Integrated Dynamic Referral Calculator ─── */}
-      <section id="referrals" className="relative py-24 md:py-32 px-6 border-t border-white/[0.03] bg-[#050506]/40">
+      <section id="referrals" className="relative py-32 px-6 border-t border-white/[0.03] bg-[#050506]/40">
         <ReferralCalculator />
       </section>
 
       {/* ─── CTA Section ─── */}
-      <section className="py-32 px-6 border-t border-white/[0.03] relative overflow-hidden">
+      <section className="py-36 px-6 border-t border-white/[0.03] relative overflow-hidden text-center">
+        {/* Floating background orb */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-amber-500/5 blur-[120px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-amber-500/5 blur-[120px]" />
         </div>
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <FadeInView>
-            <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Ready to start
-              <br />
-              <span className="bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">
-                earning?
-              </span>
-            </h2>
-            <p className="text-white/50 text-lg mb-10 max-w-lg mx-auto">
-              Join 25,000+ investors already earning daily returns with our AI-powered platform.
-            </p>
-            <button
+        <div className="max-w-4xl mx-auto relative z-10 space-y-8">
+          <h2 className="text-5xl md:text-7xl font-black tracking-tight leading-none">
+            Ready to step into the
+            <br />
+            <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+              yield economy?
+            </span>
+          </h2>
+          <p className="text-white/50 text-lg max-w-lg mx-auto">
+            Join 25,000+ investors already earning daily returns with our AI-powered platform.
+          </p>
+          <div className="pt-4 flex justify-center">
+            <MagneticButton
               onClick={handleRegister}
-              className="group px-10 py-5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-black font-semibold text-lg hover:shadow-xl hover:shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all"
+              className="group px-10 py-5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-black font-semibold text-lg hover:shadow-xl hover:shadow-amber-500/20 transition-all"
             >
               Create Free Account
               <ArrowRight className="inline-block ml-2 size-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </FadeInView>
+            </MagneticButton>
+          </div>
         </div>
       </section>
 
       {/* ─── Footer ─── */}
       <footer className="border-t border-white/5 py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 font-mono text-xs text-white/40">
           <div className="flex items-center gap-2">
             <img
               src="/bnfx-logo.svg"
@@ -436,23 +483,21 @@ export function AwwwardsLanding() {
                 ;(e.target as HTMLImageElement).style.display = 'none'
               }}
             />
-            <span className="font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              BNFX
-            </span>
-            <span className="text-white/30 text-sm ml-2">© 2026</span>
+            <span className="font-bold text-white">BNFX // CORE</span>
+            <span className="ml-2">© 2026</span>
           </div>
-          <div className="flex items-center gap-6 text-sm text-white/40">
+          <div className="flex items-center gap-6">
             <a href="#" className="hover:text-white transition-colors">
-              Terms
+              [ Terms ]
             </a>
             <a href="#" className="hover:text-white transition-colors">
-              Privacy
+              [ Privacy ]
             </a>
             <a href="#" className="hover:text-white transition-colors">
-              Risk Disclaimer
+              [ Risk Disclaimer ]
             </a>
             <a href="#" className="hover:text-white transition-colors">
-              Support
+              [ Support ]
             </a>
           </div>
         </div>
@@ -477,9 +522,9 @@ function FadeInView({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 35 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, delay, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
       className={className}
     >
       {children}
