@@ -23,7 +23,7 @@ export async function GET() {
 
     const plans = await db.plan.findMany({
       orderBy: { sortOrder: 'asc' },
-      include: { referralRules: true }
+      include: { referralRules: true, conditionalLogics: true }
     })
     return NextResponse.json(plans)
   } catch (error) {
@@ -52,7 +52,7 @@ export async function PUT(request: Request) {
       }, { status: 503 })
     }
 
-    const { id, referralRules, ...data } = await request.json()
+    const { id, referralRules, conditionalLogics, ...data } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 })
@@ -97,7 +97,32 @@ export async function PUT(request: Request) {
           data: referralRules.map((r: any) => ({
             planId: id,
             level: Number(r.level),
-            commission: Number(r.commission),
+            commission: Number(r.commission || 0),
+            amount: Number(r.amount || 0),
+            type: r.type || 'registration',
+            minSponsorDeposit: Number(r.minSponsorDeposit || 0),
+            minDirectReferrals: Number(r.minDirectReferrals || 0),
+            targetWallet: r.targetWallet || 'trading',
+            enabled: r.enabled !== false,
+          }))
+        })
+      }
+    }
+
+    if (conditionalLogics && Array.isArray(conditionalLogics)) {
+      await db.planConditionalLogic.deleteMany({ where: { planId: id } })
+      if (conditionalLogics.length > 0) {
+        await db.planConditionalLogic.createMany({
+          data: conditionalLogics.map((l: any) => ({
+            planId: id,
+            enabled: l.enabled !== false,
+            priority: Number(l.priority || 1),
+            conditionType: l.conditionType,
+            operator: l.operator,
+            value: String(l.value),
+            actionType: l.actionType,
+            actionValue: String(l.actionValue),
+            description: l.description || '',
           }))
         })
       }
@@ -105,7 +130,7 @@ export async function PUT(request: Request) {
 
     const updatedPlan = await db.plan.findUnique({
       where: { id },
-      include: { referralRules: true }
+      include: { referralRules: true, conditionalLogics: true }
     })
 
     return NextResponse.json(updatedPlan)
@@ -138,7 +163,7 @@ export async function POST(request: Request) {
     const data = await request.json()
 
     // Remove fields that shouldn't be in create
-    const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, referralRules, ...createData } = data as any
+    const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, referralRules, conditionalLogics, ...createData } = data as any
 
     // Auto-generate plain English descriptions as fallback
     const daily = data.dailyEarningPercent ?? 0
@@ -168,14 +193,36 @@ export async function POST(request: Request) {
         data: referralRules.map((r: any) => ({
           planId: plan.id,
           level: Number(r.level),
-          commission: Number(r.commission),
+          commission: Number(r.commission || 0),
+          amount: Number(r.amount || 0),
+          type: r.type || 'registration',
+          minSponsorDeposit: Number(r.minSponsorDeposit || 0),
+          minDirectReferrals: Number(r.minDirectReferrals || 0),
+          targetWallet: r.targetWallet || 'trading',
+          enabled: r.enabled !== false,
+        }))
+      })
+    }
+
+    if (conditionalLogics && Array.isArray(conditionalLogics) && conditionalLogics.length > 0) {
+      await db.planConditionalLogic.createMany({
+        data: conditionalLogics.map((l: any) => ({
+          planId: plan.id,
+          enabled: l.enabled !== false,
+          priority: Number(l.priority || 1),
+          conditionType: l.conditionType,
+          operator: l.operator,
+          value: String(l.value),
+          actionType: l.actionType,
+          actionValue: String(l.actionValue),
+          description: l.description || '',
         }))
       })
     }
 
     const createdPlan = await db.plan.findUnique({
       where: { id: plan.id },
-      include: { referralRules: true }
+      include: { referralRules: true, conditionalLogics: true }
     })
 
     return NextResponse.json(createdPlan, { status: 201 })

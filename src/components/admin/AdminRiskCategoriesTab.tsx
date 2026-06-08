@@ -91,10 +91,38 @@ export function AdminRiskCategoriesTab() {
     } catch { toast({ title: 'Failed', variant: 'destructive' }) }
   }
 
+  const [logicConfig, setLogicConfig] = useState<any>(null)
+  useEffect(() => {
+    fetch('/api/admin/logic-builder')
+      .then(r => r.json())
+      .then(setLogicConfig)
+      .catch(() => {})
+  }, [])
+
   if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
 
   return (
     <div className="space-y-6">
+      {/* Logic Builder Connection Banner */}
+      {logicConfig && (
+        <Card className="border-emerald-500/20 bg-emerald-500/5 shadow-sm">
+          <CardContent className="py-2.5 px-4 flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-semibold text-foreground">Connected to Logic Builder:</span>
+              <span>
+                Dynamic Risk Adjustment = <strong>{logicConfig.riskRules?.find((r: any) => r.id === 'risk_dynamic')?.enabled ? 'Enabled' : 'Disabled'}</strong> • 
+                Platform Load Balancing = <strong>{logicConfig.riskRules?.find((r: any) => r.id === 'risk_platform_load')?.enabled ? 'Enabled' : 'Disabled'}</strong>
+              </span>
+            </div>
+            <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-500/30 text-[9px] h-5">Connected</Badge>
+          </CardContent>
+        </Card>
+      )}
+
       <div>
         <h2 className="text-xl font-bold flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /> Risk Categories & Win %</h2>
         <p className="text-sm text-muted-foreground">Assign users to risk tiers and configure variable daily return percentages</p>

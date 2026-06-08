@@ -239,8 +239,8 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
                     <p className="font-medium">{formatCurrency(selectedPlan.entryFee)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Max Earning</p>
-                    <p className="font-medium">{formatCurrency(selectedPlan.maxEarningLimit)}</p>
+                    <p className="text-muted-foreground">Daily Earning Cap</p>
+                    <p className="font-medium">{Math.round(selectedPlan.maxEarningLimit / selectedPlan.minDeposit)}X</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Deposit Range</p>

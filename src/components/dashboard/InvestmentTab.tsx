@@ -465,8 +465,8 @@ export function InvestmentTab() {
                     <p className="font-medium">${selectedPlan.entryFee}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Max Earning</p>
-                    <p className="font-medium">${selectedPlan.maxEarningLimit.toLocaleString()}</p>
+                    <p className="text-muted-foreground">Daily Earning Cap</p>
+                    <p className="font-medium">{Math.round(selectedPlan.maxEarningLimit / selectedPlan.minDeposit)}X</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Investment Range</p>
@@ -630,7 +630,7 @@ export function InvestmentTab() {
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        Daily: {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}% • Max: {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
+                        Daily: {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}% • Cap: {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
                       </p>
                     </div>
                     <div className="text-right">

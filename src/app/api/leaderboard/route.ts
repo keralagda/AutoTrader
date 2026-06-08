@@ -5,9 +5,29 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'all_time'
+    const teamOnly = searchParams.get('teamOnly') === 'true'
+    const userId = searchParams.get('userId')
+
+    const whereClause: any = { role: 'user', isActive: true }
+
+    if (teamOnly && userId) {
+      let currentLevelIds = [userId]
+      const teamIds = [userId]
+      for (let level = 1; level <= 7; level++) {
+        const members = await db.user.findMany({
+          where: { referredById: { in: currentLevelIds } },
+          select: { id: true },
+        })
+        if (members.length === 0) break
+        const ids = members.map(m => m.id)
+        teamIds.push(...ids)
+        currentLevelIds = ids
+      }
+      whereClause.id = { in: teamIds }
+    }
 
     const users = await db.user.findMany({
-      where: { role: 'user', isActive: true },
+      where: whereClause,
       select: {
         id: true,
         name: true,

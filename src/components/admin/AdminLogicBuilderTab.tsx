@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -176,6 +177,28 @@ export function AdminLogicBuilderTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [config, setConfig] = useState<LogicConfig | null>(null)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [generating, setGenerating] = useState(false)
+
+  const handleGenerateWithAI = async () => {
+    if (!aiPrompt.trim() || !config) return
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/ai/generate-logic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt, currentConfig: config }),
+      })
+      if (!res.ok) throw new Error('AI generation failed')
+      const data = await res.json()
+      setConfig(data)
+      toast({ title: 'AI Generation Successful', description: 'Logic rules configuration updated.' })
+    } catch (error) {
+      toast({ title: 'AI Generation Failed', description: 'Could not generate logic rules from prompt.', variant: 'destructive' })
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/admin/logic-builder')
@@ -266,6 +289,33 @@ export function AdminLogicBuilderTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Logic Assistant */}
+      <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">AI Logic Assistant</h4>
+            <p className="text-[11px] text-muted-foreground">Describe how you want to adjust the platform logic (e.g., "Enable weekend reduced returns to 15% and increase base skew power to 4")</p>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Textarea
+            value={aiPrompt}
+            onChange={e => setAiPrompt(e.target.value)}
+            placeholder="Describe your rules modifications..."
+            className="bg-muted/50 border-border/50 resize-none h-16 text-xs flex-1 text-foreground"
+          />
+          <Button
+            type="button"
+            onClick={handleGenerateWithAI}
+            disabled={generating || !aiPrompt.trim()}
+            className="sm:self-end bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs h-9"
+          >
+            {generating ? 'Updating...' : 'Generate with AI'}
+          </Button>
+        </div>
+      </div>
 
       <Tabs defaultValue="variables" className="space-y-4">
         <TabsList className="flex-wrap">

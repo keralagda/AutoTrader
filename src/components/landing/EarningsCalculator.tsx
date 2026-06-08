@@ -195,7 +195,7 @@ export function EarningsCalculator() {
                 Estimated ROI: {roi}% in {days} trading days ({risk.label.replace(/[🟢🟡🔴]\s*/, '')} risk)
               </Badge>
               <p className="text-[10px] text-muted-foreground mt-2" dir="ltr">
-                * Returns vary between {risk.min}%-{risk.max}% daily based on {risk.id} risk level. Capped at ${(plan?.maxEarningLimit || 10000).toLocaleString()} for {plan?.name || 'Selected'} plan.
+                * Returns vary between {risk.min}%-{risk.max}% daily based on {risk.id} risk level. Daily Earning Cap is {Math.round((plan?.maxEarningLimit || 10000) / (plan?.minDeposit || 100))}X for {plan?.name || 'Selected'} plan.
               </p>
             </div>
           </CardContent>

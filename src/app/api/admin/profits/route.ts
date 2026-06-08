@@ -52,13 +52,27 @@ export async function POST(request: Request) {
     for (const deposit of deposits) {
       const absAmount = Math.abs(amount)
       const plan = deposit.plan
-      const accountHolderPct = plan.accountHolderPercent ?? 50
-      const tradeProfitSharePct = plan.tradeProfitSharePercent ?? 30
-      const rewardsOffersPct = plan.rewardsOffersPercent ?? 15
-      const platformFeePct = plan.platformFeePercent ?? 5
+      const yieldPct = (absAmount / deposit.amount) * 100
+      let accountHolderPct = plan.accountHolderPercent ?? 50
+      let tradeProfitSharePct = plan.tradeProfitSharePercent ?? 30
+      let rewardsOffersPct = plan.rewardsOffersPercent ?? 15
+      let platformFeePct = plan.platformFeePercent ?? 5
+      let pauseReferrals = false
+
+      const { evaluatePlanLogics } = await import('@/lib/logic-engine')
+      const logicResult = await evaluatePlanLogics(plan.id, yieldPct, plan)
+
+      if (logicResult.disablePlan) {
+        continue // Skip if plan is disabled by conditional logic
+      }
+
+      accountHolderPct = logicResult.accountHolderPercent
+      tradeProfitSharePct = logicResult.tradeProfitSharePercent
+      platformFeePct = logicResult.platformFeePercent
+      pauseReferrals = logicResult.pauseReferrals
 
       const investorShare = (absAmount * accountHolderPct) / 100
-      const sharePoolAmount = (absAmount * tradeProfitSharePct) / 100
+      const sharePoolAmount = pauseReferrals ? 0 : (absAmount * tradeProfitSharePct) / 100
       const rewardsShare = (absAmount * rewardsOffersPct) / 100
       const platformFeeShare = (absAmount * platformFeePct) / 100
 
@@ -107,16 +121,30 @@ export async function POST(request: Request) {
 
         // Reverse profit share to upline
         if (sharePoolAmount > 0) {
+          const referralRules = await db.planReferralRule.findMany({
+            where: { planId: plan.id, type: 'profit', enabled: true }
+          })
           const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+          const maxLevels = plan.registrationReferralLevels || 7
+
           let currentReferrerId = user.referredById
           let level = 0
 
-          while (currentReferrerId && level < 7) {
+          while (currentReferrerId && level < maxLevels) {
             const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
             if (!referrer) break
 
-            const shareAmount = (sharePoolAmount * REFERRAL_PERCENTS[level]) / 100
+            const rule = referralRules.find(r => r.level === (level + 1))
+            let shareAmount = 0
+            if (rule) {
+              shareAmount = rule.amount > 0 ? rule.amount : (sharePoolAmount * rule.commission) / 100
+            } else {
+              const rate = REFERRAL_PERCENTS[level] !== undefined ? REFERRAL_PERCENTS[level] : 0
+              shareAmount = (sharePoolAmount * rate) / 100
+            }
+
             if (shareAmount > 0) {
+              const targetWallet = rule?.targetWallet === 'withdrawal' ? 'withdrawal' : 'trading'
               await db.earning.create({
                 data: {
                   userId: referrer.id,
@@ -124,17 +152,27 @@ export async function POST(request: Request) {
                   amount: -shareAmount,
                   type: 'subtract',
                   level: level + 1,
-                  walletTarget: 'trading',
+                  walletTarget: targetWallet,
                 },
               })
 
-              await db.user.update({
-                where: { id: referrer.id },
-                data: {
-                  totalEarnings: Math.max(0, referrer.totalEarnings - shareAmount),
-                  tradingBalance: Math.max(0, referrer.tradingBalance - shareAmount),
-                },
-              })
+              if (targetWallet === 'withdrawal') {
+                await db.user.update({
+                  where: { id: referrer.id },
+                  data: {
+                    totalEarnings: Math.max(0, referrer.totalEarnings - shareAmount),
+                    withdrawalBalance: Math.max(0, referrer.withdrawalBalance - shareAmount),
+                  },
+                })
+              } else {
+                await db.user.update({
+                  where: { id: referrer.id },
+                  data: {
+                    totalEarnings: Math.max(0, referrer.totalEarnings - shareAmount),
+                    tradingBalance: Math.max(0, referrer.tradingBalance - shareAmount),
+                  },
+                })
+              }
             }
 
             currentReferrerId = referrer.referredById
@@ -236,16 +274,39 @@ export async function POST(request: Request) {
 
         // Distribute profit share to upline (referrals)
         if (sharePoolAmount > 0) {
+          const referralRules = await db.planReferralRule.findMany({
+            where: { planId: plan.id, type: 'profit', enabled: true },
+            orderBy: { level: 'asc' }
+          })
           const REFERRAL_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
+          const maxLevels = plan.registrationReferralLevels || 7
           let currentReferrerId = user.referredById
           let level = 0
 
-          while (currentReferrerId && level < 7) {
+          while (currentReferrerId && level < maxLevels) {
             const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
             if (!referrer) break
 
-            const shareAmount = (sharePoolAmount * REFERRAL_PERCENTS[level]) / 100
+            const directReferrals = await db.user.count({ where: { referredById: referrer.id } })
+            const activeDepositsList = await db.deposit.findMany({
+              where: { userId: referrer.id, status: 'active' },
+              select: { amount: true }
+            })
+            const activeDepositsTotal = activeDepositsList.reduce((sum, d) => sum + d.amount, 0)
+
+            const rule = referralRules.find(r => r.level === (level + 1))
+            let shareAmount = 0
+            if (rule) {
+              if (activeDepositsTotal >= rule.minSponsorDeposit && directReferrals >= rule.minDirectReferrals) {
+                shareAmount = rule.amount > 0 ? rule.amount : (sharePoolAmount * rule.commission) / 100
+              }
+            } else {
+              const rate = REFERRAL_PERCENTS[level] !== undefined ? REFERRAL_PERCENTS[level] : 0
+              shareAmount = (sharePoolAmount * rate) / 100
+            }
+
             if (shareAmount > 0) {
+              const targetWallet = rule?.targetWallet === 'withdrawal' ? 'withdrawal' : 'trading'
               await db.earning.create({
                 data: {
                   userId: referrer.id,
@@ -253,17 +314,27 @@ export async function POST(request: Request) {
                   amount: shareAmount,
                   type: 'profit_share',
                   level: level + 1,
-                  walletTarget: 'trading',
+                  walletTarget: targetWallet,
                 },
               })
 
-              await db.user.update({
-                where: { id: referrer.id },
-                data: {
-                  totalEarnings: referrer.totalEarnings + shareAmount,
-                  tradingBalance: referrer.tradingBalance + shareAmount,
-                },
-              })
+              if (targetWallet === 'withdrawal') {
+                await db.user.update({
+                  where: { id: referrer.id },
+                  data: {
+                    totalEarnings: referrer.totalEarnings + shareAmount,
+                    withdrawalBalance: referrer.withdrawalBalance + shareAmount,
+                  },
+                })
+              } else {
+                await db.user.update({
+                  where: { id: referrer.id },
+                  data: {
+                    totalEarnings: referrer.totalEarnings + shareAmount,
+                    tradingBalance: referrer.tradingBalance + shareAmount,
+                  },
+                })
+              }
             }
 
             currentReferrerId = referrer.referredById

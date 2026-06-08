@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
+import { Slider } from '@/components/ui/slider'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,7 +26,7 @@ import { cn } from '@/lib/utils'
 import {
   Plus, Save, Edit2, X, Trash2, ChevronDown, ChevronUp,
   DollarSign, Percent, Lock, Layers, BarChart3, Eye,
-  RefreshCw, Info, AlertTriangle, Clock, Zap
+  RefreshCw, Info, AlertTriangle, Clock, Zap, Sparkles, Settings
 } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 
@@ -34,7 +35,34 @@ interface EditablePlan extends PlanType {
   isEditing?: boolean
   isNew?: boolean
   isExpanded?: boolean
-  referralRules?: { level: number; commission: number }[]
+  referralRules?: {
+    id?: string
+    level: number
+    commission: number
+    amount: number
+    type: string
+    minSponsorDeposit: number
+    minDirectReferrals: number
+    targetWallet: string
+    enabled: boolean
+  }[]
+  conditionalLogics?: {
+    id?: string
+    enabled: boolean
+    priority: number
+    conditionType: string
+    operator: string
+    value: string
+    actionType: string
+    actionValue: string
+    description?: string
+  }[]
+  maxEarningMultiplier?: number
+  drawdownLimit?: number
+  profitTarget?: number
+  hedgingRatio?: number
+  lossLimitAction?: string
+  pnlLogicDescription?: string
 }
 
 // ─── Auto-generation helpers ─────────────────────────────────────────────────
@@ -89,6 +117,58 @@ export function PlansTab() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [newPlanData, setNewPlanData] = useState<EditablePlan | null>(null)
 
+  // Floating Simulator & Calculator state
+  const [showCalc, setShowCalc] = useState(false)
+  const [simName, setSimName] = useState('New Custom Plan')
+  const [simMinDeposit, setSimMinDeposit] = useState(100)
+  const [simDailyRate, setSimDailyRate] = useState(1.5)
+  const [simCapMult, setSimCapMult] = useState(2.0)
+  const [simHolder, setSimHolder] = useState(75)
+  const [simShared, setSimShared] = useState(20)
+  const [simRewards, setSimRewards] = useState(5)
+  const [simPlatform, setSimPlatform] = useState(0)
+  const [simCharity, setSimCharity] = useState(0)
+  const [simInsurance, setSimInsurance] = useState(0)
+  const [simDeveloper, setSimDeveloper] = useState(0)
+  const [simLiquidity, setSimLiquidity] = useState(0)
+  const [simLevels, setSimLevels] = useState(7)
+  const [simRules, setSimRules] = useState<{level: number, commission: number, amount: number}[]>([])
+  const [simDrawdown, setSimDrawdown] = useState(10.0)
+  const [simTarget, setSimTarget] = useState(20.0)
+  const [simHedging, setSimHedging] = useState(0.0)
+  const [simAction, setSimAction] = useState('pause')
+  const [simPrincipal, setSimPrincipal] = useState(1000)
+  const [simYieldPercent, setSimYieldPercent] = useState(1.5)
+
+  const activeEditingPlan = plans.find(p => p.isEditing)
+
+  useEffect(() => {
+    if (activeEditingPlan) {
+      setSimName(activeEditingPlan.name || '')
+      setSimMinDeposit(activeEditingPlan.minDeposit || 100)
+      setSimDailyRate(activeEditingPlan.dailyEarningPercent || 1.0)
+      setSimCapMult(activeEditingPlan.maxEarningMultiplier || 2.0)
+      setSimHolder(activeEditingPlan.accountHolderPercent || 50)
+      setSimShared(activeEditingPlan.tradeProfitSharePercent || 30)
+      setSimRewards(activeEditingPlan.rewardsOffersPercent || 15)
+      setSimPlatform(activeEditingPlan.platformFeePercent || 5)
+      setSimCharity((activeEditingPlan as any).charityDonationPercent || 0)
+      setSimInsurance((activeEditingPlan as any).insuranceReservePercent || 0)
+      setSimDeveloper((activeEditingPlan as any).developerFundPercent || 0)
+      setSimLiquidity((activeEditingPlan as any).liquidityPoolPercent || 0)
+      setSimLevels(activeEditingPlan.registrationReferralLevels || 7)
+      setSimRules((activeEditingPlan.referralRules || []).map((r: any) => ({
+        level: r.level,
+        commission: r.commission || 0,
+        amount: r.amount || 0
+      })))
+      setSimDrawdown((activeEditingPlan as any).drawdownLimit ?? 10.0)
+      setSimTarget((activeEditingPlan as any).profitTarget ?? 20.0)
+      setSimHedging((activeEditingPlan as any).hedgingRatio ?? 0.0)
+      setSimAction((activeEditingPlan as any).lossLimitAction || 'pause')
+    }
+  }, [activeEditingPlan])
+
   const fetchPlans = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/plans')
@@ -136,6 +216,21 @@ export function PlansTab() {
       }
       if (['stackingEnabled', 'maxStacks', 'stackingBonusPercent'].includes(field as string)) {
         updated.stackingRule = generateStackingRule(updated)
+      }
+
+      // Sync cap & multiplier
+      if (field === 'minDeposit' || field === 'maxEarningMultiplier') {
+        const mult = updated.maxEarningMultiplier ?? 2.0
+        const minDep = updated.minDeposit ?? 100
+        updated.maxEarningLimit = Number((minDep * mult).toFixed(2))
+        updated.earningMechanism = generateEarningMechanism(updated)
+      }
+      if (field === 'maxEarningLimit') {
+        const minDep = updated.minDeposit ?? 100
+        if (minDep > 0) {
+          updated.maxEarningMultiplier = Number((value / minDep).toFixed(1))
+        }
+        updated.earningMechanism = generateEarningMechanism(updated)
       }
 
       return updated
@@ -255,6 +350,12 @@ export function PlansTab() {
       isEditing: true,
       isNew: true,
       isExpanded: true,
+      maxEarningMultiplier: 2.0,
+      drawdownLimit: 10.0,
+      profitTarget: 20.0,
+      hedgingRatio: 0.0,
+      lossLimitAction: 'pause',
+      pnlLogicDescription: 'Base risk settings initialized.',
       // New configurations
       depositMultipleOf: 100.0,
       strictMultiples: true,
@@ -277,13 +378,13 @@ export function PlansTab() {
       minVipTier: 'Bronze',
       spotsLimit: 0,
       referralRules: [
-        { level: 1, commission: 25 },
-        { level: 2, commission: 20 },
-        { level: 3, commission: 15 },
-        { level: 4, commission: 10 },
-        { level: 5, commission: 10 },
-        { level: 6, commission: 10 },
-        { level: 7, commission: 10 },
+        { level: 1, commission: 25, amount: 0 },
+        { level: 2, commission: 20, amount: 0 },
+        { level: 3, commission: 15, amount: 0 },
+        { level: 4, commission: 10, amount: 0 },
+        { level: 5, commission: 10, amount: 0 },
+        { level: 6, commission: 10, amount: 0 },
+        { level: 7, commission: 10, amount: 0 },
       ],
     }
     setNewPlanData(newPlan)
@@ -304,6 +405,22 @@ export function PlansTab() {
       if (['stackingEnabled', 'maxStacks', 'stackingBonusPercent'].includes(field as string)) {
         updated.stackingRule = generateStackingRule(updated)
       }
+
+      // Sync cap & multiplier
+      if (field === 'minDeposit' || field === 'maxEarningMultiplier') {
+        const mult = updated.maxEarningMultiplier ?? 2.0
+        const minDep = updated.minDeposit ?? 100
+        updated.maxEarningLimit = Number((minDep * mult).toFixed(2))
+        updated.earningMechanism = generateEarningMechanism(updated)
+      }
+      if (field === 'maxEarningLimit') {
+        const minDep = updated.minDeposit ?? 100
+        if (minDep > 0) {
+          updated.maxEarningMultiplier = Number((value / minDep).toFixed(1))
+        }
+        updated.earningMechanism = generateEarningMechanism(updated)
+      }
+
       return updated
     })
   }
@@ -481,6 +598,294 @@ export function PlansTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* Floating Yield Simulator Toggle */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={() => setShowCalc(!showCalc)}
+          className="rounded-full shadow-lg h-12 w-12 bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center p-0"
+        >
+          <BarChart3 className="size-6 animate-pulse" />
+        </Button>
+      </div>
+
+      {showCalc && (
+        <Card className="fixed bottom-20 right-6 z-50 w-[350px] md:w-[450px] max-h-[85vh] overflow-y-auto bg-card/95 border border-emerald-500/20 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-200">
+          <CardHeader className="pb-3 border-b border-border/30 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-foreground">
+                <BarChart3 className="h-4 w-4 text-emerald-400" />
+                Plan Yield Simulator & Calculator
+              </CardTitle>
+              <CardDescription className="text-[10px]">
+                Simulate splits and limits based on plan config
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setShowCalc(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4 text-xs">
+            {/* Sync Alert */}
+            {activeEditingPlan ? (
+              <div className="p-2 rounded bg-violet-500/10 border border-violet-500/20 text-[10px] text-violet-400 flex items-center justify-between">
+                <span>Simulating active plan in editor: <strong>{simName || 'Untitled'}</strong></span>
+                <Button 
+                  size="sm" 
+                  className="h-5 text-[9px] bg-violet-600 hover:bg-violet-700 text-white py-0 px-2 font-medium"
+                  onClick={() => {
+                    const id = activeEditingPlan.id
+                    handleChange(id, 'minDeposit', simMinDeposit)
+                    handleChange(id, 'dailyEarningPercent', simDailyRate)
+                    handleChange(id, 'maxEarningMultiplier', simCapMult)
+                    handleChange(id, 'maxEarningLimit', simMinDeposit * simCapMult)
+                    handleChange(id, 'accountHolderPercent', simHolder)
+                    handleChange(id, 'tradeProfitSharePercent', simShared)
+                    handleChange(id, 'rewardsOffersPercent', simRewards)
+                    handleChange(id, 'platformFeePercent', simPlatform)
+                    handleChange(id, 'charityDonationPercent', simCharity)
+                    handleChange(id, 'insuranceReservePercent', simInsurance)
+                    handleChange(id, 'developerFundPercent', simDeveloper)
+                    handleChange(id, 'liquidityPoolPercent', simLiquidity)
+                    handleChange(id, 'drawdownLimit', simDrawdown)
+                    handleChange(id, 'profitTarget', simTarget)
+                    handleChange(id, 'hedgingRatio', simHedging)
+                    handleChange(id, 'lossLimitAction', simAction)
+                    if (simRules.length > 0) {
+                      handleChange(id, 'referralRules', simRules)
+                    }
+                    toast({ title: 'Plan Builder Synced', description: 'Form fields populated with calculator parameters.' })
+                  }}
+                >
+                  Sync to Form
+                </Button>
+              </div>
+            ) : (
+              <div className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-400">
+                <p>No active plan is being edited. Tweak parameters below and click "Create New Plan" to populate the form.</p>
+                <Button 
+                  size="sm" 
+                  className="h-5 text-[9px] bg-amber-600 hover:bg-amber-700 text-white py-0 px-2 mt-1.5 w-full font-medium"
+                  onClick={() => {
+                    handleAddNew()
+                    setTimeout(() => {
+                      toast({ title: 'New Plan Form Created', description: 'Click Sync to Form inside calculator to apply values.' })
+                    }, 500)
+                  }}
+                >
+                  Create Plan from Simulator
+                </Button>
+              </div>
+            )}
+
+            {/* Simulated Inputs */}
+            <div className="space-y-3 p-3 rounded-lg border border-border/50 bg-muted/20">
+              <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">Simulated Test Parameters</p>
+              
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-medium text-muted-foreground">
+                  <span>Simulated Investment ($)</span>
+                  <span className="text-emerald-400 font-bold">${simPrincipal.toLocaleString()}</span>
+                </div>
+                <Slider
+                  value={[simPrincipal]}
+                  onValueChange={([v]) => setSimPrincipal(v)}
+                  min={100}
+                  max={10000}
+                  step={100}
+                  className="py-1"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-medium text-muted-foreground">
+                  <span>Simulated Daily Rate (%)</span>
+                  <span className="text-cyan-400 font-bold">{simYieldPercent}%</span>
+                </div>
+                <Slider
+                  value={[simYieldPercent]}
+                  onValueChange={([v]) => setSimYieldPercent(v)}
+                  min={0.1}
+                  max={10.0}
+                  step={0.1}
+                  className="py-1"
+                />
+              </div>
+            </div>
+
+            {/* Plan Configuration Controls */}
+            <div className="space-y-3">
+              <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">Simulator Baseline Configuration</p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Daily Return Base (%)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.05"
+                    value={simDailyRate} 
+                    onChange={e => setSimDailyRate(parseFloat(e.target.value) || 0)} 
+                    className="h-7 text-xs bg-muted/30"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Cap Multiplier (X)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.5" 
+                    value={simCapMult} 
+                    onChange={e => setSimCapMult(parseFloat(e.target.value) || 0)} 
+                    className="h-7 text-xs bg-muted/30"
+                  />
+                </div>
+              </div>
+
+              {/* Splits Sliders */}
+              <div className="space-y-2 p-2 rounded bg-muted/10 border border-border/30">
+                <span className="font-semibold text-[10px] text-muted-foreground">Distribution Splits (%)</span>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] text-muted-foreground">Holder: {simHolder}%</span>
+                    <input type="range" min={0} max={100} value={simHolder} onChange={e => {
+                      const v = parseInt(e.target.value) || 0
+                      setSimHolder(v)
+                    }} className="w-full h-1 bg-emerald-500/20 cursor-pointer accent-emerald-500 rounded-full" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] text-muted-foreground">Shared Pool: {simShared}%</span>
+                    <input type="range" min={0} max={100} value={simShared} onChange={e => {
+                      const v = parseInt(e.target.value) || 0
+                      setSimShared(v)
+                    }} className="w-full h-1 bg-cyan-500/20 cursor-pointer accent-cyan-500 rounded-full" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] text-muted-foreground">Rewards: {simRewards}%</span>
+                    <input type="range" min={0} max={100} value={simRewards} onChange={e => {
+                      const v = parseInt(e.target.value) || 0
+                      setSimRewards(v)
+                    }} className="w-full h-1 bg-amber-500/20 cursor-pointer accent-amber-500 rounded-full" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] text-muted-foreground">Platform: {simPlatform}%</span>
+                    <input type="range" min={0} max={100} value={simPlatform} onChange={e => {
+                      const v = parseInt(e.target.value) || 0
+                      setSimPlatform(v)
+                    }} className="w-full h-1 bg-rose-500/20 cursor-pointer accent-rose-500 rounded-full" />
+                  </div>
+                </div>
+                {/* Visual bar */}
+                <div className="h-1.5 rounded-full overflow-hidden flex mt-2 bg-muted">
+                  <div className="bg-emerald-500" style={{ width: `${simHolder}%` }} />
+                  <div className="bg-cyan-500" style={{ width: `${simShared}%` }} />
+                  <div className="bg-amber-500" style={{ width: `${simRewards}%` }} />
+                  <div className="bg-rose-500" style={{ width: `${simPlatform}%` }} />
+                  <div className="bg-purple-500" style={{ width: `${simCharity}%` }} />
+                  <div className="bg-blue-500" style={{ width: `${simInsurance}%` }} />
+                  <div className="bg-indigo-500" style={{ width: `${simDeveloper}%` }} />
+                  <div className="bg-teal-500" style={{ width: `${simLiquidity}%` }} />
+                </div>
+                <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
+                  <span>Sum: {simHolder + simShared + simRewards + simPlatform + simCharity + simInsurance + simDeveloper + simLiquidity}%</span>
+                  <span className={Math.abs(simHolder + simShared + simRewards + simPlatform + simCharity + simInsurance + simDeveloper + simLiquidity - 100) < 0.01 ? "text-emerald-400" : "text-rose-400"}>
+                    {Math.abs(simHolder + simShared + simRewards + simPlatform + simCharity + simInsurance + simDeveloper + simLiquidity - 100) < 0.01 ? "Valid (100%)" : "Invalid (Must be 100%)"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Real-time yields outputs */}
+            {(() => {
+              const rawYield = (simPrincipal * simYieldPercent) / 100
+              const maxCapValue = simMinDeposit * simCapMult
+              const isCapped = rawYield > maxCapValue
+              const finalYield = isCapped ? maxCapValue : rawYield
+
+              const holderPayout = (finalYield * simHolder) / 100
+              const sharedPoolPayout = (finalYield * simShared) / 100
+              const rewardsPayout = (finalYield * simRewards) / 100
+              const platformPayout = (finalYield * simPlatform) / 100
+
+              return (
+                <div className="space-y-3 pt-3 border-t border-border/50">
+                  <p className="font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">Simulated Yield Results</p>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                      <p className="text-[10px] text-muted-foreground">Daily Gross Yield</p>
+                      <p className="text-base font-bold text-emerald-400 flex items-center justify-between">
+                        ${rawYield.toFixed(2)}
+                        {isCapped && <Badge className="bg-rose-500/20 text-rose-400 text-[8px] h-4">Capped</Badge>}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
+                      <p className="text-[10px] text-muted-foreground">Daily Cap Limit</p>
+                      <p className="text-base font-bold text-cyan-400">${maxCapValue.toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 p-2 bg-card rounded border border-border/50 font-mono text-[10px] leading-tight">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Investor Share ({simHolder}%):</span>
+                      <span className="font-semibold text-emerald-400">${holderPayout.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Shared Pool ({simShared}%):</span>
+                      <span className="font-semibold text-cyan-400">${sharedPoolPayout.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Rewards Share ({simRewards}%):</span>
+                      <span className="font-semibold text-amber-400">${rewardsPayout.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Platform Fee ({simPlatform}%):</span>
+                      <span className="font-semibold text-rose-400">${platformPayout.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Level wise breakdown */}
+                  {sharedPoolPayout > 0 && (
+                    <div className="space-y-1">
+                      <span className="font-semibold text-[10px] text-muted-foreground block">Sponsor Level Payouts:</span>
+                      <div className="max-h-[120px] overflow-y-auto border border-border/30 rounded p-1 bg-muted/10 space-y-1">
+                        {Array.from({ length: simLevels }).map((_, idx) => {
+                          const lvl = idx + 1
+                          const rule = simRules.find(r => r.level === lvl)
+                          const defaultRates = [25, 20, 15, 10, 10, 10, 10]
+                          const rate = rule ? rule.commission : (defaultRates[idx] ?? 0)
+                          const amt = rule ? (rule.amount || 0) : 0
+
+                          let levelPayout = 0
+                          let calcText = ''
+                          if (amt > 0) {
+                            levelPayout = amt
+                            calcText = `Fixed: $${amt.toFixed(2)}`
+                          } else {
+                            levelPayout = (sharedPoolPayout * rate) / 100
+                            calcText = `${rate}% of Shared Pool: $${levelPayout.toFixed(2)}`
+                          }
+
+                          return (
+                            <div key={lvl} className="flex justify-between text-[9px] border-b border-border/10 pb-0.5 last:border-0 font-mono">
+                              <span className="text-muted-foreground">Level {lvl}:</span>
+                              <span className="text-foreground">{calcText}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Advanced P&L checks */}
+                  <div className="p-2 bg-muted/20 rounded border border-border/30 text-[9px] text-muted-foreground">
+                    <span className="font-semibold text-foreground block mb-0.5">Advanced Risk Checks:</span>
+                    <span>Max Drawdown: <strong>{simDrawdown}%</strong> • Profit Target: <strong>{simTarget}%</strong> • Hedging Cover: <strong>{simHedging}%</strong> • Action: <strong>{simAction}</strong></span>
+                  </div>
+                </div>
+              )
+            })()}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
@@ -539,6 +944,32 @@ function PlanEditor({
   const [aiPrompt, setAiPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
 
+  // AI Referral & Bonus prompt states
+  const [aiReferralPrompt, setAiReferralPrompt] = useState('')
+  const [generatingReferrals, setGeneratingReferrals] = useState(false)
+
+  // AI Conditional Logics prompt states
+  const [aiLogicPrompt, setAiLogicPrompt] = useState('')
+  const [generatingLogics, setGeneratingLogics] = useState(false)
+
+  // Expanded details row index/key
+  const [expandedRule, setExpandedRule] = useState<string | null>(null)
+
+  const [showRegOverrides, setShowRegOverrides] = useState(false)
+  const [showProfitOverrides, setShowProfitOverrides] = useState(false)
+  const [showDepositOverrides, setShowDepositOverrides] = useState(false)
+  const [showConditionalLogics, setShowConditionalLogics] = useState(false)
+
+  // Global Logic Builder variables configuration
+  const [logicConfig, setLogicConfig] = useState<any>(null)
+  useEffect(() => {
+    fetch('/api/admin/logic-builder')
+      .then(r => r.json())
+      .then(setLogicConfig)
+      .catch(() => {})
+  }, [])
+
+
   const handleGenerateWithAI = async () => {
     if (!aiPrompt.trim()) return
     setGenerating(true)
@@ -569,6 +1000,341 @@ function PlanEditor({
     } finally {
       setGenerating(false)
     }
+  }
+
+  const handleGenerateReferrals = async () => {
+    if (!aiReferralPrompt.trim()) return
+    setGeneratingReferrals(true)
+    try {
+      const res = await fetch('/api/ai/generate-referral-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiReferralPrompt, currentRules: plan.referralRules || [] })
+      })
+      if (!res.ok) throw new Error('AI generation failed')
+      const generated = await res.json()
+      if (generated.rules && Array.isArray(generated.rules)) {
+        ch('referralRules', generated.rules)
+        toast({ title: 'Referral Rules Updated', description: 'Referral override rules populated from prompt.' })
+      } else {
+        throw new Error('Invalid response structure')
+      }
+    } catch (err) {
+      toast({ title: 'AI Generation Failed', description: 'Could not generate referral rules.', variant: 'destructive' })
+    } finally {
+      setGeneratingReferrals(false)
+    }
+  }
+
+  const handleGenerateLogics = async () => {
+    if (!aiLogicPrompt.trim()) return
+    setGeneratingLogics(true)
+    try {
+      const res = await fetch('/api/ai/generate-conditional-logics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiLogicPrompt, currentLogics: plan.conditionalLogics || [] })
+      })
+      if (!res.ok) throw new Error('AI generation failed')
+      const generated = await res.json()
+      if (generated.logics && Array.isArray(generated.logics)) {
+        ch('conditionalLogics', generated.logics)
+        toast({ title: 'Conditional Logics Updated', description: 'Plan conditional logics populated from prompt.' })
+      } else {
+        throw new Error('Invalid response structure')
+      }
+    } catch (err) {
+      toast({ title: 'AI Generation Failed', description: 'Could not generate conditional logics.', variant: 'destructive' })
+    } finally {
+      setGeneratingLogics(false)
+    }
+  }
+
+  const updateRule = (indexInRules: number, field: string, value: any) => {
+    const currentRules = [...(plan.referralRules || [])]
+    currentRules[indexInRules] = {
+      ...currentRules[indexInRules],
+      [field]: value
+    }
+    ch('referralRules', currentRules)
+  }
+
+  const addRuleRow = (type: string) => {
+    const currentRules = [...(plan.referralRules || [])]
+    let nextLvl = 1
+    while (currentRules.some(r => r.type === type && r.level === nextLvl) && nextLvl < 20) {
+      nextLvl++
+    }
+    currentRules.push({
+      level: nextLvl,
+      commission: 0,
+      amount: 0,
+      type,
+      minSponsorDeposit: 0,
+      minDirectReferrals: 0,
+      targetWallet: type === 'profit' ? 'withdrawal' : 'trading',
+      enabled: true
+    })
+    ch('referralRules', currentRules)
+  }
+
+  const deleteRuleRow = (index: number) => {
+    const currentRules = [...(plan.referralRules || [])]
+    currentRules.splice(index, 1)
+    ch('referralRules', currentRules)
+  }
+
+  const addLogicRow = () => {
+    const currentLogics = [...(plan.conditionalLogics || [])]
+    const maxPriority = currentLogics.reduce((max, l) => Math.max(max, l.priority), 0)
+    currentLogics.push({
+      enabled: true,
+      priority: maxPriority + 10,
+      conditionType: 'daily_yield',
+      operator: '>',
+      value: '0.0',
+      actionType: 'adjust_yield',
+      actionValue: '+0.0',
+      description: 'New conditional rule'
+    })
+    ch('conditionalLogics', currentLogics)
+  }
+
+  const updateLogic = (index: number, field: string, value: any) => {
+    const currentLogics = [...(plan.conditionalLogics || [])]
+    currentLogics[index] = {
+      ...currentLogics[index],
+      [field]: value
+    }
+    ch('conditionalLogics', currentLogics)
+  }
+
+  const deleteLogicRow = (index: number) => {
+    const currentLogics = [...(plan.conditionalLogics || [])]
+    currentLogics.splice(index, 1)
+    ch('conditionalLogics', currentLogics)
+  }
+
+  const renderOverrideSection = (type: string, title: string, totalPoolField?: string) => {
+    const isOpen = type === 'registration' ? showRegOverrides : type === 'profit' ? showProfitOverrides : showDepositOverrides
+    const setIsOpen = type === 'registration' ? setShowRegOverrides : type === 'profit' ? setShowProfitOverrides : setShowDepositOverrides
+
+    const allRules = plan.referralRules || []
+    const rulesWithType = allRules.map((r, index) => ({ ...r, originalIndex: index })).filter(r => r.type === type)
+
+    const totalComm = rulesWithType.reduce((sum, r) => sum + (r.commission || 0), 0)
+    const poolValue = totalPoolField ? (plan as any)[totalPoolField] : null
+    const isBalanced = poolValue !== null ? Math.abs(totalComm - poolValue) < 0.01 : true
+
+    return (
+      <div className="border border-border/50 rounded-lg overflow-hidden bg-muted/10">
+        <div 
+          className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer hover:bg-muted/40 transition-colors select-none"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <div className="flex items-center gap-2">
+            {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            <span className="text-xs font-semibold text-foreground">{title}</span>
+            <Badge variant="outline" className="text-[10px] bg-background/50 border-border/50">
+              {rulesWithType.length} active
+            </Badge>
+          </div>
+          {poolValue !== null && (
+            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+              <Badge variant="outline" className={cn(
+                isBalanced 
+                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[9px]" 
+                  : "bg-amber-500/20 text-amber-400 border-amber-500/30 text-[9px]"
+              )}>
+                Total: {totalComm.toFixed(1)}% / Pool: {poolValue}%
+              </Badge>
+              {!isBalanced && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  className="h-5 text-[9px] px-1.5 py-0 border-amber-500/30 hover:bg-amber-500/10 text-amber-400 bg-background/50"
+                  onClick={() => {
+                    const count = plan.registrationReferralLevels || 7
+                    const pctPerLevel = Number((poolValue / count).toFixed(2))
+                    
+                    const otherTypeRules = allRules.filter(r => r.type !== type)
+                    const newTypeRules = Array.from({ length: count }).map((_, i) => {
+                      const lvl = i + 1
+                      const existing = rulesWithType.find(r => r.level === lvl)
+                      return {
+                        level: lvl,
+                        commission: pctPerLevel,
+                        amount: existing ? (existing.amount || 0) : 0,
+                        type,
+                        minSponsorDeposit: existing ? (existing.minSponsorDeposit || 0) : 0,
+                        minDirectReferrals: existing ? (existing.minDirectReferrals || 0) : 0,
+                        targetWallet: existing ? (existing.targetWallet || 'trading') : 'trading',
+                        enabled: existing ? existing.enabled : true
+                      }
+                    })
+                    ch('referralRules', [...otherTypeRules, ...newTypeRules])
+                  }}
+                >
+                  Auto-Balance
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {isOpen && (
+          <div className="p-3 border-t border-border/20 space-y-3 bg-background/30">
+            {rulesWithType.length === 0 ? (
+              <div className="text-center py-4 text-xs text-muted-foreground">
+                No overrides defined for this type. Payouts will fallback to default values.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr className="border-b border-border/30 bg-muted/20 text-muted-foreground font-semibold">
+                      <th className="p-2 w-[100px]">Level</th>
+                      <th className="p-2 w-[120px]">Commission (%)</th>
+                      <th className="p-2 w-[120px]">Fixed Amount ($)</th>
+                      <th className="p-2 text-center w-[80px]">Status</th>
+                      <th className="p-2 w-[100px]">Options</th>
+                      <th className="p-2 w-[60px] text-right">Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rulesWithType.map((rule) => {
+                      const isRuleExpanded = expandedRule === `${type}-${rule.originalIndex}`
+                      return (
+                        <Fragment key={rule.originalIndex}>
+                          <tr className="border-b border-border/20 hover:bg-muted/10">
+                            <td className="p-2">
+                              <select
+                                value={rule.level}
+                                onChange={e => updateRule(rule.originalIndex, 'level', parseInt(e.target.value) || 1)}
+                                className="bg-muted/50 border border-border/50 rounded h-7 px-1.5 text-[11px] text-foreground w-[80px]"
+                              >
+                                {Array.from({ length: 20 }).map((_, i) => (
+                                  <option key={i + 1} value={i + 1}>Level {i + 1}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-2">
+                              <div className="relative max-w-[100px]">
+                                <Input
+                                  type="number"
+                                  value={rule.commission}
+                                  onChange={e => updateRule(rule.originalIndex, 'commission', parseFloat(e.target.value) || 0)}
+                                  className="bg-muted/50 border border-border/50 h-7 pr-5 text-[11px] w-full"
+                                />
+                                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">%</span>
+                              </div>
+                            </td>
+                            <td className="p-2">
+                              <div className="relative max-w-[100px]">
+                                <Input
+                                  type="number"
+                                  value={rule.amount}
+                                  onChange={e => updateRule(rule.originalIndex, 'amount', parseFloat(e.target.value) || 0)}
+                                  className="bg-muted/50 border border-border/50 h-7 pr-5 text-[11px] w-full"
+                                />
+                                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">$</span>
+                              </div>
+                            </td>
+                            <td className="p-2 text-center">
+                              <Switch
+                                checked={rule.enabled}
+                                onCheckedChange={checked => updateRule(rule.originalIndex, 'enabled', checked)}
+                                className="scale-75"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-[10px] text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 flex items-center gap-1"
+                                onClick={() => setExpandedRule(isRuleExpanded ? null : `${type}-${rule.originalIndex}`)}
+                              >
+                                <Settings className="h-3 w-3" />
+                                {isRuleExpanded ? 'Hide' : 'Configure'}
+                              </Button>
+                            </td>
+                            <td className="p-2 text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                                onClick={() => deleteRuleRow(rule.originalIndex)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+
+                          {isRuleExpanded && (
+                            <tr className="bg-muted/15 border-b border-border/20">
+                              <td colSpan={6} className="p-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] text-muted-foreground uppercase">Min Sponsor Active Deposit ($)</Label>
+                                    <Input
+                                      type="number"
+                                      value={rule.minSponsorDeposit || 0}
+                                      onChange={e => updateRule(rule.originalIndex, 'minSponsorDeposit', parseFloat(e.target.value) || 0)}
+                                      className="bg-muted/50 border border-border/50 h-8 text-xs"
+                                      placeholder="0 (no minimum)"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] text-muted-foreground uppercase">Min Direct Referrals Required</Label>
+                                    <Input
+                                      type="number"
+                                      value={rule.minDirectReferrals || 0}
+                                      onChange={e => updateRule(rule.originalIndex, 'minDirectReferrals', parseInt(e.target.value) || 0)}
+                                      className="bg-muted/50 border border-border/50 h-8 text-xs"
+                                      placeholder="0 (no minimum)"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-[10px] text-muted-foreground uppercase">Payout Wallet Destination</Label>
+                                    <select
+                                      value={rule.targetWallet || 'trading'}
+                                      onChange={e => updateRule(rule.originalIndex, 'targetWallet', e.target.value)}
+                                      className="w-full bg-muted/50 border border-border/50 rounded-md h-8 px-2 text-xs text-foreground"
+                                    >
+                                      <option value="trading">Trading Wallet</option>
+                                      <option value="withdrawal">Withdrawal Wallet</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="flex justify-start">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-dashed border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-1.5"
+                onClick={() => addRuleRow(type)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Level Override
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
 
   const distTotal = useMemo(() =>
@@ -655,6 +1421,61 @@ function PlanEditor({
           </div>
         </div>
 
+        {/* Connected Global Logic Builder Variables */}
+        {logicConfig && (
+          <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Global Logic Builder Variables</h4>
+                  <p className="text-[11px] text-muted-foreground">Connected to platform-wide active rules</p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 text-[10px] bg-emerald-600/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20"
+                onClick={() => {
+                  const capPercent = logicConfig.variables?.find((v: any) => v.id === 'var_daily_cap')?.value ?? 0
+                  const floorPercent = logicConfig.variables?.find((v: any) => v.id === 'var_min_floor')?.value ?? 0
+                  
+                  ch('dailyEarningCapPercent', capPercent)
+                  ch('minLossPercent', floorPercent)
+                  toast({
+                    title: 'Applied Global Baseline',
+                    description: `Daily Capping set to ${capPercent}%, Min Floor set to ${floorPercent}%.`
+                  })
+                }}
+              >
+                Apply Baseline Settings
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px] text-muted-foreground bg-background/20 p-2.5 rounded-lg border border-border/30">
+              <div>
+                <span className="block font-medium text-foreground">Skew Exponent</span>
+                <span>{logicConfig.variables?.find((v: any) => v.id === 'var_base_skew')?.value ?? 3} (var_base_skew)</span>
+              </div>
+              <div>
+                <span className="block font-medium text-foreground">Volatility noise</span>
+                <span>{logicConfig.variables?.find((v: any) => v.id === 'var_volatility')?.value ?? 0.5} (var_volatility)</span>
+              </div>
+              <div>
+                <span className="block font-medium text-foreground">Min floor</span>
+                <span>{logicConfig.variables?.find((v: any) => v.id === 'var_min_floor')?.value ?? 0.1}% (var_min_floor)</span>
+              </div>
+              <div>
+                <span className="block font-medium text-foreground">Daily return cap</span>
+                <span>{logicConfig.variables?.find((v: any) => v.id === 'var_daily_cap')?.value ?? 15}% (var_daily_cap)</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Section 1: Basic Info */}
         <SectionCard icon={<Info className="h-4 w-4 text-emerald-400" />} title="Basic Info">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -706,7 +1527,20 @@ function PlanEditor({
             <NumberField label="Min Deposit" prefix="$" value={plan.minDeposit} onChange={v => ch('minDeposit', v)} />
             <NumberField label="Max Deposit" prefix="$" value={plan.maxDeposit} onChange={v => ch('maxDeposit', v)} />
             <NumberField label="Base Daily % (display)" suffix="%" value={plan.dailyEarningPercent} onChange={v => ch('dailyEarningPercent', v)} />
-            <NumberField label="Max Earning Limit" prefix="$" value={plan.maxEarningLimit} onChange={v => ch('maxEarningLimit', v)} />
+            <NumberField label="Daily Earning Cap" prefix="$" value={plan.maxEarningLimit} onChange={v => ch('maxEarningLimit', v)} />
+            <div className="space-y-1.5 mt-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cap Multiplier</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={plan.maxEarningMultiplier ?? 2.0}
+                  onChange={e => ch('maxEarningMultiplier', parseFloat(e.target.value) || 0)}
+                  className="bg-muted/50 border-border/50 h-[38px] pr-6 text-xs text-foreground"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">X</span>
+              </div>
+            </div>
             <NumberField label="Deposit Increment" prefix="$" value={plan.depositMultipleOf || 1} onChange={v => ch('depositMultipleOf', v)} hint="Multiples of" />
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5">
               <div>
@@ -793,7 +1627,6 @@ function PlanEditor({
           </div>
         </SectionCard>
 
-        {/* Section 2.7: Advanced P&L Configuration */}
         <SectionCard icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} title="Advanced P&L Configuration" description="Configure volatility, negative returns, and consecutive loss ceilings">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <NumberField label="Min Loss %" suffix="%" value={plan.minLossPercent || 0.1} onChange={v => ch('minLossPercent', v)} />
@@ -806,6 +1639,92 @@ function PlanEditor({
               </div>
               <Switch checked={plan.allowNegativeBalance || false} onCheckedChange={v => ch('allowNegativeBalance', v)} />
             </div>
+            <NumberField label="Drawdown Limit" suffix="%" value={plan.drawdownLimit ?? 10.0} onChange={v => ch('drawdownLimit', v)} />
+            <NumberField label="Profit Target" suffix="%" value={plan.profitTarget ?? 20.0} onChange={v => ch('profitTarget', v)} />
+            <NumberField label="Hedging Ratio" suffix="%" value={plan.hedgingRatio ?? 0.0} onChange={v => ch('hedgingRatio', v)} />
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loss Limit Action</Label>
+              <select
+                value={plan.lossLimitAction || 'pause'}
+                onChange={e => ch('lossLimitAction', e.target.value)}
+                className="w-full bg-muted/50 border border-border/50 rounded-md h-[38px] px-3 text-xs text-foreground"
+              >
+                <option value="pause">Pause Yields</option>
+                <option value="liquidate">Liquidate Deposit</option>
+                <option value="notify">Notify User Only</option>
+              </select>
+            </div>
+          </div>
+
+          {/* AI P&L Assistant */}
+          <div className="mt-4 p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <div>
+                <h4 className="text-xs font-semibold text-foreground">AI P&L Logic Generator</h4>
+                <p className="text-[10px] text-muted-foreground">Describe your risk parameters (e.g., "Safe model with 5% drawdown cap, auto-pause on 2 consecutive losses, and 15% hedging cover")</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                id={`ai-pnl-prompt-${plan.id}`}
+                placeholder="Describe P&L risk preferences..."
+                className="bg-muted/50 border-border/50 h-8 text-xs flex-1 text-foreground"
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={async () => {
+                  const promptEl = document.getElementById(`ai-pnl-prompt-${plan.id}`) as HTMLInputElement
+                  const prompt = promptEl?.value
+                  if (!prompt) return
+                  try {
+                    const res = await fetch('/api/ai/generate-logic', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        prompt: `For Advanced P&L Configuration: ${prompt}. Return ONLY a JSON object containing keys: minLossPercent, maxLossPercent, maxConsecutiveLossDays, allowNegativeBalance, drawdownLimit, profitTarget, hedgingRatio, lossLimitAction, pnlLogicDescription`,
+                        currentConfig: {
+                          minLossPercent: plan.minLossPercent,
+                          maxLossPercent: plan.maxLossPercent,
+                          maxConsecutiveLossDays: plan.maxConsecutiveLossDays,
+                          allowNegativeBalance: plan.allowNegativeBalance,
+                          drawdownLimit: plan.drawdownLimit,
+                          profitTarget: plan.profitTarget,
+                          hedgingRatio: plan.hedgingRatio,
+                          lossLimitAction: plan.lossLimitAction
+                        }
+                      })
+                    })
+                    if (res.ok) {
+                      const data = await res.json()
+                      const pnlData = data.pnlFields || data
+                      if (pnlData.minLossPercent !== undefined) ch('minLossPercent', pnlData.minLossPercent)
+                      if (pnlData.maxLossPercent !== undefined) ch('maxLossPercent', pnlData.maxLossPercent)
+                      if (pnlData.maxConsecutiveLossDays !== undefined) ch('maxConsecutiveLossDays', pnlData.maxConsecutiveLossDays)
+                      if (pnlData.allowNegativeBalance !== undefined) ch('allowNegativeBalance', pnlData.allowNegativeBalance)
+                      if (pnlData.drawdownLimit !== undefined) ch('drawdownLimit', pnlData.drawdownLimit)
+                      if (pnlData.profitTarget !== undefined) ch('profitTarget', pnlData.profitTarget)
+                      if (pnlData.hedgingRatio !== undefined) ch('hedgingRatio', pnlData.hedgingRatio)
+                      if (pnlData.lossLimitAction !== undefined) ch('lossLimitAction', pnlData.lossLimitAction)
+                      if (pnlData.pnlLogicDescription !== undefined) ch('pnlLogicDescription', pnlData.pnlLogicDescription)
+                      toast({ title: 'P&L Logics Generated!' })
+                    }
+                  } catch (e) {
+                    toast({ title: 'AI P&L Generation failed', variant: 'destructive' })
+                  }
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3"
+              >
+                Generate
+              </Button>
+            </div>
+            {plan.pnlLogicDescription && (
+              <div className="p-2 rounded bg-muted/50 border border-border/30 text-[10px] font-mono text-muted-foreground">
+                <span className="font-semibold text-foreground block mb-0.5">Generated Rule Logic:</span>
+                {plan.pnlLogicDescription}
+              </div>
+            )}
           </div>
         </SectionCard>
 
@@ -1116,65 +2035,216 @@ function PlanEditor({
               </div>
             </div>
 
-            {/* Level-by-Level Sponsor Overrides */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-medium">Level-by-Level Sponsor Payout Overrides</Label>
-                <span className="text-[10px] text-muted-foreground">Up to {plan.registrationReferralLevels || 7} levels</span>
+          </div>
+        </SectionCard>
+
+        {/* Section: Level-by-Level Sponsor & Deposit Overrides */}
+        <SectionCard icon={<Zap className="h-4 w-4 text-emerald-400" />} title="Level-by-Level Sponsor & Deposit Overrides">
+          <div className="space-y-4">
+            {/* AI Referral & Bonus Rules Assistant */}
+            <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
+                <div>
+                  <h4 className="text-xs font-semibold text-foreground">AI Referral & Bonus Rules Assistant</h4>
+                  <p className="text-[10px] text-muted-foreground">Describe referral changes (e.g. "Level 1 deposit bonus gets 5% but requires $1000 sponsor deposit. Level 2 trade profit split gets 15%")</p>
+                </div>
               </div>
-              <div className="border border-border/50 rounded-lg overflow-hidden bg-muted/20">
-                <table className="w-full text-left border-collapse text-[11px]">
-                  <thead>
-                    <tr className="border-b border-border/30 bg-muted/40 text-muted-foreground font-semibold">
-                      <th className="p-2">Level</th>
-                      <th className="p-2">Sponsor Payout (%)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Array.from({ length: plan.registrationReferralLevels || 7 }).map((_, idx) => {
-                      const lvl = idx + 1
-                      const rules = plan.referralRules || []
-                      const rule = rules.find((r: any) => r.level === lvl)
-                      const defaultRates = [25, 20, 15, 10, 10, 10, 10]
-                      const val = rule ? rule.commission : (defaultRates[idx] ?? 0)
-                      return (
-                        <tr key={lvl} className="border-b border-border/20 last:border-0 hover:bg-muted/10">
-                          <td className="p-2 font-medium">Level {lvl}</td>
-                          <td className="p-2">
-                            <div className="relative max-w-[100px]">
-                              <Input
-                                type="number"
-                                value={val}
-                                onChange={e => {
-                                  const comm = parseFloat(e.target.value) || 0
-                                  const newRules = [...rules]
-                                  const existIdx = newRules.findIndex((r: any) => r.level === lvl)
-                                  if (existIdx >= 0) {
-                                    newRules[existIdx] = { ...newRules[existIdx], commission: comm }
-                                  } else {
-                                    if (newRules.length === 0) {
-                                      for (let i = 1; i <= (plan.registrationReferralLevels || 7); i++) {
-                                        newRules.push({ level: i, commission: defaultRates[i-1] ?? 0 })
-                                      }
-                                      const idxToReplace = newRules.findIndex((r: any) => r.level === lvl)
-                                      newRules[idxToReplace] = { ...newRules[idxToReplace], commission: comm }
-                                    } else {
-                                      newRules.push({ level: lvl, commission: comm })
-                                    }
-                                  }
-                                  ch('referralRules', newRules)
-                                }}
-                                className="bg-muted/50 border-border/50 h-7 pr-6 text-[11px]"
-                              />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px]">%</span>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="flex gap-2">
+                <Textarea
+                  value={aiReferralPrompt}
+                  onChange={e => setAiReferralPrompt(e.target.value)}
+                  placeholder="Ask AI to configure commission overrides, qualifications, and target wallets..."
+                  className="bg-muted/50 border-border/50 resize-none h-12 text-xs flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={handleGenerateReferrals}
+                  disabled={generatingReferrals || !aiReferralPrompt.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs shrink-0 self-end h-9"
+                >
+                  {generatingReferrals ? 'Analyzing...' : 'Apply Rules'}
+                </Button>
               </div>
+            </div>
+
+            <div className="space-y-3">
+              {renderOverrideSection("registration", "Registration Fee Overrides", "subscriptionReferralPercent")}
+              {renderOverrideSection("profit", "Trade Profit Share Overrides", "tradeProfitSharePercent")}
+              {renderOverrideSection("deposit", "Deposit Bonus Overrides")}
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Section: Plan Conditional Logics */}
+        <SectionCard icon={<Settings className="h-4 w-4 text-emerald-400" />} title="Plan Conditional Logics">
+          <div className="space-y-4">
+            {/* AI Conditional Logics Assistant */}
+            <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-400 animate-pulse" />
+                <div>
+                  <h4 className="text-xs font-semibold text-foreground">AI Conditional Logics Assistant</h4>
+                  <p className="text-[10px] text-muted-foreground">Describe your condition rules (e.g. "If consecutive loss days reaches 3, pause referrals and adjust splits to investor 80, shared pool 15, platform 5")</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Textarea
+                  value={aiLogicPrompt}
+                  onChange={e => setAiLogicPrompt(e.target.value)}
+                  placeholder="Ask AI to write yield adjustment rules, split adjustments, and lock-out logics..."
+                  className="bg-muted/50 border-border/50 resize-none h-12 text-xs flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={handleGenerateLogics}
+                  disabled={generatingLogics || !aiLogicPrompt.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs shrink-0 self-end h-9"
+                >
+                  {generatingLogics ? 'Analyzing...' : 'Generate Logics'}
+                </Button>
+              </div>
+            </div>
+
+            {/* List/Table of Conditional Rules */}
+            <div className="border border-border/50 rounded-lg overflow-hidden bg-muted/10">
+              <div 
+                className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer hover:bg-muted/40 transition-colors select-none"
+                onClick={() => setShowConditionalLogics(!showConditionalLogics)}
+              >
+                <div className="flex items-center gap-2">
+                  {showConditionalLogics ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  <span className="text-xs font-semibold text-foreground">Rules Matrix</span>
+                  <Badge variant="outline" className="text-[10px] bg-background/50 border-border/50">
+                    {(plan.conditionalLogics || []).length} defined
+                  </Badge>
+                </div>
+              </div>
+
+              {showConditionalLogics && (
+                <div className="p-3 border-t border-border/20 space-y-3 bg-background/30">
+                  {(!plan.conditionalLogics || plan.conditionalLogics.length === 0) ? (
+                    <div className="text-center py-4 text-xs text-muted-foreground">
+                      No conditional logic rules defined. Plan yields and multipliers will behave statically.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                          <tr className="border-b border-border/30 bg-muted/20 text-muted-foreground font-semibold">
+                            <th className="p-2 w-[70px]">Priority</th>
+                            <th className="p-2 w-[130px]">Condition Type</th>
+                            <th className="p-2 w-[70px]">Operator</th>
+                            <th className="p-2 w-[100px]">Threshold</th>
+                            <th className="p-2 w-[130px]">Action Type</th>
+                            <th className="p-2 w-[150px]">Action Value</th>
+                            <th className="p-2 text-center w-[50px]">Status</th>
+                            <th className="p-2 w-[55px] text-right">Delete</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(plan.conditionalLogics || []).map((logic, index) => (
+                            <tr key={index} className="border-b border-border/20 hover:bg-muted/10">
+                              <td className="p-2">
+                                <Input
+                                  type="number"
+                                  value={logic.priority}
+                                  onChange={e => updateLogic(index, 'priority', parseInt(e.target.value) || 1)}
+                                  className="bg-muted/50 border border-border/50 h-7 text-[11px] w-full"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <select
+                                  value={logic.conditionType}
+                                  onChange={e => updateLogic(index, 'conditionType', e.target.value)}
+                                  className="w-full bg-muted/50 border border-border/50 rounded h-7 px-1.5 text-[11px] text-foreground"
+                                >
+                                  <option value="daily_yield">Daily Yield</option>
+                                  <option value="consecutive_loss_days">Consecutive Loss Days</option>
+                                  <option value="active_deposits">Active Deposits Balance</option>
+                                  <option value="day_of_week">Day of Week</option>
+                                  <option value="spots_filled">Spots Filled</option>
+                                </select>
+                              </td>
+                              <td className="p-2">
+                                <select
+                                  value={logic.operator}
+                                  onChange={e => updateLogic(index, 'operator', e.target.value)}
+                                  className="w-full bg-muted/50 border border-border/50 rounded h-7 px-1 text-[11px] text-foreground"
+                                >
+                                  <option value=">">&gt;</option>
+                                  <option value="<">&lt;</option>
+                                  <option value="==">==</option>
+                                  <option value="contains">contains</option>
+                                </select>
+                              </td>
+                              <td className="p-2">
+                                <Input
+                                  value={logic.value}
+                                  onChange={e => updateLogic(index, 'value', e.target.value)}
+                                  className="bg-muted/50 border border-border/50 h-7 text-[11px] w-full"
+                                  placeholder="e.g. 1.0, mon"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <select
+                                  value={logic.actionType}
+                                  onChange={e => updateLogic(index, 'actionType', e.target.value)}
+                                  className="w-full bg-muted/50 border border-border/50 rounded h-7 px-1.5 text-[11px] text-foreground"
+                                >
+                                  <option value="adjust_yield">Adjust Yield</option>
+                                  <option value="adjust_multiplier">Adjust Daily Cap Multiplier</option>
+                                  <option value="pause_referrals">Pause Referrals</option>
+                                  <option value="adjust_splits">Adjust Splits</option>
+                                  <option value="disable_plan">Disable Plan</option>
+                                </select>
+                              </td>
+                              <td className="p-2">
+                                <Input
+                                  value={logic.actionValue}
+                                  onChange={e => updateLogic(index, 'actionValue', e.target.value)}
+                                  className="bg-muted/50 border border-border/50 h-7 text-[11px] w-full"
+                                  placeholder="e.g. +0.25, holder:80,shared:15..."
+                                />
+                              </td>
+                              <td className="p-2 text-center">
+                                <Switch
+                                  checked={logic.enabled}
+                                  onCheckedChange={checked => updateLogic(index, 'enabled', checked)}
+                                  className="scale-75"
+                                />
+                              </td>
+                              <td className="p-2 text-right">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                                  onClick={() => deleteLogicRow(index)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  <div className="flex justify-start">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs border-dashed border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-1.5"
+                      onClick={addLogicRow}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add Logic Rule
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </SectionCard>
@@ -1191,14 +2261,14 @@ function PlanEditor({
                 color="text-emerald-400"
               />
               <NumberField
-                label="Trade Profit Share"
+                label="Shared Pool"
                 suffix="%"
                 value={plan.tradeProfitSharePercent}
                 onChange={v => ch('tradeProfitSharePercent', v)}
                 color="text-cyan-400"
               />
               <NumberField
-                label="Rewards & Offers"
+                label="Rewards"
                 suffix="%"
                 value={plan.rewardsOffersPercent}
                 onChange={v => ch('rewardsOffersPercent', v)}
@@ -1245,7 +2315,7 @@ function PlanEditor({
             <DistributionBar
               segments={[
                 { value: plan.accountHolderPercent, color: DIST_COLORS.accountHolder, label: 'Account Holder' },
-                { value: plan.tradeProfitSharePercent, color: DIST_COLORS.tradeProfit, label: 'Trade Profit' },
+                { value: plan.tradeProfitSharePercent, color: DIST_COLORS.tradeProfit, label: 'Shared Pool' },
                 { value: plan.rewardsOffersPercent, color: DIST_COLORS.rewardsOffers, label: 'Rewards' },
                 { value: plan.platformFeePercent, color: DIST_COLORS.platformFee, label: 'Platform' },
                 { value: plan.charityDonationPercent || 0, color: DIST_COLORS.charity, label: 'Charity' },
@@ -1445,7 +2515,7 @@ function PlanSummary({
           <StatBadge label="Entry Fee" value={`$${plan.entryFee.toLocaleString()}`} icon={<DollarSign className="h-3 w-3" />} />
           <StatBadge label="Daily Rate" value={`${(plan as any).lowRiskMin || 0.5}-${(plan as any).highRiskMax || 15}%`} icon={<Percent className="h-3 w-3" />} />
           <StatBadge label="Deposit Range" value={`$${plan.minDeposit.toLocaleString()} - $${plan.maxDeposit.toLocaleString()}`} />
-          <StatBadge label="Max Earning" value={`$${plan.maxEarningLimit.toLocaleString()}`} />
+          <StatBadge label="Daily Earning Cap" value={`${Math.round(plan.maxEarningLimit / plan.minDeposit)}X`} />
           <StatBadge label="Lock Period" value={plan.lockPeriodDays > 0 ? `${plan.lockPeriodDays} days` : 'None'} />
         </div>
 
@@ -1493,7 +2563,7 @@ function PlanSummary({
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
                 <span className="text-xs text-emerald-400">Holder {plan.accountHolderPercent}%</span>
-                <span className="text-xs text-cyan-400">Trade {plan.tradeProfitSharePercent}%</span>
+                <span className="text-xs text-cyan-400">Shared Pool {plan.tradeProfitSharePercent}%</span>
                 <span className="text-xs text-amber-400">Rewards {plan.rewardsOffersPercent}%</span>
                 <span className="text-xs text-rose-400">Platform {plan.platformFeePercent}%</span>
                 <span className="text-xs text-purple-400 font-medium">Charity {(plan as any).charityDonationPercent || 0}%</span>

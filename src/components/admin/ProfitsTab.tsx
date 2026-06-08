@@ -279,8 +279,36 @@ export function ProfitsTab() {
     .filter(d => d.operation === 'subtract')
     .reduce((sum, d) => sum + Math.abs(d.amount), 0)
 
+  const [logicConfig, setLogicConfig] = useState<any>(null)
+  useEffect(() => {
+    fetch('/api/admin/logic-builder')
+      .then(r => r.json())
+      .then(setLogicConfig)
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="space-y-6">
+      {/* Logic Builder Connection Banner */}
+      {logicConfig && (
+        <Card className="border-emerald-500/20 bg-emerald-500/5 shadow-sm">
+          <CardContent className="py-2.5 px-4 flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-semibold text-foreground">Connected to Logic Builder:</span>
+              <span>
+                Weekday Payouts Only = <strong>{logicConfig.profitRules?.find((r: any) => r.id === 'weekday_only')?.enabled ? 'Yes' : 'No'}</strong> • 
+                Floor/Cap Clamps = <strong>{logicConfig.profitRules?.find((r: any) => r.id === 'min_floor')?.enabled ? 'Active' : 'Inactive'}</strong>
+              </span>
+            </div>
+            <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-500/30 text-[9px] h-5">Connected</Badge>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

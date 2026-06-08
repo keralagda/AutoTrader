@@ -197,7 +197,7 @@ export function AwwwardsLanding() {
                       <span dir="ltr">${plan.maxDeposit.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-white/60">
-                      <span>Multiplier</span>
+                      <span>Daily Earning Cap</span>
                       <span dir="ltr">{Math.round(plan.maxEarningLimit / plan.minDeposit)}X</span>
                     </div>
                   </div>

@@ -81,18 +81,80 @@ export async function PUT(request: Request) {
         // Send email (non-blocking)
         sendDepositConfirmation(user.email, user.name, payment.amount).catch(() => {})
 
-        // Referral bonus: credit upline on deposit
-        const REFERRAL_DEPOSIT_PERCENTS = [5, 3, 2, 1, 1, 0.5, 0.5] // 7 levels
+        // Referral bonus: credit upline on deposit based on custom rules
+        const depositRules = await db.planReferralRule.findMany({
+          where: { planId: payment.planId || '', type: 'deposit', enabled: true }
+        })
+
+        const REFERRAL_DEPOSIT_PERCENTS = [5, 3, 2, 1, 1, 0.5, 0.5] // 7 levels default
+        const planObj = payment.planId ? await db.plan.findUnique({ where: { id: payment.planId } }) : null
+        const maxLevels = planObj?.registrationReferralLevels || 7
+
         let currentReferrerId = user.referredById
         let level = 0
-        while (currentReferrerId && level < 7) {
+        while (currentReferrerId && level < maxLevels) {
           const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
           if (!referrer) break
-          const bonus = (payment.amount * REFERRAL_DEPOSIT_PERCENTS[level]) / 100
+
+          const directReferrals = await db.user.count({ where: { referredById: referrer.id } })
+          const activeDepositsList = await db.deposit.findMany({
+            where: { userId: referrer.id, status: 'active' },
+            select: { amount: true }
+          })
+          const activeDepositsTotal = activeDepositsList.reduce((sum, d) => sum + d.amount, 0)
+
+          const rule = depositRules.find(r => r.level === (level + 1))
+          let bonus = 0
+
+          if (rule) {
+            if (activeDepositsTotal >= rule.minSponsorDeposit && directReferrals >= rule.minDirectReferrals) {
+              bonus = rule.amount > 0 ? rule.amount : (payment.amount * rule.commission) / 100
+            }
+          } else {
+            const rate = REFERRAL_DEPOSIT_PERCENTS[level] !== undefined ? REFERRAL_DEPOSIT_PERCENTS[level] : 0
+            bonus = (payment.amount * rate) / 100
+          }
+
           if (bonus > 0) {
-            await db.user.update({ where: { id: referrer.id }, data: { tradingBalance: referrer.tradingBalance + bonus, totalEarnings: referrer.totalEarnings + bonus } })
-            await db.earning.create({ data: { userId: referrer.id, amount: bonus, type: 'referral', level: level + 1, walletTarget: 'trading' } })
-            await db.notification.create({ data: { userId: referrer.id, title: 'Referral Bonus!', message: `You earned $${bonus.toFixed(2)} from ${user.name}'s deposit (Level ${level + 1})`, type: 'referral' } })
+            const targetWallet = rule?.targetWallet === 'withdrawal' ? 'withdrawal' : 'trading'
+            if (targetWallet === 'withdrawal') {
+              await db.user.update({
+                where: { id: referrer.id },
+                data: {
+                  withdrawalBalance: referrer.withdrawalBalance + bonus,
+                  totalEarnings: referrer.totalEarnings + bonus
+                }
+              })
+            } else {
+              await db.user.update({
+                where: { id: referrer.id },
+                data: {
+                  tradingBalance: referrer.tradingBalance + bonus,
+                  totalEarnings: referrer.totalEarnings + bonus
+                }
+              })
+            }
+
+            await db.earning.create({
+              data: {
+                userId: referrer.id,
+                depositId: deposit.id,
+                amount: bonus,
+                type: 'referral',
+                level: level + 1,
+                walletTarget: targetWallet
+              }
+            })
+
+            await db.notification.create({
+              data: {
+                userId: referrer.id,
+                title: 'Referral Bonus!',
+                message: `You earned $${bonus.toFixed(2)} from ${user.name}'s deposit (Level ${level + 1})`,
+                type: 'referral'
+              }
+            })
+
             // Send referral bonus email
             const { sendReferralBonus } = await import('@/lib/email')
             sendReferralBonus(referrer.email, referrer.name, bonus, user.name, level + 1).catch(() => {})

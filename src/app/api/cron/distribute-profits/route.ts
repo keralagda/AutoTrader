@@ -46,6 +46,45 @@ export async function POST(request: Request) {
     let completed = 0
     let capitalReturned = 0
 
+    // Load global logic builder config
+    const globalSetting = await db.setting.findUnique({ where: { key: 'logic_builder_config' } })
+    const globalConfig = globalSetting ? JSON.parse(globalSetting.value) : null
+
+    let globalBaseSkew = 3
+    let globalMinFloor = 0.1
+    let globalDailyCap = 15
+    let globalVolatility = 0.5
+    let globalLossChance = 5
+    let globalBonusChance = 3
+    let globalCompoundRate = 1.02
+    let globalReferralBoost = 0.05
+
+    if (globalConfig?.variables) {
+      const vars = globalConfig.variables
+      const findVal = (id: string, def: number) => {
+        const v = vars.find((x: any) => x.id === id)
+        return v ? (v.value !== undefined ? v.value : (v.min + v.max) / 2) : def
+      }
+      globalBaseSkew = findVal('var_base_skew', 3)
+      globalMinFloor = findVal('var_min_floor', 0.1)
+      globalDailyCap = findVal('var_daily_cap', 15)
+      globalVolatility = findVal('var_volatility', 0.5)
+      globalLossChance = findVal('var_loss_threshold', 5)
+      globalBonusChance = findVal('var_bonus_threshold', 3)
+      globalCompoundRate = findVal('var_compound_rate', 1.02)
+      globalReferralBoost = findVal('var_referral_boost', 0.05)
+    }
+
+    const globalProfitRules = globalConfig?.profitRules || []
+    const isLossDayGlobalRule = globalProfitRules.find((r: any) => r.id === 'loss_day' && r.enabled)
+    const isBonusDayGlobalRule = globalProfitRules.find((r: any) => r.id === 'bonus_day' && r.enabled)
+    const isWeekendReducedGlobalRule = globalProfitRules.find((r: any) => r.id === 'weekend_reduced' && r.enabled)
+    const isWeekdayOnlyGlobalRule = globalProfitRules.find((r: any) => r.id === 'weekday_only' && r.enabled)
+    const isVipMultiplierGlobalRule = globalProfitRules.find((r: any) => r.id === 'vip_multiplier' && r.enabled)
+    const isReferralBoostGlobalRule = globalProfitRules.find((r: any) => r.id === 'referral_boost' && r.enabled)
+    const isMinFloorGlobalRule = globalProfitRules.find((r: any) => r.id === 'min_floor' && r.enabled)
+    const isMaxCapGlobalRule = globalProfitRules.find((r: any) => r.id === 'max_cap' && r.enabled)
+
     // Get all active/locked deposits that are due for profit
     const deposits = await db.deposit.findMany({
       where: {
@@ -140,6 +179,9 @@ export async function POST(request: Request) {
       if (daysAllowed.length > 0 && !daysAllowed.includes(dayAbbr)) {
         skipDueToSchedule = true
       }
+      if (isWeekdayOnlyGlobalRule && (dayAbbr === 'sat' || dayAbbr === 'sun')) {
+        skipDueToSchedule = true
+      }
       if (!skipDueToSchedule && plan.holidayPauses) {
         const currentDateStr = now.toISOString().split('T')[0] // YYYY-MM-DD
         const holidays = plan.holidayPauses.split(',')
@@ -171,9 +213,12 @@ export async function POST(request: Request) {
       let isLossDay = false
       let isBonusDay = false
 
-      if (rand < (plan.lossDayChance || 0)) {
+      const lossChance = isLossDayGlobalRule ? globalLossChance : (plan.lossDayChance || 0)
+      const bonusChance = isBonusDayGlobalRule ? globalBonusChance : (plan.bonusDayChance || 0)
+
+      if (rand < lossChance) {
         isLossDay = true
-      } else if (rand > (100 - (plan.bonusDayChance || 0))) {
+      } else if (rand > (100 - bonusChance)) {
         isBonusDay = true
       }
 
@@ -210,19 +255,54 @@ export async function POST(request: Request) {
         }
 
         let volatilityMultiplier = 1.0
-        if (plan.volatilityMode === 'low') {
+        const volMode = plan.volatilityMode || 'moderate'
+        if (volMode === 'low') {
           volatilityMultiplier = 0.7
-        } else if (plan.volatilityMode === 'high') {
+        } else if (volMode === 'high') {
           volatilityMultiplier = 1.3
+        } else if (globalConfig) {
+          volatilityMultiplier = globalVolatility * 2 // Scale based on logic factor
         }
 
         let bonusMultiplier = 1.0
         if (isBonusDay) {
-          bonusMultiplier = 1.5
+          bonusMultiplier = isBonusDayGlobalRule ? 2.0 : 1.5
         }
 
-        const randomFactor = Math.pow(Math.random(), 3)
-        dailyPercent = (minPercent + (randomFactor * (maxPercent - minPercent))) * volatilityMultiplier * bonusMultiplier
+        let vipMultiplier = 1.0
+        if (isVipMultiplierGlobalRule) {
+          const userVipTier = (user as any).vipTier || 'Bronze'
+          const tiers = isVipMultiplierGlobalRule.tiers || { bronze: 1.0, silver: 1.02, gold: 1.05, platinum: 1.08 }
+          const tierMultiplier = tiers[userVipTier.toLowerCase()] || 1.0
+          vipMultiplier = tierMultiplier
+        }
+
+        let weekendMultiplier = 1.0
+        if (isWeekendReducedGlobalRule && (dayAbbr === 'sat' || dayAbbr === 'sun')) {
+          const ruleVal = isWeekendReducedGlobalRule.value !== undefined ? isWeekendReducedGlobalRule.value : 0.3
+          weekendMultiplier = ruleVal
+        }
+
+        let referralBoostPercent = 0
+        if (isReferralBoostGlobalRule) {
+          const directReferrals = await db.user.count({ where: { referredById: user.id } })
+          if (directReferrals >= (isReferralBoostGlobalRule.minReferrals || 3)) {
+            referralBoostPercent = globalReferralBoost * directReferrals
+          }
+        }
+
+        const skewPower = globalConfig ? globalBaseSkew : 3
+        const randomFactor = Math.pow(Math.random(), skewPower)
+        dailyPercent = (minPercent + (randomFactor * (maxPercent - minPercent))) * volatilityMultiplier * bonusMultiplier * vipMultiplier * weekendMultiplier
+        dailyPercent += referralBoostPercent
+
+        // Clamp platform-wide floor/cap
+        if (isMinFloorGlobalRule && dailyPercent > 0 && dailyPercent < globalMinFloor) {
+          dailyPercent = globalMinFloor
+        }
+        if (isMaxCapGlobalRule && dailyPercent > globalDailyCap) {
+          dailyPercent = globalDailyCap
+        }
       }
 
       // Calculate gross profit amount for this period
@@ -299,25 +379,50 @@ export async function POST(request: Request) {
         continue
       }
 
-      // Cap at max earning limit
-      if (plan.maxEarningLimit > 0) {
-        profitAmount = Math.min(profitAmount, plan.maxEarningLimit - deposit.earnedSoFar)
+      // Calculate splits based on plan settings (8-way split)
+      let accountHolderPct = plan.accountHolderPercent ?? 50
+      let tradeProfitSharePct = plan.tradeProfitSharePercent ?? 30
+      let rewardsOffersPct = plan.rewardsOffersPercent ?? 15
+      let platformFeePct = plan.platformFeePercent ?? 5
+      let charityPct = plan.charityDonationPercent ?? 0
+      let insurancePct = plan.insuranceReservePercent ?? 0
+      let developerPct = plan.developerFundPercent ?? 0
+      let liquidityPct = plan.liquidityPoolPercent ?? 0
+      let capMultiplier = plan.maxEarningMultiplier ?? 2.0
+      let pauseReferrals = false
+
+      // Apply dynamic conditional logic changes
+      const { evaluatePlanLogics } = await import('@/lib/logic-engine')
+      const logicResult = await evaluatePlanLogics(plan.id, dailyPercent, plan)
+
+      if (logicResult.disablePlan) {
+        continue // Skip yield distribution if plan is disabled by conditional logic
+      }
+
+      dailyPercent = logicResult.dailyPercent
+      capMultiplier = logicResult.maxEarningMultiplier
+      pauseReferrals = logicResult.pauseReferrals
+      accountHolderPct = logicResult.accountHolderPercent
+      tradeProfitSharePct = logicResult.tradeProfitSharePercent
+      platformFeePct = logicResult.platformFeePercent
+
+      // Re-calculate profitAmount based on evaluated dailyPercent
+      profitAmount = (deposit.amount * dailyPercent / 100) / periodsPerDay
+      if (profitAmount > 0 && plan.stackingEnabled && deposit.stackIndex > 1) {
+        profitAmount += profitAmount * (plan.stackingBonusPercent * (deposit.stackIndex - 1)) / 100
+      }
+
+      // Cap at max earning limit (taking custom capMultiplier from logicResult into account)
+      const calculatedMaxLimit = plan.minDeposit * capMultiplier
+      const maxLimit = plan.maxEarningLimit > 0 ? plan.maxEarningLimit : calculatedMaxLimit
+      if (maxLimit > 0) {
+        profitAmount = Math.min(profitAmount, maxLimit - deposit.earnedSoFar)
       }
 
       if (profitAmount <= 0) continue
 
-      // Calculate splits based on plan settings (8-way split)
-      const accountHolderPct = plan.accountHolderPercent ?? 50
-      const tradeProfitSharePct = plan.tradeProfitSharePercent ?? 30
-      const rewardsOffersPct = plan.rewardsOffersPercent ?? 15
-      const platformFeePct = plan.platformFeePercent ?? 5
-      const charityPct = plan.charityDonationPercent ?? 0
-      const insurancePct = plan.insuranceReservePercent ?? 0
-      const developerPct = plan.developerFundPercent ?? 0
-      const liquidityPct = plan.liquidityPoolPercent ?? 0
-
       let investorShare = (profitAmount * accountHolderPct) / 100
-      let sharePoolAmount = (profitAmount * tradeProfitSharePct) / 100
+      let sharePoolAmount = pauseReferrals ? 0 : (profitAmount * tradeProfitSharePct) / 100
       let rewardsShare = (profitAmount * rewardsOffersPct) / 100
       let platformFeeShare = (profitAmount * platformFeePct) / 100
       let charityShare = (profitAmount * charityPct) / 100
@@ -413,15 +518,12 @@ export async function POST(request: Request) {
       // Distribute profit share to upline (referrals) using dynamic referral rules
       if (sharePoolAmount > 0) {
         const referralRules = await db.planReferralRule.findMany({
-          where: { planId: plan.id },
+          where: { planId: plan.id, type: 'profit', enabled: true },
           orderBy: { level: 'asc' },
         })
 
-        const referralRates = referralRules.length > 0 
-          ? referralRules.map(r => r.commission)
-          : [25, 20, 15, 10, 10, 10, 10]
-
-        const maxLevels = plan.registrationReferralLevels || referralRates.length
+        const maxLevels = plan.registrationReferralLevels || 7
+        const defaultRates = [25, 20, 15, 10, 10, 10, 10]
         let currentReferrerId = user.referredById
         let level = 0
 
@@ -429,20 +531,49 @@ export async function POST(request: Request) {
           const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
           if (!referrer) break
 
-          const rate = referralRates[level] !== undefined ? referralRates[level] : 0
-          const shareAmount = (sharePoolAmount * rate) / 100
+          const directReferrals = await db.user.count({ where: { referredById: referrer.id } })
+          const activeDepositsList = await db.deposit.findMany({
+            where: { userId: referrer.id, status: 'active' },
+            select: { amount: true }
+          })
+          const activeDepositsTotal = activeDepositsList.reduce((sum, d) => sum + d.amount, 0)
+
+          const rule = referralRules.find(r => r.level === (level + 1))
+          let shareAmount = 0
+
+          if (rule) {
+            if (activeDepositsTotal >= rule.minSponsorDeposit && directReferrals >= rule.minDirectReferrals) {
+              shareAmount = rule.amount > 0 ? rule.amount : (sharePoolAmount * rule.commission) / 100
+            }
+          } else {
+            const rate = defaultRates[level] !== undefined ? defaultRates[level] : 0
+            shareAmount = (sharePoolAmount * rate) / 100
+          }
+
           if (shareAmount > 0) {
+            const targetWallet = rule?.targetWallet === 'withdrawal' ? 'withdrawal' : 'trading'
+            if (targetWallet === 'withdrawal') {
+              await db.user.update({
+                where: { id: referrer.id },
+                data: {
+                  withdrawalBalance: referrer.withdrawalBalance + shareAmount,
+                  totalEarnings: referrer.totalEarnings + shareAmount,
+                },
+              })
+            } else {
+              await db.user.update({
+                where: { id: referrer.id },
+                data: {
+                  tradingBalance: referrer.tradingBalance + shareAmount,
+                  totalEarnings: referrer.totalEarnings + shareAmount,
+                },
+              })
+            }
+
             await db.earning.create({
               data: {
                 userId: referrer.id, depositId: deposit.id, amount: shareAmount,
-                type: 'profit_share', level: level + 1, walletTarget: 'trading',
-              },
-            })
-            await db.user.update({
-              where: { id: referrer.id },
-              data: {
-                totalEarnings: referrer.totalEarnings + shareAmount,
-                tradingBalance: referrer.tradingBalance + shareAmount,
+                type: 'profit_share', level: level + 1, walletTarget: targetWallet,
               },
             })
           }

@@ -26,6 +26,7 @@ export function AdminReferralConfigTab() {
   const [config, setConfig] = useState<ReferralConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [logicConfig, setLogicConfig] = useState<any>(null)
 
   useEffect(() => {
     fetch('/api/admin/referral-config')
@@ -33,6 +34,11 @@ export function AdminReferralConfigTab() {
       .then(setConfig)
       .catch(() => {})
       .finally(() => setLoading(false))
+
+    fetch('/api/admin/logic-builder')
+      .then(r => r.json())
+      .then(setLogicConfig)
+      .catch(() => {})
   }, [])
 
   const handleSave = async () => {
@@ -61,6 +67,26 @@ export function AdminReferralConfigTab() {
 
   return (
     <div className="space-y-6">
+      {/* Logic Builder Connection Banner */}
+      {logicConfig && (
+        <Card className="border-emerald-500/20 bg-emerald-500/5 shadow-sm">
+          <CardContent className="py-2.5 px-4 flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-semibold text-foreground">Connected to Logic Builder:</span>
+              <span>
+                Referral Rules Overrides = <strong>{logicConfig.referralRules?.length || 0} active</strong> • 
+                Variables count = <strong>{logicConfig.variables?.length || 0} configured</strong>
+              </span>
+            </div>
+            <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-500/30 text-[9px] h-5">Connected</Badge>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Referral System Configuration</h2>

@@ -101,7 +101,7 @@ export function LeaderboardTab() {
   const fetchLeaderboard = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/leaderboard?period=${period}`)
+      const res = await fetch(`/api/leaderboard?period=${period}&teamOnly=true&userId=${user?.id || ''}`)
       if (res.ok) {
         const json = await res.json()
         setEntries(json)
@@ -111,7 +111,7 @@ export function LeaderboardTab() {
     } finally {
       setLoading(false)
     }
-  }, [period])
+  }, [period, user?.id])
 
   useEffect(() => {
     fetchLeaderboard()
@@ -127,7 +127,7 @@ export function LeaderboardTab() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Trophy className="size-5 text-amber-400" />
-          Leaderboard
+          Team Leaderboard
         </h2>
         <Tabs
           value={period}
@@ -169,7 +169,7 @@ export function LeaderboardTab() {
       {/* Full Leaderboard Table */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">Full Rankings</CardTitle>
+          <CardTitle className="text-base font-semibold">Team Rankings</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (

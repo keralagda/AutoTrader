@@ -298,7 +298,7 @@ export default function PlansSection() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Max Earning</span>
+                          <span className="text-muted-foreground">Daily Earning Cap</span>
                           <span className="font-semibold" dir="ltr">
                             {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
                           </span>

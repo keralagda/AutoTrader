@@ -65,6 +65,7 @@ model Plan {
   maxDeposit            Float
   dailyEarningPercent   Float
   maxEarningLimit       Float
+  maxEarningMultiplier  Float    @default(2.0)
 
   // Time-based Plan Configuration
   returnType            String   @default("daily") // "hourly", "daily", "weekly", "monthly", "after_end"
@@ -126,6 +127,11 @@ model Plan {
   maxLossPercent             Float    @default(5.0)
   allowNegativeBalance       Boolean  @default(false)
   maxConsecutiveLossDays     Int      @default(3)
+  drawdownLimit              Float    @default(10.0)
+  profitTarget               Float    @default(20.0)
+  hedgingRatio               Float    @default(0.0)
+  lossLimitAction            String   @default("pause")
+  pnlLogicDescription        String?
 
   // Extra Fund-Sharing Percentages
   charityDonationPercent     Float    @default(0)
@@ -152,22 +158,47 @@ model Plan {
 
   deposits Deposit[]
   referralRules       PlanReferralRule[]
+  conditionalLogics   PlanConditionalLogic[]
   pnlLogs             PlanPnLLog[]
   insuranceVault      PlanInsuranceVault?
 }
 
 // Custom Level-by-Level Referral Payouts per Plan
 model PlanReferralRule {
-  id         String   @id @default(cuid())
-  planId     String
-  level      Int      // Level 1, 2, 3, etc.
-  commission Float    // Percentage commission for this level
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  planId             String
+  level              Int      // Level 1, 2, 3, etc.
+  commission         Float    // Percentage commission for this level
+  amount             Float    @default(0.0)
+  type               String   @default("registration") // "registration", "profit", or "deposit"
+  minSponsorDeposit  Float    @default(0.0)
+  minDirectReferrals Int      @default(0)
+  targetWallet       String   @default("trading") // "trading" or "withdrawal"
+  enabled            Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
 
-  @@unique([planId, level])
+  @@unique([planId, level, type])
+}
+
+// Plan-specific Conditional Rules Engine
+model PlanConditionalLogic {
+  id            String   @id @default(cuid())
+  planId        String
+  enabled       Boolean  @default(true)
+  priority      Int      @default(1)
+  conditionType String   // "daily_yield", "consecutive_loss_days", "active_deposits", "day_of_week", "spots_filled"
+  operator      String   // ">", "<", "==", "contains"
+  value         String   // condition threshold
+  actionType    String   // "adjust_yield", "adjust_multiplier", "pause_referrals", "adjust_splits", "disable_plan"
+  actionValue   String   // target value
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  plan          Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
 }
 
 // Daily Payout Logs for Analytics & Transparency
