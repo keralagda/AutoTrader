@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Diamond, Menu, X } from 'lucide-react'
+import { Diamond, Menu, X, Mic } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/lib/store'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
@@ -96,6 +96,18 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => {
+                const event = new KeyboardEvent('keydown', { key: 'v' });
+                window.dispatchEvent(event);
+              }}
+              className="text-amber-400 hover:text-amber-300 gap-1.5 font-mono text-xs border border-amber-500/25 hover:border-amber-500/40 rounded px-2.5 py-1 bg-amber-500/5"
+            >
+              <Mic className="size-3.5 animate-pulse text-amber-400" />
+              <span>Voice [V]</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleLogin}
               className="text-muted-foreground hover:text-foreground"
             >
@@ -141,6 +153,21 @@ export default function Navbar() {
               <div className="flex items-center justify-between pt-2 pb-1">
                 <span className="text-xs text-muted-foreground">Language</span>
                 <LanguageSwitcher />
+              </div>
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsMobileOpen(false);
+                    const event = new KeyboardEvent('keydown', { key: 'v' });
+                    window.dispatchEvent(event);
+                  }}
+                  className="w-full text-amber-400 border-amber-500/25 hover:bg-amber-500/10 justify-center gap-2 font-mono h-9"
+                >
+                  <Mic className="size-4 animate-pulse text-amber-400" />
+                  Voice Control [V]
+                </Button>
               </div>
               <div className="flex gap-3 pt-2">
                 <Button

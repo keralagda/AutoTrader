@@ -36,6 +36,7 @@ import {
   Shield,
   Sparkles,
   Gift,
+  Mic,
 } from 'lucide-react'
 
 interface NavItem {
@@ -209,6 +210,24 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           </Button>
         </div>
       )}
+
+      {/* Voice Control Launch Shortcut */}
+      <div className="px-4 pb-2">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2 text-amber-400 border-amber-500/30 hover:bg-amber-500/10 group relative"
+          onClick={() => {
+            const event = new KeyboardEvent('keydown', { key: 'v' });
+            window.dispatchEvent(event);
+          }}
+        >
+          <Mic className="size-4 animate-pulse group-hover:scale-110 transition-transform text-amber-400" />
+          Voice Control
+          <span className="ml-auto text-[9px] font-mono border border-amber-500/35 px-1 py-0.5 rounded bg-amber-500/10">
+            [V]
+          </span>
+        </Button>
+      </div>
 
       {/* Logout */}
       <div className="p-4 pt-0">

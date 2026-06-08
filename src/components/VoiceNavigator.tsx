@@ -3,9 +3,31 @@
 import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '@/lib/store'
-import { Mic, MicOff, X, Sparkles, Volume2, ArrowRight } from 'lucide-react'
+import { Mic, X, Sparkles, Volume2, ArrowRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { MagneticButton } from './landing/MagneticButton'
+
+interface VoiceCommand {
+  id: string
+  keywords: string[]
+  actionType: 'navigation' | 'auth_modal'
+  view?: 'landing' | 'dashboard' | 'admin'
+  dashboardTab?: string
+  adminTab?: string
+  hash?: string
+  authMode?: 'login' | 'register'
+  feedbackText: string
+  requiredRole: 'public' | 'user' | 'admin'
+  isActive: boolean
+  description: string
+}
+
+interface VoiceSettings {
+  enabled: boolean
+  rate: number
+  pitch: number
+  triggerKey: string
+}
 
 export function VoiceNavigator() {
   const { toast } = useToast()
@@ -13,6 +35,15 @@ export function VoiceNavigator() {
   const [transcript, setTranscript] = useState('')
   const [isSupported, setIsSupported] = useState(false)
   
+  // Dynamic settings
+  const [commands, setCommands] = useState<VoiceCommand[]>([])
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({
+    enabled: true,
+    rate: 1.0,
+    pitch: 1.0,
+    triggerKey: 'v'
+  })
+
   const {
     setView,
     setDashboardTab,
@@ -28,15 +59,34 @@ export function VoiceNavigator() {
   // Voice output feedback
   const speakFeedback = (text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      // Cancel any ongoing speech
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 1.0
-      utterance.pitch = 1.0
+      utterance.rate = voiceSettings.rate
+      utterance.pitch = voiceSettings.pitch
       window.speechSynthesis.speak(utterance)
     }
   }
 
+  // Load voice configurations dynamically from API
+  useEffect(() => {
+    const fetchVoiceConfig = async () => {
+      try {
+        const res = await fetch('/api/voice-commands')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.success) {
+            setCommands(data.commands)
+            setVoiceSettings(data.settings)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load dynamic voice commands:', err)
+      }
+    }
+    fetchVoiceConfig()
+  }, [isAuthenticated, user])
+
+  // Initialize Speech Recognition API
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition =
@@ -76,9 +126,9 @@ export function VoiceNavigator() {
         recognitionRef.current = rec
       }
     }
-  }, [isAuthenticated, user])
+  }, [commands, voiceSettings])
 
-  // Keypress listener for 'v' key shortcut
+  // Keypress listener for customizable trigger key shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Prevent triggering if user is actively writing in form inputs
@@ -92,7 +142,8 @@ export function VoiceNavigator() {
         return
       }
 
-      if (e.key === 'v' || e.key === 'V') {
+      const triggerKey = voiceSettings.triggerKey || 'v'
+      if (e.key.toLowerCase() === triggerKey.toLowerCase()) {
         e.preventDefault()
         toggleListening()
       }
@@ -100,7 +151,7 @@ export function VoiceNavigator() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isSupported, isListening])
+  }, [isSupported, isListening, voiceSettings])
 
   const toggleListening = () => {
     if (!isSupported) {
@@ -112,11 +163,20 @@ export function VoiceNavigator() {
       return
     }
 
+    if (!voiceSettings.enabled) {
+      toast({
+        title: 'Voice navigation disabled',
+        description: 'Voice navigation settings are currently toggled off by administrator.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     if (isListening) {
       recognitionRef.current?.stop()
       setIsListening(false)
     } else {
-      setTranscript('Activating micro...')
+      setTranscript('Activating microphone...')
       try {
         recognitionRef.current?.start()
         setIsListening(true)
@@ -131,183 +191,79 @@ export function VoiceNavigator() {
     const cmd = commandText.toLowerCase().trim()
     console.log('Voice Command Received:', cmd)
 
-    // 1. PUBLIC LANDING MENU
-    if (cmd.includes('home') || cmd.includes('landing') || cmd.includes('main')) {
-      setView('landing')
-      window.location.hash = ''
-      speakFeedback('Navigating to home page')
-      return
-    }
-    if (cmd.includes('features') || cmd.includes('pillars')) {
-      setView('landing')
-      window.location.hash = '#features'
-      speakFeedback('Scrolling to platform features')
-      return
-    }
-    if (cmd.includes('calculator') || cmd.includes('returns engine')) {
-      setView('landing')
-      window.location.hash = '#calculator'
-      speakFeedback('Scrolling to return calculator')
-      return
-    }
-    if (cmd.includes('login') || cmd.includes('sign in')) {
-      setView('landing')
-      setAuthMode('login')
-      setShowAuthModal(true)
-      speakFeedback('Opening sign in modal')
-      return
-    }
-    if (cmd.includes('register') || cmd.includes('sign up') || cmd.includes('create account')) {
-      setView('landing')
-      setAuthMode('register')
-      setShowAuthModal(true)
-      speakFeedback('Opening sign up modal')
+    if (!voiceSettings.enabled) {
+      speakFeedback('Voice navigation is currently disabled.')
       return
     }
 
-    // 2. USER DASHBOARD LINKS (Requires Auth)
-    if (cmd.includes('withdraw') || cmd.includes('payout')) {
-      if (!isAuthenticated) {
-        speakFeedback('Authentication required. Please sign in first.')
-        return
-      }
-      setView('dashboard')
-      setDashboardTab('withdraw')
-      speakFeedback('Navigating to withdrawals')
+    // Match command dynamically
+    const matched = commands.find(c => 
+      c.keywords.some((kw: string) => cmd.includes(kw.toLowerCase()))
+    )
+
+    if (!matched) {
+      speakFeedback(`Command not recognized: "${cmd}". Please try again.`)
       return
     }
-    if (cmd.includes('deposit') || cmd.includes('invest')) {
-      if (!isAuthenticated) {
-        speakFeedback('Authentication required. Please sign in first.')
-        return
-      }
-      setView('dashboard')
-      setDashboardTab('deposit')
-      speakFeedback('Navigating to deposits')
-      return
-    }
-    if (cmd.includes('transfer') || cmd.includes('p2p')) {
-      if (!isAuthenticated) {
-        speakFeedback('Authentication required. Please sign in first.')
-        return
-      }
-      setView('dashboard')
-      setDashboardTab('transactions')
-      speakFeedback('Navigating to transfer tab')
-      return
-    }
-    if (cmd.includes('security') || cmd.includes('settings') || cmd.includes('profile')) {
-      if (!isAuthenticated) {
-        speakFeedback('Authentication required. Please sign in first.')
-        return
-      }
-      setView('dashboard')
-      setDashboardTab('security')
-      speakFeedback('Navigating to security settings')
-      return
-    }
-    if (cmd.includes('referrals') || cmd.includes('affiliate') || cmd.includes('matrix')) {
-      if (isAuthenticated) {
-        setView('dashboard')
-        setDashboardTab('team')
-        speakFeedback('Navigating to affiliate matrix')
-      } else {
+
+    // Role & Authorization Checks
+    if (matched.requiredRole === 'user' && !isAuthenticated) {
+      // Premium Fallback check for unauthenticated users asking for referral team or plans info
+      if (matched.keywords.some(k => ['referrals', 'affiliate', 'matrix', 'team'].includes(k))) {
         setView('landing')
         window.location.hash = '#referrals'
-        speakFeedback('Scrolling to affiliate info')
-      }
-      return
-    }
-    if (cmd.includes('plans')) {
-      if (isAuthenticated) {
-        setView('dashboard')
-        setDashboardTab('investment')
-        speakFeedback('Navigating to your active plans')
-      } else {
-        setView('landing')
-        window.location.hash = '#plans'
-        speakFeedback('Scrolling to investment plans')
-      }
-      return
-    }
-    if (cmd.includes('dashboard') || cmd.includes('overview')) {
-      if (!isAuthenticated) {
-        speakFeedback('Authentication required. Please sign in first.')
+        const el = document.querySelector('#referrals')
+        el?.scrollIntoView({ behavior: 'smooth' })
+        speakFeedback('Scrolling to referral rewards information')
         return
       }
-      setView('dashboard')
-      setDashboardTab('overview')
-      speakFeedback('Navigating to user dashboard overview')
+      if (matched.keywords.some(k => ['plans', 'packages', 'rates'].includes(k))) {
+        setView('landing')
+        window.location.hash = '#plans'
+        const el = document.querySelector('#plans')
+        el?.scrollIntoView({ behavior: 'smooth' })
+        speakFeedback('Scrolling to our investment yields table')
+        return
+      }
+
+      speakFeedback('Authentication required. Please sign in first.')
       return
     }
 
-    // 3. ADMIN DASHBOARD LINKS (Requires Admin Role)
-    const isAdmin = ['admin', 'super_admin', 'moderator', 'support'].includes(user?.role || '')
-    
-    if (cmd.includes('admin') || cmd.includes('control hub')) {
+    if (matched.requiredRole === 'admin') {
+      const isAdmin = ['admin', 'super_admin', 'moderator', 'support'].includes(user?.role || '')
       if (!isAdmin) {
         speakFeedback('Access denied. Administrator privileges required.')
         return
       }
-      setView('admin')
-      setAdminTab('plans')
-      speakFeedback('Navigating to admin control hub')
-      return
-    }
-    if (cmd.includes('users list') || cmd.includes('users') || cmd.includes('manage users')) {
-      if (!isAdmin) {
-        speakFeedback('Access denied.')
-        return
-      }
-      setView('admin')
-      setAdminTab('users')
-      speakFeedback('Navigating to user accounts manager')
-      return
-    }
-    if (cmd.includes('manage plans') || cmd.includes('plan config')) {
-      if (!isAdmin) {
-        speakFeedback('Access denied.')
-        return
-      }
-      setView('admin')
-      setAdminTab('plans')
-      speakFeedback('Navigating to plan builder configuration')
-      return
-    }
-    if (cmd.includes('system logic') || cmd.includes('logic builder') || cmd.includes('logic')) {
-      if (!isAdmin) {
-        speakFeedback('Access denied.')
-        return
-      }
-      setView('admin')
-      setAdminTab('logicBuilder')
-      speakFeedback('Navigating to system conditional logic builder')
-      return
-    }
-    if (cmd.includes('templates') || cmd.includes('landing page templates')) {
-      if (!isAdmin) {
-        speakFeedback('Access denied.')
-        return
-      }
-      setView('admin')
-      setAdminTab('templates')
-      speakFeedback('Navigating to landing page layout templates')
-      return
-    }
-    if (cmd.includes('bot') || cmd.includes('telegram')) {
-      if (!isAdmin) {
-        speakFeedback('Access denied.')
-        return
-      }
-      setView('admin')
-      setAdminTab('chatbot')
-      speakFeedback('Navigating to telegram bot builder')
-      return
     }
 
-    // Command not matched
-    speakFeedback("Command not recognized: '" + cmd + "'. Try again.")
+    // Action Execution
+    if (matched.actionType === 'auth_modal') {
+      setView('landing')
+      setAuthMode(matched.authMode || 'login')
+      setShowAuthModal(true)
+    } else if (matched.actionType === 'navigation') {
+      if (matched.view) setView(matched.view)
+
+      if (matched.view === 'dashboard' && matched.dashboardTab) {
+        setDashboardTab(matched.dashboardTab as any)
+      } else if (matched.view === 'admin' && matched.adminTab) {
+        setAdminTab(matched.adminTab as any)
+      } else if (matched.view === 'landing' && matched.hash !== undefined) {
+        window.location.hash = matched.hash
+        const el = document.querySelector(matched.hash)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' })
+        }
+      }
+    }
+
+    speakFeedback(matched.feedbackText)
   }
+
+  // Generate cues to display inside overlay
+  const displayCues = commands.slice(0, 7)
 
   return (
     <>
@@ -321,18 +277,14 @@ export function VoiceNavigator() {
               : 'bg-black/80 border-white/10 text-white hover:border-white/20'
           }`}
         >
-          {isListening ? (
-            <Mic className="h-5 w-5 animate-pulse" />
-          ) : (
-            <Mic className="h-5 w-5" />
-          )}
+          <Mic className={`h-5 w-5 ${isListening ? 'animate-pulse' : ''}`} />
           {/* Pulsing indicator tag */}
           <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isListening ? 'bg-black' : 'bg-amber-400'}`}></span>
             <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${isListening ? 'bg-black' : 'bg-amber-500'}`}></span>
           </span>
           <span className="absolute right-14 bg-black/95 text-white/50 border border-white/[0.06] text-[9px] font-mono uppercase tracking-[0.2em] px-2 py-1 rounded shadow-md pointer-events-none select-none opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">
-            Press [V]
+            Press [{voiceSettings.triggerKey.toUpperCase()}]
           </span>
         </MagneticButton>
       </div>
@@ -383,57 +335,31 @@ export function VoiceNavigator() {
                   &ldquo;{transcript}&rdquo;
                 </p>
                 <p className="text-xs text-white/40 font-mono">
-                  SPEAK A ROUTE DIRECTION KEYWORD
+                  SPEAK A CONFIGURABLE ROUTE COMMAND
                 </p>
               </div>
 
               {/* Command Cue Suggestions Bento */}
-              <div className="border-t border-white/10 pt-6 space-y-3 text-left">
-                <h4 className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/50 mb-2">
-                  System Commands Library:
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs font-mono text-white/60">
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                    <span className="text-amber-400 font-bold">&ldquo;Home&rdquo;</span>
-                    <ArrowRight className="h-3 w-3 opacity-30" />
-                    <span className="text-white/30 text-[10px]">Landing</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                    <span className="text-amber-400 font-bold">&ldquo;Plans&rdquo;</span>
-                    <ArrowRight className="h-3 w-3 opacity-30" />
-                    <span className="text-white/30 text-[10px]">Rates Grid</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                    <span className="text-amber-400 font-bold">&ldquo;Calculator&rdquo;</span>
-                    <ArrowRight className="h-3 w-3 opacity-30" />
-                    <span className="text-white/30 text-[10px]">Yield Tool</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                    <span className="text-amber-400 font-bold">&ldquo;Deposit&rdquo;</span>
-                    <ArrowRight className="h-3 w-3 opacity-30" />
-                    <span className="text-white/30 text-[10px]">Add Funds</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                    <span className="text-amber-400 font-bold">&ldquo;Withdraw&rdquo;</span>
-                    <ArrowRight className="h-3 w-3 opacity-30" />
-                    <span className="text-white/30 text-[10px]">Cashout</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                    <span className="text-amber-400 font-bold">&ldquo;Settings&rdquo;</span>
-                    <ArrowRight className="h-3 w-3 opacity-30" />
-                    <span className="text-white/30 text-[10px]">Security</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] col-span-2">
-                    <span className="text-amber-400 font-bold">&ldquo;Admin&rdquo; / &ldquo;Users&rdquo;</span>
-                    <ArrowRight className="h-3 w-3 opacity-30" />
-                    <span className="text-white/30 text-[10px]">Control Hub (Admin Only)</span>
+              {displayCues.length > 0 && (
+                <div className="border-t border-white/10 pt-6 space-y-3 text-left">
+                  <h4 className="text-[10px] font-mono uppercase tracking-[0.25em] text-white/50 mb-2">
+                    Sample Voice Commands:
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono text-white/60">
+                    {displayCues.map(cue => (
+                      <div key={cue.id} className="flex items-center gap-1.5 p-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                        <span className="text-amber-400 font-bold">&ldquo;{cue.keywords[0]}&rdquo;</span>
+                        <ArrowRight className="h-3 w-3 opacity-30" />
+                        <span className="text-white/30 text-[9px] truncate">{cue.description}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono text-white/30">
                 <Volume2 className="h-3 w-3" />
-                SPEECH RESPONSE IS ACTIVE
+                SPEECH ENGINE ONLINE
               </div>
             </motion.div>
           </motion.div>

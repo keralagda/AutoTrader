@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore, type AdminTab } from '@/lib/store'
-import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette } from 'lucide-react'
+import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette, Mic } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -42,6 +42,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'templates', label: 'Templates', icon: Palette, group: 'site' },
   { tab: 'pageBuilder', label: 'Page Builder', icon: Layout, group: 'site' },
   { tab: 'landingEditor', label: 'Landing Sections', icon: Layout, group: 'site' },
+  { tab: 'pdfBuilder', label: 'PDF Flyer Builder', icon: FileText, group: 'site' },
 
   // 📝 Content
   { tab: 'news', label: 'News', icon: Newspaper, group: 'content' },
@@ -60,6 +61,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
 
   // ⚙️ Settings
   { tab: 'settings', label: 'General Settings', icon: Wrench, group: 'system' },
+  { tab: 'voiceNavigation', label: 'Voice Commands', icon: Mic, group: 'system' },
   { tab: 'featureFlags', label: 'Feature Flags', icon: Shield, group: 'system' },
   { tab: 'helpCenter', label: 'Help Center', icon: LifeBuoy, group: 'system' },
   { tab: 'geoBlocking', label: 'Geo-Blocking', icon: Shield, group: 'system' },
@@ -139,6 +141,20 @@ export function AdminSidebar() {
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Site
+        </Button>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 group"
+          onClick={() => {
+            const event = new KeyboardEvent('keydown', { key: 'v' });
+            window.dispatchEvent(event);
+          }}
+        >
+          <Mic className="h-4 w-4 text-amber-400 animate-pulse group-hover:scale-110 transition-transform" />
+          Voice Control
+          <span className="ml-auto text-[9px] font-mono border border-amber-500/35 px-1 py-0.5 rounded bg-amber-500/10">
+            [V]
+          </span>
         </Button>
         <Button
           variant="ghost"
