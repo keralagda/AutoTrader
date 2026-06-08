@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { CookieConsent } from "@/components/CookieConsent";
+import { VoiceNavigator } from "@/components/VoiceNavigator";
 
 const geistSans = {
   variable: "font-sans",
@@ -52,6 +53,7 @@ export default function RootLayout({
       >
         {children}
         <Toaster />
+        <VoiceNavigator />
         <ServiceWorkerRegistration />
         <CookieConsent />
       </body>

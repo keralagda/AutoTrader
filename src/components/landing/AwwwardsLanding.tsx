@@ -171,9 +171,9 @@ export function AwwwardsLanding() {
           </div>
 
           {/* Giant Typography Header Structure */}
-          <div className="leading-[0.85] font-black tracking-[-0.04em] text-[clamp(2.8rem,11vw,11rem)] select-none">
+          <div className="leading-[0.85] font-black tracking-[-0.04em] text-[clamp(2.4rem,8vw,7.5rem)] select-none">
             <div className="flex items-baseline gap-4 flex-wrap">
-              <SplitTextReveal text="Your money" tag="h1" delay={0.1} />
+              <SplitTextReveal text="Wealth engineered." tag="h1" delay={0.1} />
               <motion.span
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
@@ -185,7 +185,7 @@ export function AwwwardsLanding() {
             </div>
             <div className="text-right">
               <SplitTextReveal
-                text="works harder."
+                text="by sovereign intelligence."
                 tag="h1"
                 delay={0.3}
                 className="italic font-light text-white/70"
@@ -193,7 +193,7 @@ export function AwwwardsLanding() {
             </div>
             <div>
               <span className="relative inline-block text-amber-400">
-                <SplitTextReveal text="yield is power." tag="h1" delay={0.5} />
+                <SplitTextReveal text="automated. compounding." tag="h1" delay={0.5} />
                 <motion.span
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
@@ -212,8 +212,8 @@ export function AwwwardsLanding() {
               transition={{ delay: 1.4, duration: 0.8 }}
               className="md:col-span-5"
             >
-              <p className="text-lg md:text-xl leading-relaxed text-white/50 max-w-md">
-                Automated crypto trading with institutional-grade AI. Earn daily yields from verified plans. No trading experience required.
+              <p className="text-base md:text-lg leading-relaxed text-white/50 max-w-md">
+                Capital allocation executed with sub-millisecond mathematical precision. Elevate your portfolio with institutional-grade AI yields. Total control, zero complexity.
               </p>
             </motion.div>
             <motion.div
