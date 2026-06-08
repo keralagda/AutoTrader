@@ -136,7 +136,7 @@ export function AdminTemplatesTab() {
 
                   {/* Stats row with icons */}
                   <div className="absolute bottom-2 left-3 right-3 flex justify-around">
-                    {template.hero.stats.slice(0, 4).map((stat: any, i: number) => (
+                    {(template.hero.stats || []).slice(0, 4).map((stat: any, i: number) => (
                       <div key={i} className="text-center">
                         <span className="text-[8px]">{stat.icon || '📊'}</span>
                         <p className="text-[7px] font-bold" style={{ color: template.colors.primary }}>
@@ -278,7 +278,7 @@ export function AdminTemplatesTab() {
 
                     {/* Stats with icons */}
                     <div className="grid grid-cols-4 gap-4">
-                      {previewTemplate.hero.stats.map((stat: any, i: number) => (
+                      {(previewTemplate.hero.stats || []).map((stat: any, i: number) => (
                         <div key={i} className="text-center p-4 rounded-xl backdrop-blur-sm" style={{ backgroundColor: previewTemplate.colors.card + 'cc' }}>
                           <span className="text-xl mb-1 block">{stat.icon || '📊'}</span>
                           <p className="text-xl font-bold" style={{ color: previewTemplate.colors.primary }}>

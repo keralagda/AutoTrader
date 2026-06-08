@@ -315,6 +315,12 @@ const BUILT_IN_TEMPLATES = [
       ctaText: 'Start Earning',
       ctaSecondary: 'View Performance',
       backgroundStyle: 'gradient-orbs',
+      stats: [
+        { label: 'Total Volume', value: 25000000, prefix: '$', suffix: '+', icon: '💰' },
+        { label: 'Active Investors', value: 25000, prefix: '', suffix: '+', icon: '👥' },
+        { label: 'Uptime', value: 99.9, prefix: '', suffix: '%', icon: '⚡' },
+        { label: 'Daily Yield', value: 8, prefix: '', suffix: '%', icon: '📈' },
+      ],
     },
     sections: ['hero', 'stats', 'features-bento', 'plans', 'how-it-works', 'cta', 'footer'],
     styles: {
