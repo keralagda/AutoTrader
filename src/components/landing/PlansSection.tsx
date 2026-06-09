@@ -10,6 +10,16 @@ import { useAppStore } from '@/lib/store'
 import type { PlanType } from '@/lib/types'
 import { DEFAULT_PLANS } from '@/lib/types'
 
+const getPlanLimitMultiplier = (planName: string): string => {
+  const name = planName.toLowerCase()
+  if (name.includes('starter')) return '1X'
+  if (name.includes('flash') || name.includes('hourly')) return '1.5X'
+  if (name.includes('silver')) return '2X'
+  if (name.includes('gold')) return '2.5X'
+  if (name.includes('platinum')) return '3X'
+  return '2X' // default fallback
+}
+
 // Plan icon mapping
 const planIcons: Record<string, React.ElementType> = {
   Starter: Shield,
@@ -298,9 +308,9 @@ export default function PlansSection() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Daily Earning Cap</span>
+                          <span className="text-muted-foreground">Daily Limit</span>
                           <span className="font-semibold" dir="ltr">
-                            {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
+                            {getPlanLimitMultiplier(plan.name)} of Investment
                           </span>
                         </div>
 

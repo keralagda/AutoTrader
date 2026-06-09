@@ -7,6 +7,16 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowRight, ArrowDown, Sparkles, Shield, Zap, Globe, Users, TrendingUp, ChevronRight } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 
+const getPlanLimitMultiplier = (planName: string): string => {
+  const name = planName.toLowerCase()
+  if (name.includes('starter')) return '1X'
+  if (name.includes('flash') || name.includes('hourly')) return '1.5X'
+  if (name.includes('silver')) return '2X'
+  if (name.includes('gold')) return '2.5X'
+  if (name.includes('platinum')) return '3X'
+  return '2X' // default fallback
+}
+
 // Import premium Awwwards-style modular components
 import { CustomCursor } from './CustomCursor'
 import { ParticleBackground } from './ParticleBackground'
@@ -366,9 +376,9 @@ export function AwwwardsLanding() {
                         <span dir="ltr" className="font-mono">${plan.maxDeposit.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-white/60">
-                        <span>Daily Earning Cap</span>
+                        <span>Daily Limit</span>
                         <span dir="ltr" className="font-mono">
-                          {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
+                          {getPlanLimitMultiplier(plan.name)} of Investment
                         </span>
                       </div>
                     </div>

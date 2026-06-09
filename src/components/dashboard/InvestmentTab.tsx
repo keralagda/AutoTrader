@@ -66,6 +66,16 @@ const PLAN_COLORS: Record<string, string> = {
   Platinum: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
 }
 
+export const getPlanLimitMultiplier = (planName: string): string => {
+  const name = planName.toLowerCase()
+  if (name.includes('starter')) return '1X'
+  if (name.includes('flash') || name.includes('hourly')) return '1.5X'
+  if (name.includes('silver')) return '2X'
+  if (name.includes('gold')) return '2.5X'
+  if (name.includes('platinum')) return '3X'
+  return '2X' // default fallback
+}
+
 export function InvestmentTab() {
   const { user, updateUserWallets } = useAppStore()
   const { toast } = useToast()
@@ -465,8 +475,8 @@ export function InvestmentTab() {
                     <p className="font-medium">${selectedPlan.entryFee}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Daily Earning Cap</p>
-                    <p className="font-medium">{Math.round(selectedPlan.maxEarningLimit / selectedPlan.minDeposit)}X</p>
+                    <p className="text-muted-foreground">Daily Limit</p>
+                    <p className="font-medium">{getPlanLimitMultiplier(selectedPlan.name)} of Investment</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Investment Range</p>
@@ -630,7 +640,7 @@ export function InvestmentTab() {
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        Daily: {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}% • Cap: {Math.round(plan.maxEarningLimit / plan.minDeposit)}X
+                        Daily: {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}% • Limit: {getPlanLimitMultiplier(plan.name)}
                       </p>
                     </div>
                     <div className="text-right">

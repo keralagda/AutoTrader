@@ -30,6 +30,16 @@ import {
 } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 
+const getPlanLimitMultiplier = (planName: string): string => {
+  const name = planName.toLowerCase()
+  if (name.includes('starter')) return '1X'
+  if (name.includes('flash') || name.includes('hourly')) return '1.5X'
+  if (name.includes('silver')) return '2X'
+  if (name.includes('gold')) return '2.5X'
+  if (name.includes('platinum')) return '3X'
+  return '2X' // default fallback
+}
+
 // ─── Extended plan with UI state ─────────────────────────────────────────────
 interface EditablePlan extends PlanType {
   isEditing?: boolean
@@ -2515,7 +2525,7 @@ function PlanSummary({
           <StatBadge label="Entry Fee" value={`$${plan.entryFee.toLocaleString()}`} icon={<DollarSign className="h-3 w-3" />} />
           <StatBadge label="Daily Rate" value={`${(plan as any).lowRiskMin || 0.5}-${(plan as any).highRiskMax || 15}%`} icon={<Percent className="h-3 w-3" />} />
           <StatBadge label="Deposit Range" value={`$${plan.minDeposit.toLocaleString()} - $${plan.maxDeposit.toLocaleString()}`} />
-          <StatBadge label="Daily Earning Cap" value={`${Math.round(plan.maxEarningLimit / plan.minDeposit)}X`} />
+          <StatBadge label="Daily Limit" value={`${getPlanLimitMultiplier(plan.name)} of Investment`} />
           <StatBadge label="Lock Period" value={plan.lockPeriodDays > 0 ? `${plan.lockPeriodDays} days` : 'None'} />
         </div>
 
