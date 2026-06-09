@@ -88,8 +88,9 @@ export function EarningsCalculator() {
   const dailyEarning = (investment * avgDailyPercent) / 100
 
   // Plan capping logic: limit by maxEarningLimit or maxEarningMultiplier (e.g. 2X, 3X, 4X)
+  const isStarter = plan.name.toLowerCase().includes('starter')
   const multiplierCap = investment * (plan.maxEarningMultiplier || 2)
-  const maxEarningCap = plan.maxEarningLimit > 0 
+  const maxEarningCap = (plan.maxEarningLimit > 0 && !isStarter) 
     ? Math.min(plan.maxEarningLimit, multiplierCap) 
     : multiplierCap
 

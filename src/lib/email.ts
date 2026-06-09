@@ -88,11 +88,16 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   if (activeUser && activePass) {
     try {
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
         auth: {
           user: activeUser,
           pass: activePass,
         },
+        tls: {
+          rejectUnauthorized: false
+        }
       })
       
       const finalFrom = FROM_EMAIL.includes('<') && FROM_EMAIL.includes(activeUser)
