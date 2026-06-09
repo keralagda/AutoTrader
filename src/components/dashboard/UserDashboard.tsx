@@ -260,7 +260,7 @@ export function UserDashboard() {
         </header>
 
         {/* Verification Warning Banner */}
-        {user && user.isEmailVerified === false && (
+        {user && !user.isEmailVerified && (
           <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-md shrink-0">
             <div className="flex items-center gap-3">
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 border border-amber-500/30">

@@ -95,6 +95,7 @@ export async function POST(request: Request) {
         withdrawalBalance: user.withdrawalBalance,
         totalEarnings: user.totalEarnings,
         totalDeposited: user.totalDeposited,
+        isEmailVerified: user.isEmailVerified,
       },
     }, { status: 201 })
   } catch (error) {
