@@ -45,6 +45,7 @@ import { AdminEarningsTab } from './AdminEarningsTab'
 import { AdminFinancialLogsTab } from './AdminFinancialLogsTab'
 import { AdminVoiceNavigationTab } from './AdminVoiceNavigationTab'
 import { AdminPdfBuilderTab } from './AdminPdfBuilderTab'
+import { AdminTransferFundsTab } from './AdminTransferFundsTab'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
@@ -143,6 +144,7 @@ export function AdminDashboard() {
       case 'financialLogs': return <AdminFinancialLogsTab />
       case 'voiceNavigation': return <AdminVoiceNavigationTab />
       case 'pdfBuilder': return <AdminPdfBuilderTab />
+      case 'transferFunds': return <AdminTransferFundsTab />
       default: return <PlansTab />
 
     }

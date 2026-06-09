@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore, type AdminTab } from '@/lib/store'
-import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette, Mic } from 'lucide-react'
+import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette, Mic, ArrowRightLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -28,6 +28,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'withdrawalLimits', label: 'Limits & Fees', icon: DollarSign, group: 'finance' },
   { tab: 'payments', label: 'Payment Gateways', icon: CreditCard, group: 'finance' },
   { tab: 'profits', label: 'Manual Profits', icon: TrendingUp, group: 'finance' },
+  { tab: 'transferFunds', label: 'Transfer Funds', icon: ArrowRightLeft, group: 'finance' },
   { tab: 'financialLogs', label: '5W1H Ledger', icon: ScrollText, group: 'finance' },
 
 
