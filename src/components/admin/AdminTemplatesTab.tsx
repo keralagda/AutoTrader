@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Palette, Check, Eye, Loader2, Sparkles, Layout } from 'lucide-react'
+import { useAppStore } from '@/lib/store'
+import { Palette, Check, Eye, Loader2, Sparkles, PencilRuler } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ interface Template {
 
 export function AdminTemplatesTab() {
   const { toast } = useToast()
+  const { setAdminTab } = useAppStore()
   const [templates, setTemplates] = useState<{ builtIn: Template[]; custom: Template[] }>({ builtIn: [], custom: [] })
   const [activeId, setActiveId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -63,6 +65,58 @@ export function AdminTemplatesTab() {
     } catch {
       toast({ title: 'Network error', variant: 'destructive' })
     } finally { setApplying(null) }
+  }
+
+  const handleEditInPageBuilder = async (template: Template) => {
+    // Convert the template's visual identity into a set of Page Builder blocks
+    const heroBlock = {
+      id: `blk_${Date.now()}_hero`,
+      type: 'hero' as const,
+      content: {
+        headline: template.hero.headline,
+        subtitle: template.hero.subtitle,
+        ctaText: template.hero.ctaText,
+        ctaUrl: '/register',
+        backgroundImage: (template as any).images?.heroBg || '',
+      },
+      style: { padding: '64px 32px', textAlign: 'center' as const, backgroundColor: template.colors.background, textColor: template.colors.text },
+    }
+    const statsBlock = template.hero.stats?.length ? {
+      id: `blk_${Date.now()}_stats`,
+      type: 'stats' as const,
+      content: { items: template.hero.stats.map((s: any) => ({ value: `${s.prefix || ''}${s.value}${s.suffix || ''}`, label: s.label })) },
+      style: { padding: '32px 16px', textAlign: 'center' as const, backgroundColor: template.colors.card },
+    } : null
+    const featuresBlock = (template as any).features?.length ? {
+      id: `blk_${Date.now()}_features`,
+      type: 'features' as const,
+      content: { items: (template as any).features.map((f: any) => ({ icon: f.icon || '⭐', title: f.title, text: f.description })) },
+      style: { padding: '48px 32px', backgroundColor: template.colors.background, textColor: template.colors.text },
+    } : null
+    const ctaBlock = {
+      id: `blk_${Date.now()}_cta`,
+      type: 'cta' as const,
+      content: { headline: 'Ready to start?', text: template.hero.subtitle, buttonText: template.hero.ctaSecondary || 'Learn More', buttonUrl: '/register' },
+      style: { padding: '48px 32px', textAlign: 'center' as const, backgroundColor: template.colors.card, textColor: template.colors.text },
+    }
+    const blocks = [heroBlock, statsBlock, featuresBlock, ctaBlock].filter(Boolean)
+
+    // Save as a new page in page-builder
+    try {
+      const res = await fetch('/api/admin/page-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `${template.name} (from template)`, blocks }),
+      })
+      if (res.ok) {
+        toast({ title: 'Template loaded into Page Builder!', description: 'Switch to the Page Builder tab to edit.' })
+        setAdminTab('pageBuilder')
+      } else {
+        toast({ title: 'Failed to load template', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
+    }
   }
 
   if (loading) {
@@ -193,29 +247,39 @@ export function AdminTemplatesTab() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 gap-1.5 text-xs"
+                      onClick={() => setPreviewTemplate(template)}
+                    >
+                      <Eye className="h-3 w-3" /> Preview
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1 gap-1.5 text-xs"
+                      onClick={() => handleApply(template.id)}
+                      disabled={applying === template.id || isActive}
+                    >
+                      {applying === template.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : isActive ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Sparkles className="h-3 w-3" />
+                      )}
+                      {isActive ? 'Applied' : applying === template.id ? 'Applying...' : 'Apply'}
+                    </Button>
+                  </div>
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="flex-1 gap-1.5 text-xs"
-                    onClick={() => setPreviewTemplate(template)}
+                    variant="secondary"
+                    className="w-full gap-1.5 text-xs"
+                    onClick={() => handleEditInPageBuilder(template)}
                   >
-                    <Eye className="h-3 w-3" /> Preview
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 gap-1.5 text-xs"
-                    onClick={() => handleApply(template.id)}
-                    disabled={applying === template.id || isActive}
-                  >
-                    {applying === template.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : isActive ? (
-                      <Check className="h-3 w-3" />
-                    ) : (
-                      <Sparkles className="h-3 w-3" />
-                    )}
-                    {isActive ? 'Applied' : applying === template.id ? 'Applying...' : 'Apply'}
+                    <PencilRuler className="h-3 w-3" /> Edit in Page Builder
                   </Button>
                 </div>
               </CardContent>

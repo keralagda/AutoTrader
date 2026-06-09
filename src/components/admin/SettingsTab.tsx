@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from '@/hooks/use-toast'
-import { Save, Settings, Image, Upload, Type, ImageIcon } from 'lucide-react'
+import { Save, Settings, Image, Upload, Type, ImageIcon, Mail } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
 
 const DAYS = [
   { value: 'monday', label: 'Monday' },
@@ -32,6 +33,8 @@ interface SettingsState {
   logo_dark_url: string
   favicon_url: string
   branding_mode: string // 'name' | 'logo' | 'name_logo'
+  smtp_gmail_user: string
+  smtp_gmail_pass: string
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
@@ -46,12 +49,45 @@ const DEFAULT_SETTINGS: SettingsState = {
   logo_dark_url: '',
   favicon_url: '',
   branding_mode: 'name',
+  smtp_gmail_user: '',
+  smtp_gmail_pass: '',
 }
 
 export function SettingsTab() {
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [testRecipient, setTestRecipient] = useState('')
+  const [testingMail, setTestingMail] = useState(false)
+
+  const handleSendTestMail = async () => {
+    if (!testRecipient.trim()) {
+      toast({ title: 'Validation Error', description: 'Please enter a recipient email address.', variant: 'destructive' })
+      return
+    }
+    setTestingMail(true)
+    try {
+      const res = await fetch('/api/admin/settings/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: testRecipient,
+          smtpUser: settings.smtp_gmail_user,
+          smtpPass: settings.smtp_gmail_pass,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast({ title: 'Success', description: 'Test email dispatched successfully! Check your inbox/spam folder.' })
+      } else {
+        throw new Error(data.error || 'Failed to dispatch test mail')
+      }
+    } catch (err: any) {
+      toast({ title: 'SMTP Verification Failed', description: err.message, variant: 'destructive' })
+    } finally {
+      setTestingMail(false)
+    }
+  }
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -257,6 +293,66 @@ export function SettingsTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* SMTP & Transactional Emails Configuration */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mail className="h-4 w-4 text-emerald-400" />
+            SMTP & Transactional Emails
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground font-medium">Gmail SMTP User (Email)</Label>
+              <Input
+                type="email"
+                placeholder="e.g. keralagda@gmail.com"
+                value={settings.smtp_gmail_user}
+                onChange={e => setSettings(prev => ({ ...prev, smtp_gmail_user: e.target.value }))}
+                className="bg-muted/50 border-border/50"
+              />
+              <p className="text-[10px] text-muted-foreground">The Gmail address used to authenticate and send verification messages.</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground font-medium">Gmail App Password</Label>
+              <Input
+                type="password"
+                placeholder="e.g. vycj vyaf eryv ewql"
+                value={settings.smtp_gmail_pass}
+                onChange={e => setSettings(prev => ({ ...prev, smtp_gmail_pass: e.target.value }))}
+                className="bg-muted/50 border-border/50 font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground">App-specific password generated in your Google Account security settings.</p>
+            </div>
+          </div>
+
+          <Separator className="bg-border/50" />
+
+          {/* Test Mail Section */}
+          <div className="space-y-3 max-w-lg">
+            <Label className="text-muted-foreground font-medium">Verify SMTP Connection Settings</Label>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="Enter recipient email address..."
+                value={testRecipient}
+                onChange={e => setTestRecipient(e.target.value)}
+                className="bg-muted/50 border-border/50 text-xs h-9"
+              />
+              <Button
+                onClick={handleSendTestMail}
+                disabled={testingMail}
+                className="bg-amber-500 hover:bg-amber-600 text-black text-xs font-mono shrink-0 h-9"
+              >
+                {testingMail ? 'Testing...' : 'Send Test Mail'}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">Attempts to authenticate with Gmail SMTP and send a verification test email to the address above before saving.</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Branding & Logo Settings */}
       <Card className="bg-card/50 border-border/50">

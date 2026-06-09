@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { db } from '@/lib/db'
 
 // Email Integration: Resend (primary) + SMTP rotation (fallback)
 // Supports multiple SMTP servers with round-robin rotation
@@ -68,28 +69,47 @@ interface EmailOptions {
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   // Strategy: Try Gmail first, then Proton, then Resend, then SMTP rotation
   
+  // Load dynamic SMTP settings from DB if available, fallback to env variables
+  let dynamicUser = ''
+  let dynamicPass = ''
+  try {
+    const userSetting = await db.setting.findUnique({ where: { key: 'smtp_gmail_user' } })
+    const passSetting = await db.setting.findUnique({ where: { key: 'smtp_gmail_pass' } })
+    dynamicUser = userSetting?.value || ''
+    dynamicPass = passSetting?.value || ''
+  } catch (dbError) {
+    console.error('Failed to read dynamic SMTP settings:', dbError)
+  }
+
+  const activeUser = dynamicUser || GMAIL_USER
+  const activePass = dynamicPass || GMAIL_PASS
+  
   // 1. Try Gmail
-  if (GMAIL_USER && GMAIL_PASS) {
+  if (activeUser && activePass) {
     try {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          user: GMAIL_USER,
-          pass: GMAIL_PASS,
+          user: activeUser,
+          pass: activePass,
         },
       })
       
+      const finalFrom = FROM_EMAIL.includes('<') && FROM_EMAIL.includes(activeUser)
+        ? FROM_EMAIL 
+        : `BNFX <${activeUser}>`
+      
       await transporter.sendMail({
-        from: FROM_EMAIL.includes('<') ? FROM_EMAIL : `BNFX <${GMAIL_USER}>`,
+        from: finalFrom,
         to: options.to,
         subject: options.subject,
         html: options.html,
         text: options.text || '',
       })
-      console.log('Email sent successfully via Gmail')
+      console.log('Email sent successfully via Gmail SMTP')
       return true
     } catch (error) {
-      console.warn('Gmail sending failed, trying next provider...', error)
+      console.warn('Gmail SMTP sending failed, trying next provider...', error)
     }
   }
 
