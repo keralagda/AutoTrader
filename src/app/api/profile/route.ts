@@ -42,6 +42,7 @@ export async function GET(request: Request) {
         totalEarnings: true,
         totalDeposited: true,
         createdAt: true,
+        isEmailVerified: true,
       },
     })
 
@@ -140,6 +141,7 @@ export async function PUT(request: Request) {
         withdrawalBalance: true,
         totalEarnings: true,
         totalDeposited: true,
+        isEmailVerified: true,
       },
     })
 
