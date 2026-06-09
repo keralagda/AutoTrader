@@ -65,6 +65,8 @@ export function AdminPdfBuilderTab() {
   const [includePage1, setIncludePage1] = useState(true)
   const [includePage2, setIncludePage2] = useState(true)
   const [includePage3, setIncludePage3] = useState(true)
+  const [showPromotions, setShowPromotions] = useState(true)
+  const [promotionsPlacement, setPromotionsPlacement] = useState<'page1' | 'dedicated'>('page1')
 
   const [documentTitle, setDocumentTitle] = useState('BNFX INVESTMENT CATALOG')
   const [documentSubtitle, setDocumentSubtitle] = useState('Sovereign Yield Auto-Earning Plans')
@@ -175,6 +177,9 @@ export function AdminPdfBuilderTab() {
       // Gather active page IDs to compile
       const pagesToCompile: string[] = []
       if (includePage1) pagesToCompile.push('pdf-page-1')
+      if (showPromotions && promotionsPlacement === 'dedicated' && selectedPromo) {
+        pagesToCompile.push('pdf-page-promo')
+      }
       if (includePage2) pagesToCompile.push('pdf-page-2')
       if (includePage3) pagesToCompile.push('pdf-page-3')
 
@@ -412,6 +417,39 @@ export function AdminPdfBuilderTab() {
               </div>
             </div>
 
+            {/* Promotions Display Toggle & Placement */}
+            <div className="space-y-3 p-3 rounded-lg border border-white/5 bg-white/[0.01]">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="promo-display-toggle" className="text-xs cursor-pointer flex items-center gap-1.5 font-medium">
+                  <Percent className="h-3.5 w-3.5 text-emerald-400" />
+                  Include Promotional Campaigns
+                </Label>
+                <Switch 
+                  id="promo-display-toggle"
+                  checked={showPromotions}
+                  onCheckedChange={setShowPromotions}
+                />
+              </div>
+              
+              {showPromotions && (
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-mono text-muted-foreground uppercase">Placement Page</Label>
+                  <Select 
+                    value={promotionsPlacement} 
+                    onValueChange={(val: any) => setPromotionsPlacement(val as 'page1' | 'dedicated')}
+                  >
+                    <SelectTrigger className="h-8 text-[11px]">
+                      <SelectValue placeholder="Select placement" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-neutral-900 border-neutral-800 text-xs">
+                      <SelectItem value="page1">Cover Page (Page 1 Overview)</SelectItem>
+                      <SelectItem value="dedicated">Dedicated Standalone Page</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
             {/* Select Campaign */}
             <div className="space-y-1">
               <Label className="text-[10px] font-mono text-muted-foreground uppercase">Attach Promotional Campaign</Label>
@@ -447,7 +485,7 @@ export function AdminPdfBuilderTab() {
                 </>
               ) : (
                 <>
-                  <Download className="h-4 w-4 mr-2" /> EXPORT {selectedPlanIds.length > 0 ? `${(includePage1?1:0)+(includePage2?1:0)+(includePage3?1:0)}` : '0'}-PAGE PDF BROCHURE
+                  <Download className="h-4 w-4 mr-2" /> EXPORT {selectedPlanIds.length > 0 ? `${(includePage1?1:0) + (includePage2?1:0) + (includePage3?1:0) + (showPromotions && promotionsPlacement === 'dedicated' && selectedPromo ? 1 : 0)}` : '0'}-PAGE PDF BROCHURE
                 </>
               )}
             </Button>
@@ -520,40 +558,65 @@ export function AdminPdfBuilderTab() {
                   </div>
 
                   {/* Promo Campaign Banner */}
-                  {selectedPromo ? (
-                    <div className="p-4 rounded-xl border border-dashed text-center space-y-3 relative overflow-hidden bg-white/[0.02]" style={{ borderColor: palette.primary }}>
-                      <div className="absolute top-2 right-2 text-red-500 animate-pulse">
-                        <Flame className="h-4 w-4 fill-red-500" />
-                      </div>
-                      
-                      <span className="text-[9px] font-mono border px-2 py-0.5 rounded uppercase tracking-wider bg-white/5" style={{ color: palette.primary, borderColor: `${palette.primary}30` }}>
-                        CAMPAIGN: {selectedPromo.type.replace(/_/g, ' ')}
-                      </span>
-                      
-                      <h2 className="text-sm font-bold font-sans text-white tracking-tight leading-snug">
-                        {selectedPromo.title}
-                      </h2>
-                      
-                      <p className="text-[10px] text-white/80 leading-relaxed font-mono px-4">
-                        &ldquo;{selectedPromo.bannerText || selectedPromo.description}&rdquo;
-                      </p>
+                  {showPromotions && promotionsPlacement === 'page1' ? (
+                    selectedPromo ? (
+                      <div className="p-4 rounded-xl border border-dashed text-center space-y-3 relative overflow-hidden bg-white/[0.02]" style={{ borderColor: palette.primary }}>
+                        <div className="absolute top-2 right-2 text-red-500 animate-pulse">
+                          <Flame className="h-4 w-4 fill-red-500" />
+                        </div>
+                        
+                        <span className="text-[9px] font-mono border px-2 py-0.5 rounded uppercase tracking-wider bg-white/5" style={{ color: palette.primary, borderColor: `${palette.primary}30` }}>
+                          CAMPAIGN: {selectedPromo.type.replace(/_/g, ' ')}
+                        </span>
+                        
+                        <h2 className="text-sm font-bold font-sans text-white tracking-tight leading-snug">
+                          {selectedPromo.title}
+                        </h2>
+                        
+                        <p className="text-[10px] text-white/80 leading-relaxed font-mono px-4">
+                          &ldquo;{selectedPromo.bannerText || selectedPromo.description}&rdquo;
+                        </p>
 
-                      <div className="grid grid-cols-2 gap-4 border-t pt-3" style={{ borderColor: `${palette.primary}15` }}>
-                        <div className="text-left font-mono">
-                          <span className="text-[8px] text-muted-foreground uppercase block">Campaign Multiplier</span>
-                          <span className="text-lg font-black text-emerald-400">{selectedPromo.multiplier}x BOOSTED</span>
-                        </div>
-                        <div className="text-right font-mono">
-                          <span className="text-[8px] text-muted-foreground uppercase block">Offer Expires</span>
-                          <span className="text-[10px] font-bold text-white block mt-1">
-                            {new Date(selectedPromo.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </span>
+                        <div className="grid grid-cols-2 gap-4 border-t pt-3" style={{ borderColor: `${palette.primary}15` }}>
+                          <div className="text-left font-mono">
+                            <span className="text-[8px] text-muted-foreground uppercase block">Campaign Multiplier</span>
+                            <span className="text-lg font-black text-emerald-400">{selectedPromo.multiplier}x BOOSTED</span>
+                          </div>
+                          <div className="text-right font-mono">
+                            <span className="text-[8px] text-muted-foreground uppercase block">Offer Expires</span>
+                            <span className="text-[10px] font-bold text-white block mt-1">
+                              {new Date(selectedPromo.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="p-6 border border-dashed rounded-xl text-center italic text-muted-foreground text-xs" style={{ borderColor: `${palette.primary}20` }}>
+                        {"No promotion campaigns selected. Campaigns can be created under the Content -> Promotions Admin tab."}
+                      </div>
+                    )
                   ) : (
-                    <div className="p-6 border border-dashed rounded-xl text-center italic text-muted-foreground text-xs" style={{ borderColor: `${palette.primary}20` }}>
-                      {"No promotion campaigns selected. Campaigns can be created under the Content -> Promotions Admin tab."}
+                    <div className="p-4 rounded-xl border text-left space-y-3 relative overflow-hidden bg-white/[0.01]" style={{ borderColor: `${palette.primary}15` }}>
+                      <span className="text-[9px] font-mono border px-2 py-0.5 rounded uppercase tracking-wider bg-white/5" style={{ color: palette.primary, borderColor: `${palette.primary}30` }}>
+                        SYSTEM DATA SPECIFICATIONS
+                      </span>
+                      <h2 className="text-xs font-bold font-mono text-white tracking-tight leading-snug">
+                        AUTOMATED STAKING SYSTEM INFORMATION
+                      </h2>
+                      <div className="space-y-2 text-[9px] font-mono text-muted-foreground">
+                        <p className="flex items-start gap-1.5">
+                          <span className="text-emerald-400 font-bold">▶</span>
+                          <span><strong>CAPITAL PROTECTION:</strong> Vault operations utilize non-custodial auto-hedging strategies to mitigate market downside risk.</span>
+                        </p>
+                        <p className="flex items-start gap-1.5">
+                          <span className="text-emerald-400 font-bold">▶</span>
+                          <span><strong>YIELD RELEASES:</strong> Daily returns calculations run every 24 hours, posting directly to holder matrix splits.</span>
+                        </p>
+                        <p className="flex items-start gap-1.5">
+                          <span className="text-emerald-400 font-bold">▶</span>
+                          <span><strong>AUDITED PROTOCOLS:</strong> Undergoing real-time verification of on-chain reserve nodes to ensure strict capital availability.</span>
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -576,6 +639,105 @@ export function AdminPdfBuilderTab() {
                   </div>
                   <div className="flex items-center justify-between text-[7px] font-mono text-muted-foreground uppercase pt-1 border-t border-white/5">
                     <span>PAGE 1 // OVERVIEW SUMMARY</span>
+                    <span>GEN DATE: {new Date().toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dedicated Standalone Promotions Page Preview Container */}
+        {showPromotions && promotionsPlacement === 'dedicated' && selectedPromo && (
+          <div className="flex flex-col items-center">
+            <div className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider mb-1 flex items-center gap-1.5 self-start">
+              <span>◉ PAGE PROMO: CAMPAIGN SPOTLIGHT</span>
+            </div>
+            
+            <div className="border border-white/10 rounded-xl overflow-hidden shadow-2xl p-1 bg-[#121212]/80 backdrop-blur-md">
+              <div
+                id="pdf-page-promo"
+                style={{ 
+                  width: '595px', 
+                  height: '842px', 
+                  backgroundColor: palette.bg,
+                  color: palette.text,
+                  fontFamily: 'Courier, monospace'
+                }}
+                className="relative flex flex-col justify-between p-8 overflow-hidden select-none"
+              >
+                <div className="absolute inset-0 cyber-mesh opacity-5 pointer-events-none" />
+                <div className="absolute -top-32 -left-32 w-64 h-64 rounded-full filter blur-[100px] opacity-[0.08]" style={{ backgroundColor: palette.primary }} />
+                
+                {/* Header */}
+                <div className="space-y-2 text-center border-b pb-4 relative" style={{ borderColor: `${palette.primary}20` }}>
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <span className="h-6 w-6 rounded flex items-center justify-center text-xs font-mono text-black font-extrabold" style={{ backgroundColor: palette.primary }}>B</span>
+                    <span className="text-xs font-mono font-extrabold tracking-widest text-white">BNFX PROTOCOL OFFERS</span>
+                  </div>
+                  <h1 className="text-lg font-black font-sans uppercase tracking-tight text-white leading-tight">
+                    PROMOTIONAL CAMPAIGN SPOTLIGHT
+                  </h1>
+                </div>
+
+                {/* Body Content */}
+                <div className="flex-1 py-12 flex flex-col justify-center items-center space-y-8">
+                  <div className="p-8 rounded-xl border border-dashed text-center space-y-6 relative overflow-hidden bg-white/[0.02] w-full max-w-md mx-auto" style={{ borderColor: palette.primary }}>
+                    <div className="absolute top-4 right-4 text-red-500 animate-pulse">
+                      <Flame className="h-6 w-6 fill-red-500" />
+                    </div>
+                    
+                    <span className="text-[10px] font-mono border px-3 py-1 rounded uppercase tracking-wider bg-white/5 inline-block" style={{ color: palette.primary, borderColor: `${palette.primary}30` }}>
+                      CAMPAIGN: {selectedPromo.type.replace(/_/g, ' ')}
+                    </span>
+                    
+                    <h2 className="text-lg font-black font-sans text-white tracking-tight leading-snug">
+                      {selectedPromo.title}
+                    </h2>
+                    
+                    <p className="text-xs text-white/80 leading-relaxed font-mono px-4">
+                      &ldquo;{selectedPromo.bannerText || selectedPromo.description}&rdquo;
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-4 border-t pt-4" style={{ borderColor: `${palette.primary}15` }}>
+                      <div className="text-left font-mono">
+                        <span className="text-[9px] text-muted-foreground uppercase block">Campaign Multiplier</span>
+                        <span className="text-xl font-black text-emerald-400">{selectedPromo.multiplier}x BOOSTED</span>
+                      </div>
+                      <div className="text-right font-mono">
+                        <span className="text-[9px] text-muted-foreground uppercase block">Offer Expires</span>
+                        <span className="text-xs font-bold text-white block mt-1">
+                          {new Date(selectedPromo.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center max-w-sm space-y-2">
+                    <p className="text-[10px] text-muted-foreground leading-normal">
+                      Scan the registration QR code below or enter your promoter link to activate this multiplier boost on your investments automatically.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="border-t pt-4 space-y-3" style={{ borderColor: `${palette.primary}20` }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-1">
+                      <span className="text-[8px] font-mono font-bold text-white uppercase block">Terms & Conditions:</span>
+                      <p className="text-[8px] text-muted-foreground font-mono leading-normal">
+                        Active bonuses are applied only to deposits finalized during the campaign period. Capital returns on boosted packages remain subject to exit lock terms.
+                      </p>
+                    </div>
+                    {showQrCode && qrDataUrl && (
+                      <div className="p-1 rounded bg-white flex flex-col items-center justify-center shrink-0 shadow">
+                        <img src={qrDataUrl} alt="Real QR Code" className="h-14 w-14" />
+                        <span className="text-[6px] font-mono text-black font-extrabold uppercase mt-0.5 tracking-wider">ACTIVATE</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-[7px] font-mono text-muted-foreground uppercase pt-1 border-t border-white/5">
+                    <span>DEDICATED CAMPAIGN PAGE</span>
                     <span>GEN DATE: {new Date().toLocaleDateString()}</span>
                   </div>
                 </div>
