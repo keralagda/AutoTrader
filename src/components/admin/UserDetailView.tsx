@@ -27,6 +27,52 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
   const [riskCategory, setRiskCategory] = useState('medium')
   const [customWinMin, setCustomWinMin] = useState('')
   const [customWinMax, setCustomWinMax] = useState('')
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null)
+  const [customSubject, setCustomSubject] = useState('')
+  const [customMessage, setCustomMessage] = useState('')
+
+  const handleSendEmail = async (type: string) => {
+    setSendingEmail(type)
+    try {
+      const res = await fetch('/api/admin/emails/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          type,
+          subject: type === 'custom' ? customSubject : undefined,
+          message: type === 'custom' ? customMessage : undefined,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        toast({
+          title: 'Email Sent',
+          description: data.message || `Successfully sent ${type} email.`,
+        })
+        if (type === 'custom') {
+          setCustomSubject('')
+          setCustomMessage('')
+        }
+      } else {
+        toast({
+          title: 'Failed to Send Email',
+          description: data.error || 'An error occurred while sending the email.',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: 'Network Error',
+        description: 'Failed to connect to email API.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSendingEmail(null)
+    }
+  }
 
   useEffect(() => { loadUser() }, [userId])
 
@@ -214,6 +260,80 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save Risk Settings
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Manual Email Management */}
+        <Card className="bg-card/50 border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Mail className="h-4 w-4 text-emerald-400" /> Manual Email Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSendEmail('verify')}
+                disabled={!!sendingEmail}
+                className="w-full text-[10px] h-8 justify-center"
+              >
+                {sendingEmail === 'verify' && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                Resend Verification
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSendEmail('reset_password')}
+                disabled={!!sendingEmail}
+                className="w-full text-[10px] h-8 justify-center"
+              >
+                {sendingEmail === 'reset_password' && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                Send Reset Password
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSendEmail('welcome')}
+                disabled={!!sendingEmail}
+                className="w-full text-[10px] h-8 justify-center col-span-2"
+              >
+                {sendingEmail === 'welcome' && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                Send Welcome Email
+              </Button>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-mono text-muted-foreground">Send Custom Email Notification</Label>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Subject Line"
+                  value={customSubject}
+                  onChange={(e) => setCustomSubject(e.target.value)}
+                  className="h-8 text-xs"
+                  disabled={!!sendingEmail}
+                />
+                <textarea
+                  placeholder="Write message contents here..."
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!!sendingEmail}
+                />
+                <Button
+                  onClick={() => handleSendEmail('custom')}
+                  disabled={!!sendingEmail || !customSubject || !customMessage}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-bold h-8 text-[11px]"
+                >
+                  {sendingEmail === 'custom' && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                  Send Custom Email
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
