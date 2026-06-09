@@ -28,6 +28,16 @@ export async function GET(req: NextRequest) {
       }
     })
 
+    // Send welcome email (non-blocking)
+    try {
+      const { sendWelcomeEmail } = await import('@/lib/email')
+      sendWelcomeEmail(user.email, user.name).catch((err) => {
+        console.error('Error sending welcome email in verify-email route:', err)
+      })
+    } catch (importErr) {
+      console.error('Failed to import sendWelcomeEmail helper:', importErr)
+    }
+
     // Premium themed verification success landing page
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const successHtml = `
