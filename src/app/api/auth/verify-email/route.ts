@@ -39,7 +39,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Premium themed verification success landing page
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const requestUrl = new URL(req.url)
+    const host = req.headers.get('host') || requestUrl.host
+    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https'
+    const appUrl = `${protocol}://${host}`
     const successHtml = `
       <!DOCTYPE html>
       <html>

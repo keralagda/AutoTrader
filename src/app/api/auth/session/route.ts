@@ -49,6 +49,7 @@ export async function GET() {
         hasTransactionPin: !!user.transactionPin,
         usdcBscAddress: user.usdcBscAddress,
         usdcTronAddress: user.usdcTronAddress,
+        isEmailVerified: user.isEmailVerified,
       },
     })
   } catch (error) {
