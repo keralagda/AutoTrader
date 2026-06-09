@@ -235,13 +235,13 @@ export function EarningsCalculator() {
                   value={[days]}
                   onValueChange={([v]) => setDays(v)}
                   min={1}
-                  max={90}
+                  max={400}
                   step={1}
                   className="py-2"
                 />
                 <div className="flex justify-between text-[10px] text-white/40 font-mono">
                   <span>1 DAY</span>
-                  <span>90 DAYS</span>
+                  <span>400 DAYS</span>
                 </div>
               </div>
             </Card>
