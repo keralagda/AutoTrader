@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
+import { sendPasswordResetCode } from '@/lib/email'
 
 const prisma = new PrismaClient()
 
@@ -36,7 +37,13 @@ export async function POST(req: NextRequest) {
         create: { key: `reset_${user.id}`, value: JSON.stringify({ code: resetCode, expiresAt: expiresAt.toISOString() }) },
       })
 
-      // In production, send email here. For now, return the code (demo mode)
+      // Send password reset email
+      try {
+        await sendPasswordResetCode(user.email, user.name, resetCode)
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError)
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Reset code generated. Check your email.',
