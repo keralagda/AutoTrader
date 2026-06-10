@@ -256,17 +256,16 @@ export async function POST(request: Request) {
       })
     }
 
-    // Process referral earnings from entry fee and deposit bonus (only for immediately active deposits, not pending)
+    // Process referral earnings from deposit bonus (only for immediately active deposits, not pending)
     if (depositStatus !== 'pending') {
+      const planNameLower = plan.name.toLowerCase()
+      const isDailyFlashPlan = planNameLower.includes('silver') || planNameLower.includes('gold') || planNameLower.includes('platinum')
+
       const referralRules = await db.planReferralRule.findMany({
-        where: { planId: plan.id, type: { in: ['registration', 'deposit'] }, enabled: true }
+        where: { planId: plan.id, type: 'deposit', enabled: true }
       })
 
-      const DEFAULT_REG_PERCENTS = [25, 20, 15, 10, 10, 10, 10]
-      const DEFAULT_DEP_PERCENTS = [5, 3, 2, 1, 1, 0.5, 0.5]
-
-      const entryFee = plan.entryFee
-      const referralPoolAmount = (entryFee * plan.subscriptionReferralPercent) / 100
+      const DEFAULT_DEP_PERCENTS = isDailyFlashPlan ? [5, 2, 1, 0.5, 0.5, 0.5, 0.5] : [0, 0, 0, 0, 0, 0, 0]
       const maxLevels = plan.registrationReferralLevels || 7
 
       let currentReferrerId = user.referredById
@@ -277,27 +276,22 @@ export async function POST(request: Request) {
         if (!referrer) break
 
         const directReferrals = await db.user.count({ where: { referredById: referrer.id } })
+
+        // Enforce direct referrals condition: Level L (1-indexed) requires >= L direct referrals
+        const requiredReferrals = level + 1
+        if (directReferrals < requiredReferrals) {
+          currentReferrerId = referrer.referredById
+          level++
+          continue
+        }
+
         const activeDepositsList = await db.deposit.findMany({
           where: { userId: referrer.id, status: 'active' },
           select: { amount: true }
         })
         const activeDepositsTotal = activeDepositsList.reduce((sum, d) => sum + d.amount, 0)
 
-        // 1. Process Registration Fee Split (if entryFee exists)
-        let regEarning = 0
-        if (entryFee > 0) {
-          const regRule = referralRules.find(r => r.level === (level + 1) && r.type === 'registration')
-          if (regRule) {
-            if (activeDepositsTotal >= regRule.minSponsorDeposit && directReferrals >= regRule.minDirectReferrals) {
-              regEarning = regRule.amount > 0 ? regRule.amount : (referralPoolAmount * regRule.commission) / 100
-            }
-          } else {
-            const rate = DEFAULT_REG_PERCENTS[level] !== undefined ? DEFAULT_REG_PERCENTS[level] : 0
-            regEarning = (referralPoolAmount * rate) / 100
-          }
-        }
-
-        // 2. Process Deposit Bonus (based on deposit amount)
+        // Process Deposit Bonus (based on deposit amount)
         let depEarning = 0
         const depRule = referralRules.find(r => r.level === (level + 1) && r.type === 'deposit')
         if (depRule) {
@@ -309,83 +303,43 @@ export async function POST(request: Request) {
           depEarning = (amount * rate) / 100
         }
 
-        const totalEarning = regEarning + depEarning
-
-        if (totalEarning > 0) {
-          // Route regEarning and depEarning to the correct wallets
-          const regRule = referralRules.find(r => r.level === (level + 1) && r.type === 'registration')
-          const depRule = referralRules.find(r => r.level === (level + 1) && r.type === 'deposit')
-          
-          const regWallet = regRule?.targetWallet === 'withdrawal' ? 'withdrawal' : 'trading'
+        if (depEarning > 0) {
           const depWallet = depRule?.targetWallet === 'withdrawal' ? 'withdrawal' : 'trading'
 
-          // Payout registration fee referral earnings
-          if (regEarning > 0) {
-            if (regWallet === 'withdrawal') {
-              await db.user.update({
-                where: { id: referrer.id },
-                data: {
-                  withdrawalBalance: referrer.withdrawalBalance + regEarning,
-                  totalEarnings: referrer.totalEarnings + regEarning
-                }
-              })
-            } else {
-              await db.user.update({
-                where: { id: referrer.id },
-                data: {
-                  tradingBalance: referrer.tradingBalance + regEarning,
-                  totalEarnings: referrer.totalEarnings + regEarning
-                }
-              })
-            }
-            await db.earning.create({
-              data: {
-                userId: referrer.id,
-                depositId: deposit.id,
-                amount: regEarning,
-                type: 'referral',
-                level: level + 1,
-                walletTarget: regWallet
-              }
-            })
-          }
-
           // Payout deposit bonus referral earnings
-          if (depEarning > 0) {
-            if (depWallet === 'withdrawal') {
-              await db.user.update({
-                where: { id: referrer.id },
-                data: {
-                  withdrawalBalance: referrer.withdrawalBalance + depEarning,
-                  totalEarnings: referrer.totalEarnings + depEarning
-                }
-              })
-            } else {
-              await db.user.update({
-                where: { id: referrer.id },
-                data: {
-                  tradingBalance: referrer.tradingBalance + depEarning,
-                  totalEarnings: referrer.totalEarnings + depEarning
-                }
-              })
-            }
-            await db.earning.create({
+          if (depWallet === 'withdrawal') {
+            await db.user.update({
+              where: { id: referrer.id },
               data: {
-                userId: referrer.id,
-                depositId: deposit.id,
-                amount: depEarning,
-                type: 'referral',
-                level: level + 1,
-                walletTarget: depWallet
+                withdrawalBalance: referrer.withdrawalBalance + depEarning,
+                totalEarnings: referrer.totalEarnings + depEarning
+              }
+            })
+          } else {
+            await db.user.update({
+              where: { id: referrer.id },
+              data: {
+                tradingBalance: referrer.tradingBalance + depEarning,
+                totalEarnings: referrer.totalEarnings + depEarning
               }
             })
           }
+          await db.earning.create({
+            data: {
+              userId: referrer.id,
+              depositId: deposit.id,
+              amount: depEarning,
+              type: 'referral',
+              level: level + 1,
+              walletTarget: depWallet
+            }
+          })
 
           await db.notification.create({
             data: {
               userId: referrer.id,
               title: 'Referral Earnings!',
-              message: `You earned $${totalEarning.toFixed(2)} from ${user.name}'s deposit (Level ${level + 1})`,
+              message: `You earned $${depEarning.toFixed(2)} from ${user.name}'s deposit (Level ${level + 1})`,
               type: 'referral'
             }
           })

@@ -532,6 +532,15 @@ export async function POST(request: Request) {
           if (!referrer) break
 
           const directReferrals = await db.user.count({ where: { referredById: referrer.id } })
+
+          // Enforce direct referrals condition: Level L (1-indexed) requires >= L direct referrals
+          const requiredReferrals = level + 1
+          if (directReferrals < requiredReferrals) {
+            currentReferrerId = referrer.referredById
+            level++
+            continue
+          }
+
           const activeDepositsList = await db.deposit.findMany({
             where: { userId: referrer.id, status: 'active' },
             select: { amount: true }

@@ -107,6 +107,95 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Distribute Activation Fee
+    if (activationFee > 0) {
+      const teamPool = (activationFee * 80) / 100
+      const rewardPool = (activationFee * 15) / 100
+      const platformPool = (activationFee * 5) / 100
+
+      const teamRates = [25, 20, 15, 10, 10, 10, 10] // Level 1 to 7 percentages of teamPool
+      const maxLevels = plan.registrationReferralLevels || 7
+
+      let currentReferrerId = user.referredById
+      let level = 0
+
+      while (currentReferrerId && level < maxLevels) {
+        const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+        if (!referrer) break
+
+        const directReferrals = await db.user.count({ where: { referredById: referrer.id } })
+
+        // Level income condition: Level L (1-indexed) requires >= L direct referrals
+        const requiredReferrals = level + 1
+        if (directReferrals >= requiredReferrals) {
+          const rate = teamRates[level] || 0
+          const levelShare = (teamPool * rate) / 100
+
+          if (levelShare > 0) {
+            await db.user.update({
+              where: { id: referrer.id },
+              data: {
+                tradingBalance: referrer.tradingBalance + levelShare,
+                totalEarnings: referrer.totalEarnings + levelShare,
+              },
+            })
+
+            await db.earning.create({
+              data: {
+                userId: referrer.id,
+                amount: levelShare,
+                type: 'referral',
+                level: level + 1,
+                walletTarget: 'trading',
+              },
+            })
+
+            await db.notification.create({
+              data: {
+                userId: referrer.id,
+                title: 'Activation Team Commission! 🚀',
+                message: `You earned $${levelShare.toFixed(2)} from ${user.name}'s plan activation (Level ${level + 1})`,
+                type: 'referral',
+              },
+            })
+          }
+        }
+
+        currentReferrerId = referrer.referredById
+        level++
+      }
+
+      // Credit remaining platform & rewards splits to Admin/Platform account
+      const admin = await db.user.findFirst({ where: { role: 'admin' } })
+      if (admin) {
+        const splitsToAdmin = [
+          { amount: rewardPool, type: 'rewards', desc: 'Rewards allocation (15%)' },
+          { amount: platformPool, type: 'platform_fee', desc: 'Platform fee allocation (5%)' },
+        ]
+
+        for (const split of splitsToAdmin) {
+          if (split.amount > 0) {
+            await db.user.update({
+              where: { id: admin.id },
+              data: {
+                tradingBalance: admin.tradingBalance + split.amount,
+                totalEarnings: admin.totalEarnings + split.amount,
+              },
+            })
+
+            await db.earning.create({
+              data: {
+                userId: admin.id,
+                amount: split.amount,
+                type: split.type,
+                walletTarget: 'trading',
+              },
+            })
+          }
+        }
+      }
+    }
+
     // Send account activated email if this is the first activation
     if (!user.isActive) {
       const { sendAccountActivated } = await import('@/lib/email')

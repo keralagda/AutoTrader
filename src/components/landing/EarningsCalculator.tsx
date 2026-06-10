@@ -22,13 +22,14 @@ interface PlanData {
   mediumRiskMax: number
   highRiskMin: number
   highRiskMax: number
+  dailyEarningCapPercent?: number
 }
 
 const FALLBACK_PLANS: PlanData[] = [
-  { id: '1', name: 'Starter', minDeposit: 100, maxDeposit: 1000, dailyEarningPercent: 6, maxEarningLimit: 1000, maxEarningMultiplier: 2.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0 },
-  { id: '2', name: 'Silver', minDeposit: 500, maxDeposit: 5000, dailyEarningPercent: 8, maxEarningLimit: 2500, maxEarningMultiplier: 2.5, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0 },
-  { id: '3', name: 'Gold', minDeposit: 1000, maxDeposit: 10000, dailyEarningPercent: 10, maxEarningLimit: 5000, maxEarningMultiplier: 3.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0 },
-  { id: '4', name: 'Platinum', minDeposit: 5000, maxDeposit: 50000, dailyEarningPercent: 15, maxEarningLimit: 25000, maxEarningMultiplier: 4.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0 },
+  { id: '1', name: 'Starter', minDeposit: 100, maxDeposit: 1000, dailyEarningPercent: 6, maxEarningLimit: 1000, maxEarningMultiplier: 2.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
+  { id: '2', name: 'Silver', minDeposit: 500, maxDeposit: 5000, dailyEarningPercent: 8, maxEarningLimit: 2500, maxEarningMultiplier: 2.5, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
+  { id: '3', name: 'Gold', minDeposit: 1000, maxDeposit: 10000, dailyEarningPercent: 10, maxEarningLimit: 5000, maxEarningMultiplier: 3.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
+  { id: '4', name: 'Platinum', minDeposit: 5000, maxDeposit: 50000, dailyEarningPercent: 15, maxEarningLimit: 25000, maxEarningMultiplier: 4.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
 ]
 
 export function EarningsCalculator() {
@@ -54,6 +55,7 @@ export function EarningsCalculator() {
             highRiskMin: p.highRiskMin ?? 3.5,
             highRiskMax: p.highRiskMax ?? 8.0,
             maxEarningMultiplier: p.maxEarningMultiplier ?? 2.0,
+            dailyEarningCapPercent: p.dailyEarningCapPercent ?? 200,
           }))
           setPlans(parsed)
         }
@@ -82,23 +84,21 @@ export function EarningsCalculator() {
 
   const risk = RISK_LEVELS[selectedRisk]
 
-  const avgDailyPercent = (risk.min + risk.max) / 2
-  const minDailyEarning = (investment * risk.min) / 100
-  const maxDailyEarning = (investment * risk.max) / 100
-  const dailyEarning = (investment * avgDailyPercent) / 100
+  const dailyCapPercent = plan.dailyEarningCapPercent ?? 200.0
+  const dailyCapUSD = investment * (dailyCapPercent / 100)
 
-  // Plan capping logic: limit by maxEarningLimit or maxEarningMultiplier (e.g. 2X, 3X, 4X)
-  const isStarter = plan.name.toLowerCase().includes('starter')
-  const multiplierCap = investment * (plan.maxEarningMultiplier || 2)
-  const maxEarningCap = (plan.maxEarningLimit > 0 && !isStarter) 
-    ? Math.min(plan.maxEarningLimit, multiplierCap) 
-    : multiplierCap
+  const minDailyEarning = Math.min((investment * risk.min) / 100, dailyCapUSD)
+  const maxDailyEarning = Math.min((investment * risk.max) / 100, dailyCapUSD)
+  const dailyEarning = Math.min((investment * avgDailyPercent) / 100, dailyCapUSD)
 
-  const totalEarning = Math.min(dailyEarning * days, maxEarningCap)
+  // Plan capping logic: Daily limit X total days
+  const maxEarningCap = dailyCapUSD * days
+
+  const totalEarning = dailyEarning * days
   const weeklyEarning = Math.min(dailyEarning * 5, maxEarningCap)
   const monthlyEarning = Math.min(dailyEarning * 22, maxEarningCap)
   const roi = ((totalEarning / investment) * 100).toFixed(1)
-  const isCapped = dailyEarning * days >= maxEarningCap
+  const isCapped = dailyEarning >= dailyCapUSD
 
   return (
     <section id="calculator" className="relative py-24 md:py-32 px-6 overflow-hidden">
@@ -321,11 +321,11 @@ export function EarningsCalculator() {
                 <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                   {isCapped ? (
                     <p className="text-[10px] leading-relaxed text-amber-400/90 font-mono">
-                      ⚠️ **CAPPED Payout reached**: Calculation is limited by the {plan.name} plan&apos;s daily earning limit cap ({plan.maxEarningMultiplier || 2}X multiplier / max ${plan.maxEarningLimit}).
+                      ⚠️ **Daily Earning Cap Reached**: Yield is limited by the {plan.name} plan&apos;s daily limit of ${dailyCapUSD.toLocaleString()} (based on {dailyCapPercent}% daily investment capping limit).
                     </p>
                   ) : (
                     <p className="text-[10px] leading-relaxed text-white/40 font-mono">
-                      * Yield varies ({risk.min}%-{risk.max}% daily) under {risk.id} risk mode. Maximum earning limit for {plan.name} is {plan.maxEarningMultiplier}X ({plan.maxEarningLimit > 0 ? `$${plan.maxEarningLimit.toLocaleString()} cap` : 'unlimited'}).
+                      * Yield varies ({risk.min}%-{risk.max}% daily) under {risk.id} risk mode. Daily earning cap is {dailyCapPercent}% of investment (${dailyCapUSD.toLocaleString()}/day). Max limit is ${maxEarningCap.toLocaleString()} for {days} days.
                     </p>
                   )}
                 </div>
