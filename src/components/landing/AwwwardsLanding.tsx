@@ -7,14 +7,28 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowRight, ArrowDown, Sparkles, Shield, Zap, Globe, Users, TrendingUp, ChevronRight } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 
-const getPlanLimitMultiplier = (planName: string): string => {
-  const name = planName.toLowerCase()
+const getPlanLimitMultiplier = (plan: any): string => {
+  if (plan.dailyEarningCapPercent && plan.dailyEarningCapPercent > 0) {
+    const val = plan.dailyEarningCapPercent / 100
+    return `${val}X`
+  }
+  const name = (plan.name || '').toLowerCase()
   if (name.includes('starter')) return '1X'
   if (name.includes('flash') || name.includes('hourly')) return '1.5X'
   if (name.includes('silver')) return '2X'
   if (name.includes('gold')) return '2.5X'
   if (name.includes('platinum')) return '3X'
   return '2X' // default fallback
+}
+
+const getPlanEmoji = (planName: string, index: number): string => {
+  const name = (planName || '').toLowerCase()
+  if (name.includes('starter')) return '🛡️'
+  if (name.includes('hourly') || name.includes('flash')) return '⚡'
+  if (name.includes('silver')) return '💎'
+  if (name.includes('gold')) return '👑'
+  if (name.includes('platinum')) return '🚀'
+  return ['🛡️', '⚡', '💎', '👑', '🚀'][index] || '📈'
 }
 
 // Import premium Awwwards-style modular components
@@ -361,7 +375,7 @@ export function AwwwardsLanding() {
               <FadeInView key={plan.id} delay={i * 0.1}>
                 <div className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 p-6 hover:border-amber-500/20 transition-all duration-500 group backdrop-blur-sm flex flex-col justify-between h-full">
                   <div>
-                    <div className="text-3xl mb-4">{['🛡️', '⚡', '💎', '👑', '🚀'][i] || '📈'}</div>
+                    <div className="text-3xl mb-4">{getPlanEmoji(plan.name, i)}</div>
                     <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
                     <p className="text-white/40 text-xs mb-4">From ${plan.minDeposit}</p>
                     <div className="space-y-2 text-sm border-t border-white/[0.05] pt-4">
@@ -378,7 +392,7 @@ export function AwwwardsLanding() {
                       <div className="flex justify-between text-white/60">
                         <span>Daily Limit</span>
                         <span dir="ltr" className="font-mono">
-                          {getPlanLimitMultiplier(plan.name)} of Investment
+                          {getPlanLimitMultiplier(plan)} of Investment
                         </span>
                       </div>
                     </div>

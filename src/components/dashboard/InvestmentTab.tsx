@@ -66,8 +66,24 @@ const PLAN_COLORS: Record<string, string> = {
   Platinum: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
 }
 
-export const getPlanLimitMultiplier = (planName: string): string => {
-  const name = planName.toLowerCase()
+const getPlanKey = (planName: string): string => {
+  const name = (planName || '').toLowerCase()
+  if (name.includes('starter')) return 'Starter'
+  if (name.includes('silver')) return 'Silver'
+  if (name.includes('gold')) return 'Gold'
+  if (name.includes('platinum')) return 'Platinum'
+  if (name.includes('hourly') || name.includes('flash')) return 'Silver'
+  if (name.includes('weekly')) return 'Gold'
+  if (name.includes('fixed')) return 'Platinum'
+  return 'Starter' // default fallback
+}
+
+export const getPlanLimitMultiplier = (plan: any): string => {
+  if (plan && typeof plan === 'object' && plan.dailyEarningCapPercent && plan.dailyEarningCapPercent > 0) {
+    const val = plan.dailyEarningCapPercent / 100
+    return `${val}X`
+  }
+  const name = ((plan && typeof plan === 'object' ? plan.name : plan) || '').toLowerCase()
   if (name.includes('starter')) return '1X'
   if (name.includes('flash') || name.includes('hourly')) return '1.5X'
   if (name.includes('silver')) return '2X'
@@ -441,7 +457,7 @@ export function InvestmentTab() {
                   {activatedPlans.map(plan => (
                     <SelectItem key={plan.id} value={plan.id}>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={`text-[10px] ${PLAN_COLORS[plan.name] || ''}`}>
+                        <Badge variant="outline" className={`text-[10px] ${PLAN_COLORS[getPlanKey(plan.name)] || ''}`}>
                           {plan.name}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
@@ -458,7 +474,7 @@ export function InvestmentTab() {
             {selectedPlan && (
               <div className="rounded-lg bg-muted/50 border border-border/50 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className={PLAN_COLORS[selectedPlan.name] || ''}>
+                  <Badge variant="outline" className={PLAN_COLORS[getPlanKey(selectedPlan.name)] || ''}>
                     {selectedPlan.name}
                   </Badge>
                   <span className="text-sm font-medium text-emerald-400 flex items-center gap-1">
@@ -476,7 +492,7 @@ export function InvestmentTab() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Daily Limit</p>
-                    <p className="font-medium">{getPlanLimitMultiplier(selectedPlan.name)} of Investment</p>
+                    <p className="font-medium">{getPlanLimitMultiplier(selectedPlan)} of Investment</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Investment Range</p>
@@ -634,13 +650,13 @@ export function InvestmentTab() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={PLAN_COLORS[plan.name] || ''}>{plan.name}</Badge>
+                        <Badge variant="outline" className={PLAN_COLORS[getPlanKey(plan.name)] || ''}>{plan.name}</Badge>
                         <span className="text-xs text-muted-foreground">
                           Invest ${plan.minDeposit}-${plan.maxDeposit.toLocaleString()}
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">
-                        Daily: {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}% • Limit: {getPlanLimitMultiplier(plan.name)}
+                        Daily: {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}% • Limit: {getPlanLimitMultiplier(plan)}
                       </p>
                     </div>
                     <div className="text-right">

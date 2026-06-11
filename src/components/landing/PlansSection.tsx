@@ -10,14 +10,30 @@ import { useAppStore } from '@/lib/store'
 import type { PlanType } from '@/lib/types'
 import { DEFAULT_PLANS } from '@/lib/types'
 
-const getPlanLimitMultiplier = (planName: string): string => {
-  const name = planName.toLowerCase()
+const getPlanLimitMultiplier = (plan: any): string => {
+  if (plan.dailyEarningCapPercent && plan.dailyEarningCapPercent > 0) {
+    const val = plan.dailyEarningCapPercent / 100
+    return `${val}X`
+  }
+  const name = (plan.name || '').toLowerCase()
   if (name.includes('starter')) return '1X'
   if (name.includes('flash') || name.includes('hourly')) return '1.5X'
   if (name.includes('silver')) return '2X'
   if (name.includes('gold')) return '2.5X'
   if (name.includes('platinum')) return '3X'
   return '2X' // default fallback
+}
+
+const getPlanKey = (planName: string): string => {
+  const name = (planName || '').toLowerCase()
+  if (name.includes('starter')) return 'Starter'
+  if (name.includes('silver')) return 'Silver'
+  if (name.includes('gold')) return 'Gold'
+  if (name.includes('platinum')) return 'Platinum'
+  if (name.includes('hourly') || name.includes('flash')) return 'Silver'
+  if (name.includes('weekly')) return 'Gold'
+  if (name.includes('fixed')) return 'Platinum'
+  return 'Starter' // default fallback
 }
 
 // Plan icon mapping
@@ -241,10 +257,11 @@ export default function PlansSection() {
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {plans.map((plan, index) => {
-                const Icon = planIcons[plan.name] || TrendingUp
-                const accent = planAccent[plan.name] || planAccent.Starter
-                const glow = planGlow[plan.name] || 'hover:glow-emerald'
-                const isPopular = plan.name === 'Gold'
+                const planKey = getPlanKey(plan.name)
+                const Icon = planIcons[planKey] || TrendingUp
+                const accent = planAccent[planKey] || planAccent.Starter
+                const glow = planGlow[planKey] || 'hover:glow-emerald'
+                const isPopular = planKey === 'Gold'
 
                 return (
                   <motion.div
@@ -310,7 +327,7 @@ export default function PlansSection() {
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Daily Limit</span>
                           <span className="font-semibold" dir="ltr">
-                            {getPlanLimitMultiplier(plan.name)} of Investment
+                            {getPlanLimitMultiplier(plan)} of Investment
                           </span>
                         </div>
 
