@@ -48,8 +48,9 @@ import { AdminPdfBuilderTab } from './AdminPdfBuilderTab'
 import { AdminTransferFundsTab } from './AdminTransferFundsTab'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { Users, DollarSign, Clock, TrendingUp, Menu, X } from 'lucide-react'
+import { Users, DollarSign, Clock, TrendingUp, Menu, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
 
 interface DashboardStats {
   totalUsers: number
@@ -67,6 +68,28 @@ export function AdminDashboard() {
     platformEarnings: 0,
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const { toast } = useToast()
+
+  const handleSyncPlatformData = async () => {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/admin/sync-data', {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast({ title: 'Synchronization Complete', description: data.message })
+        window.dispatchEvent(new Event('admin-stats-refresh'))
+      } else {
+        toast({ title: 'Synchronization Failed', description: data.error || 'Failed to sync platform data', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network Error', description: 'Failed to connect to sync service', variant: 'destructive' })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -210,18 +233,35 @@ export function AdminDashboard() {
 
       {/* Main Content */}
       <div className="flex-1 min-h-screen overflow-y-auto">
-        {/* Mobile header */}
-        <div className="lg:hidden flex items-center gap-3 p-4 border-b border-border/50">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-muted-foreground"
-          >
-            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-          <h1 className="text-lg font-bold text-foreground">BNFX Admin</h1>
-        </div>
+        {/* Unified Admin Header */}
+        <header className="border-b border-border/50 px-4 lg:px-8 py-4 bg-card/30 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-muted-foreground lg:hidden"
+            >
+              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+            <div>
+              <h1 className="text-base lg:text-lg font-bold text-foreground">BNFX Admin Control Console</h1>
+              <p className="hidden sm:block text-[10px] text-muted-foreground">Sovereign platform status and execution control</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSyncPlatformData}
+              disabled={syncing}
+              className="gap-1.5 h-8 px-2 md:px-3 text-emerald-400 hover:text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/10"
+            >
+              <RefreshCw className={`size-3.5 ${syncing ? 'animate-spin' : ''}`} />
+              <span>{syncing ? 'Syncing...' : 'Sync Data'}</span>
+            </Button>
+          </div>
+        </header>
 
         <div className="p-4 lg:p-8 space-y-6">
           {/* Overview Stats */}
