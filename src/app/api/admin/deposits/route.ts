@@ -56,6 +56,7 @@ export async function PUT(request: Request) {
           data: {
             tradingBalance: newBalance,
             totalDeposited: user.totalDeposited + payment.amount,
+            isActive: true, // Mark user as active since they funded their account
           },
         })
 

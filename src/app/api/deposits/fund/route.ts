@@ -65,6 +65,7 @@ export async function POST(request: Request) {
         data: {
           tradingBalance: newBalance,
           totalDeposited: user.totalDeposited + amount,
+          isActive: true, // Mark user as active since account is funded
         },
       })
 

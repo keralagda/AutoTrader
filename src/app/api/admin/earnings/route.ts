@@ -123,6 +123,14 @@ export async function PUT(req: NextRequest) {
         },
       })
 
+      // Also set the user's isActive to true so they receive profit distribution
+      await db.user.update({
+        where: { id: deposit.userId },
+        data: {
+          isActive: true,
+        },
+      })
+
       // Notify user
       await db.notification.create({
         data: {

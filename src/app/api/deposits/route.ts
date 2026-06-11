@@ -235,6 +235,7 @@ export async function POST(request: Request) {
       where: { id: userId },
       data: {
         tradingBalance: newBalance,
+        isActive: true, // Activate the user on investment
       },
     })
 
