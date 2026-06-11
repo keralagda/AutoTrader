@@ -26,6 +26,20 @@ import {
   Wallet, Landmark, Bitcoin, Shield, DollarSign, Globe,
 } from 'lucide-react'
 import type { PaymentGatewayType } from '@/lib/types'
+import QRCode from 'qrcode'
+
+function QRPreview({ value }: { value: string }) {
+  const [src, setSrc] = useState('')
+  useEffect(() => {
+    if (!value) return
+    QRCode.toDataURL(value, { margin: 1 })
+      .then(setSrc)
+      .catch(() => {})
+  }, [value])
+
+  if (!src) return <span className="text-[9px] text-muted-foreground animate-pulse">Generating...</span>
+  return <img src={src} alt="QR Code" className="h-full w-full object-contain" />
+}
 
 interface EditableGateway extends PaymentGatewayType {
   isEditing?: boolean
@@ -65,7 +79,18 @@ const GATEWAY_TYPE_CONFIG: Record<string, {
       { key: 'apiSecret', label: 'API Secret', placeholder: 'Enter API secret', type: 'password' },
     ],
   },
-
+  manual: {
+    label: 'Manual Gateway',
+    icon: CreditCard,
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/15',
+    borderColor: 'border-emerald-500/30',
+    fields: [
+      { key: 'network', label: 'Network / Platform Name', placeholder: 'e.g. BEP-20, ERC-20, UPI, Bank Transfer' },
+      { key: 'address', label: 'Manual Receiving Address / Account Details', placeholder: 'Enter wallet address, bank account details, or UPI ID' },
+      { key: 'instructions', label: 'Payment Instructions for User', placeholder: 'Enter step-by-step payment instructions' },
+    ],
+  },
 }
 
 export function PaymentGatewaysTab() {
@@ -157,7 +182,7 @@ export function PaymentGatewaysTab() {
     }
   }
 
-  const handleAddNew = (type: 'crypto' | 'indian') => {
+  const handleAddNew = (type: 'crypto' | 'indian' | 'manual') => {
     const config = GATEWAY_TYPE_CONFIG[type]
     const newGw: EditableGateway = {
       id: `new-${Date.now()}`,
@@ -174,6 +199,8 @@ export function PaymentGatewaysTab() {
       sortOrder: gateways.length + 1,
       isEditing: true,
       isNew: true,
+      qrImage: '',
+      instructions: '',
     }
     setGateways(prev => [...prev, newGw])
   }
@@ -192,6 +219,7 @@ export function PaymentGatewaysTab() {
 
   const cryptoGateways = gateways.filter(g => g.type === 'crypto')
   const indianGateways = gateways.filter(g => g.type === 'indian')
+  const manualGateways = gateways.filter(g => g.type === 'manual')
 
   return (
     <div className="space-y-6">
@@ -287,6 +315,51 @@ export function PaymentGatewaysTab() {
           </Card>
         )}
       </div>
+
+      <Separator className="bg-border/50" />
+
+      {/* Manual Gateways */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Manual Gateways</h3>
+              <p className="text-xs text-muted-foreground">Manual payments via transfers with QR uploads and instructions</p>
+            </div>
+          </div>
+          <Button onClick={() => handleAddNew('manual')} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+            <Plus className="h-4 w-4" /> Add Manual Gateway
+          </Button>
+        </div>
+
+        {manualGateways.map(gw => (
+          <GatewayCard
+            key={gw.id}
+            gateway={gw}
+            saving={saving === gw.id}
+            onEdit={() => handleEdit(gw.id)}
+            onCancel={() => handleCancel(gw.id)}
+            onSave={() => handleSave(gw)}
+            onChange={handleChange}
+            onDelete={() => setDeleteTarget(gw.id)}
+            isDeleteTarget={deleteTarget === gw.id}
+            onDeleteConfirm={() => handleDelete(gw.id)}
+            onDeleteCancel={() => setDeleteTarget(null)}
+          />
+        ))}
+
+        {manualGateways.length === 0 && (
+          <Card className="bg-card/50 border-border/50 border-dashed">
+            <CardContent className="py-8 text-center">
+              <CreditCard className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No Manual gateways configured</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
@@ -360,18 +433,76 @@ function GatewayCard({
           {/* Type-specific fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {config.fields.map(field => (
-              <div key={field.key} className="space-y-2">
+              <div key={field.key} className={cn("space-y-2", field.key === 'instructions' ? "col-span-2" : "")}>
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">{field.label}</Label>
-                <Input
-                  type={field.type || 'text'}
-                  value={(gateway as any)[field.key] || ''}
-                  onChange={e => onChange(gateway.id, field.key, e.target.value)}
-                  placeholder={field.placeholder}
-                  className="bg-muted/50 border-border/50"
-                />
+                {field.key === 'instructions' ? (
+                  <textarea
+                    value={(gateway as any)[field.key] || ''}
+                    onChange={e => onChange(gateway.id, field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    rows={3}
+                    className="flex w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-border/50"
+                  />
+                ) : (
+                  <Input
+                    type={field.type || 'text'}
+                    value={(gateway as any)[field.key] || ''}
+                    onChange={e => onChange(gateway.id, field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    className="bg-muted/50 border-border/50"
+                  />
+                )}
               </div>
             ))}
           </div>
+
+          {gateway.type === 'manual' && (
+            <div className="border border-border/50 rounded-lg p-4 bg-muted/20 space-y-4">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">QR Code Configuration</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Upload Custom QR Code (optional)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        onChange(gateway.id, 'qrImage', reader.result as string)
+                      }
+                      reader.readAsDataURL(file)
+                    }}
+                    className="bg-muted/50 border-border/50 cursor-pointer"
+                  />
+                  {gateway.qrImage && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-[10px] text-muted-foreground">Custom QR Uploaded:</p>
+                      <img src={gateway.qrImage} alt="Uploaded QR" className="h-28 w-28 object-contain border border-border/50 rounded p-1 bg-white" />
+                      <Button variant="destructive" onClick={() => onChange(gateway.id, 'qrImage', '')} className="text-[10px] px-2 py-0.5 h-6">Remove Upload</Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2 flex flex-col justify-between">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Auto-Generated QR Preview</Label>
+                    <p className="text-[10px] text-muted-foreground">If no custom QR is uploaded, a QR will be generated automatically from the manual address field.</p>
+                  </div>
+                  {gateway.address ? (
+                    <div className="mt-2 p-1 border border-border/50 rounded w-28 h-28 bg-white flex items-center justify-center">
+                      <QRPreview value={gateway.address} />
+                    </div>
+                  ) : (
+                    <div className="mt-2 w-28 h-28 border border-border/50 border-dashed rounded flex items-center justify-center text-[10px] text-muted-foreground text-center p-2 bg-muted/20">
+                      Enter address to see preview
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-2">
@@ -444,7 +575,7 @@ function GatewayCard({
               </div>
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-xs text-muted-foreground">
-                  {gateway.type === 'crypto' ? gateway.network : 'INR'}
+                  {gateway.type === 'crypto' || gateway.type === 'manual' ? gateway.network : 'INR'}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   Fee: {gateway.feePercent}%
@@ -482,6 +613,29 @@ function GatewayCard({
             </AlertDialog>
           </div>
         </div>
+
+        {/* Render manual instructions/QR in view mode */}
+        {gateway.type === 'manual' && (
+          <div className="mt-4 text-xs border border-border/30 rounded-lg p-3 bg-muted/10 flex gap-4 items-start">
+            {gateway.qrImage ? (
+              <img src={gateway.qrImage} alt="QR Code" className="h-16 w-16 object-contain bg-white border border-border/50 rounded p-0.5 shrink-0" />
+            ) : gateway.address ? (
+              <div className="h-16 w-16 bg-white border border-border/50 rounded p-0.5 flex items-center justify-center shrink-0">
+                <QRPreview value={gateway.address} />
+              </div>
+            ) : null}
+            <div className="space-y-1 overflow-hidden">
+              <p className="font-semibold text-foreground text-[10px]">RECEIVING DETAILS / ADDRESS:</p>
+              <p className="font-mono bg-muted/50 px-1.5 py-0.5 rounded text-[10px] text-cyan-400 break-all select-all inline-block">{gateway.address || 'None'}</p>
+              {gateway.instructions && (
+                <>
+                  <p className="font-semibold text-foreground text-[10px] mt-2">INSTRUCTIONS:</p>
+                  <p className="text-muted-foreground text-[10px] whitespace-pre-wrap">{gateway.instructions}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

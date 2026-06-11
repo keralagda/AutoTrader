@@ -101,12 +101,20 @@ export function WithdrawTab() {
     }
   }, [user?.id])
 
+  const [savedAddresses, setSavedAddresses] = useState<{ id: string; label: string; address: string; network: string; isDefault: boolean }[]>([])
+
   const fetchGateways = useCallback(async () => {
     try {
       const res = await fetch('/api/payment-gateways')
       if (res.ok) {
-        const data = await res.json()
-        setGateways(data)
+        const data: PaymentGatewayType[] = await res.json()
+        const configured = data.filter(gw => {
+          if (gw.type === 'crypto' || gw.type === 'manual') {
+            return !!gw.address?.trim()
+          }
+          return true
+        })
+        setGateways(configured)
       }
     } catch {}
   }, [])
@@ -117,10 +125,23 @@ export function WithdrawTab() {
   }, [fetchWithdrawals, fetchGateways])
 
   useEffect(() => {
+    if (user?.withdrawWallets) {
+      try {
+        const parsed = JSON.parse(user.withdrawWallets)
+        if (Array.isArray(parsed)) {
+          setSavedAddresses(parsed)
+          const def = parsed.find(p => p.isDefault)
+          if (def) {
+            setWalletAddress(def.address)
+            return
+          }
+        }
+      } catch {}
+    }
     if (user?.walletAddress) {
       setWalletAddress(user.walletAddress)
     }
-  }, [user?.walletAddress])
+  }, [user?.withdrawWallets, user?.walletAddress])
 
   const handleQuickSelect = (value: number) => {
     if (value >= withdrawalBalance) {
@@ -374,6 +395,27 @@ export function WithdrawTab() {
                paymentMethod === 'razorpay' ? 'Registered Email / Phone' :
                'Account Details'}
             </Label>
+            {savedAddresses.length > 0 && (
+              <div className="mb-2">
+                <Select
+                  onValueChange={(val) => {
+                    setWalletAddress(val)
+                  }}
+                  value={walletAddress}
+                >
+                  <SelectTrigger className="h-9 mt-1 text-sm bg-muted/30">
+                    <SelectValue placeholder="Choose a saved address" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedAddresses.map(addr => (
+                      <SelectItem key={addr.id} value={addr.address}>
+                        {addr.label} ({addr.network.toUpperCase()}) - {addr.address.slice(0, 15)}...
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Input
               id="wallet"
               placeholder={

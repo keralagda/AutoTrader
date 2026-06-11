@@ -142,8 +142,39 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+function playNotificationChime() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextClass) return
+    const ctx = new AudioContextClass()
+    
+    // Pleasant chime: D5 then A5
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(587.33, now) // D5
+    osc.frequency.setValueAtTime(880.00, now + 0.08) // A5
+    
+    gain.gain.setValueAtTime(0, now)
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.04)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3)
+    
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    
+    osc.start(now)
+    osc.stop(now + 0.3)
+  } catch {}
+}
+
 function toast({ ...props }: Toast) {
   const id = genId()
+
+  if (typeof window !== 'undefined') {
+    playNotificationChime()
+  }
 
   const update = (props: ToasterToast) =>
     dispatch({

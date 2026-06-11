@@ -41,6 +41,7 @@ export function AdminEarningsTab() {
       if (res.ok) {
         toast({ title: `Investment ${action}d` })
         setPending(prev => prev.filter(d => d.id !== depositId))
+        window.dispatchEvent(new Event('admin-stats-refresh'))
       } else {
         const data = await res.json()
         toast({ title: data.error || 'Failed', variant: 'destructive' })

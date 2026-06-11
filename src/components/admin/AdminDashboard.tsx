@@ -97,8 +97,17 @@ export function AdminDashboard() {
     }
 
     loadStats()
-    return () => { cancelled = true }
-  }, [])
+
+    const handleRefresh = () => {
+      loadStats()
+    }
+    window.addEventListener('admin-stats-refresh', handleRefresh)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('admin-stats-refresh', handleRefresh)
+    }
+  }, [adminTab])
 
   const renderTab = () => {
     switch (adminTab) {

@@ -76,8 +76,9 @@ export async function POST(request: Request) {
 
     // Validate amount range
     if (user.role !== 'admin') {
-      if (reinvestAmount < plan.minDeposit) {
-        return NextResponse.json({ error: `Reinvestment amount $${reinvestAmount.toFixed(2)} is below minimum $${plan.minDeposit}` }, { status: 400 })
+      const minRequired = plan.minReinvestAmount > 0 ? plan.minReinvestAmount : plan.minDeposit
+      if (reinvestAmount < minRequired) {
+        return NextResponse.json({ error: `Reinvestment amount $${reinvestAmount.toFixed(2)} is below minimum $${minRequired}` }, { status: 400 })
       }
       if (reinvestAmount > plan.maxDeposit) {
         reinvestAmount = plan.maxDeposit // Cap at max
@@ -93,7 +94,8 @@ export async function POST(request: Request) {
 
     // Calculate dates
     const now = new Date()
-    const lockedUntil = plan.lockPeriodDays > 0 ? new Date(now.getTime() + plan.lockPeriodDays * 86400000) : null
+    const lockPeriod = plan.reinvestLockPeriod > 0 ? plan.reinvestLockPeriod : plan.lockPeriodDays
+    const lockedUntil = lockPeriod > 0 ? new Date(now.getTime() + lockPeriod * 86400000) : null
     const endsAt = plan.durationDays > 0 ? new Date(now.getTime() + plan.durationDays * 86400000) : null
     const nextProfitAt = new Date(now.getTime() + plan.returnPeriodHours * 3600000)
 
@@ -101,15 +103,15 @@ export async function POST(request: Request) {
     const deposit = await db.deposit.create({
       data: {
         userId, planId, amount: reinvestAmount,
-        status: plan.lockPeriodDays > 0 ? 'locked' : 'active',
+        status: lockPeriod > 0 ? 'locked' : 'active',
         earnedSoFar: 0, stackIndex, lockedUntil, endsAt, nextProfitAt,
         isReinvested: true,
         riskLevel: sourceDeposit?.riskLevel || user.riskCategory || 'medium',
       },
     })
 
-    // Reinvestment Bonus: +2%
-    const REINVEST_BONUS_PERCENT = 2
+    // Reinvestment Bonus
+    const REINVEST_BONUS_PERCENT = plan.reinvestBonus !== undefined ? plan.reinvestBonus : 2
     const reinvestBonus = (reinvestAmount * REINVEST_BONUS_PERCENT) / 100
 
     // Update user balances

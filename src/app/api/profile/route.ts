@@ -36,6 +36,8 @@ export async function GET(request: Request) {
         name: true,
         phone: true,
         walletAddress: true,
+        depositWallets: true,
+        withdrawWallets: true,
         referralCode: true,
         tradingBalance: true,
         withdrawalBalance: true,
@@ -115,7 +117,7 @@ export async function PUT(request: Request) {
       }, { status: 503 })
     }
 
-    const { userId, name, email, phone, walletAddress } = await request.json()
+    const { userId, name, email, phone, walletAddress, depositWallets, withdrawWallets } = await request.json()
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
@@ -126,6 +128,8 @@ export async function PUT(request: Request) {
     if (email) updateData.email = email
     if (phone !== undefined) updateData.phone = phone
     if (walletAddress !== undefined) updateData.walletAddress = walletAddress
+    if (depositWallets !== undefined) updateData.depositWallets = depositWallets
+    if (withdrawWallets !== undefined) updateData.withdrawWallets = withdrawWallets
 
     const user = await db.user.update({
       where: { id: userId },
@@ -136,6 +140,8 @@ export async function PUT(request: Request) {
         name: true,
         phone: true,
         walletAddress: true,
+        depositWallets: true,
+        withdrawWallets: true,
         referralCode: true,
         tradingBalance: true,
         withdrawalBalance: true,

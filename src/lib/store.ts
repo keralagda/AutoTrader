@@ -49,6 +49,8 @@ export interface UserData {
   hasTransactionPin?: boolean
   usdcBscAddress?: string
   usdcTronAddress?: string
+  depositWallets?: string
+  withdrawWallets?: string
 }
 
 export const useAppStore = create<AppState>((set) => ({

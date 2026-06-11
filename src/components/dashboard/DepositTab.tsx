@@ -207,7 +207,11 @@ export function DepositTab() {
                         : 'border-border/50 text-muted-foreground hover:border-border'
                     } ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <Bitcoin className="size-4" />
+                    {gw.type === 'manual' ? (
+                      <CreditCard className="size-4" />
+                    ) : (
+                      <Bitcoin className="size-4" />
+                    )}
                     <span className="truncate">{gw.name}</span>
                   </button>
                 )
@@ -239,33 +243,58 @@ export function DepositTab() {
             </div>
           </div>
 
-          {/* Gateway Address (if crypto) */}
-          {selectedGateway?.address && (
+          {/* Gateway Details (if crypto or manual) */}
+          {selectedGateway && (selectedGateway.address || selectedGateway.instructions || selectedGateway.qrImage) && (
             <div className="rounded-lg bg-muted/50 border border-border/50 p-4 space-y-3">
-              <p className="text-xs text-muted-foreground font-medium">Send funds to this address:</p>
+              <p className="text-xs text-muted-foreground font-medium">
+                {selectedGateway.type === 'manual' ? 'Payment Details:' : 'Send funds to this address:'}
+              </p>
 
               {/* QR Code */}
-              <div className="flex justify-center">
-                <div className="bg-white p-3 rounded-xl">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(selectedGateway.address)}&bgcolor=ffffff&color=000000&margin=0`}
-                    alt="Payment QR Code"
-                    className="size-[180px]"
-                  />
+              {(selectedGateway.qrImage || selectedGateway.address) && (
+                <div className="flex justify-center">
+                  <div className="bg-white p-3 rounded-xl">
+                    {selectedGateway.qrImage ? (
+                      <img
+                        src={selectedGateway.qrImage}
+                        alt="Payment QR Code"
+                        className="size-[180px] object-contain"
+                      />
+                    ) : selectedGateway.address ? (
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(selectedGateway.address)}&bgcolor=ffffff&color=000000&margin=0`}
+                        alt="Payment QR Code"
+                        className="size-[180px]"
+                      />
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-              <p className="text-[10px] text-center text-muted-foreground">Scan QR code or copy address below</p>
+              )}
+              {(selectedGateway.qrImage || selectedGateway.address) && (
+                <p className="text-[10px] text-center text-muted-foreground">Scan QR code or copy address below</p>
+              )}
 
-              {/* Address */}
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs font-mono bg-background/50 rounded px-2 py-1.5 truncate" dir="ltr">
-                  {selectedGateway.address}
-                </code>
-                <Button variant="outline" size="icon" className="shrink-0 size-8" onClick={handleCopyAddress} disabled={user?.isEmailVerified === false}>
-                  {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
-                </Button>
-              </div>
-              {selectedGateway.network && (
+              {/* Address / Details */}
+              {selectedGateway.address && (
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs font-mono bg-background/50 rounded px-2 py-1.5 truncate" dir="ltr">
+                    {selectedGateway.address}
+                  </code>
+                  <Button variant="outline" size="icon" className="shrink-0 size-8" onClick={handleCopyAddress} disabled={user?.isEmailVerified === false}>
+                    {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
+                  </Button>
+                </div>
+              )}
+
+              {/* Instructions */}
+              {selectedGateway.instructions && (
+                <div className="rounded-lg bg-background/30 border border-border/30 p-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Instructions:</p>
+                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{selectedGateway.instructions}</p>
+                </div>
+              )}
+
+              {selectedGateway.type !== 'manual' && selectedGateway.network && (
                 <p className="text-[10px] text-amber-400 text-center">⚠️ Network: {
                   selectedGateway.network === 'bsc' ? 'BNB Smart Chain (BEP-20)' :
                   selectedGateway.network === 'tron' ? 'TRON (TRC-20)' :

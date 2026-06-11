@@ -8,7 +8,14 @@ export async function GET(request: Request) {
     const teamOnly = searchParams.get('teamOnly') === 'true'
     const userId = searchParams.get('userId')
 
-    const whereClause: any = { role: 'user', isActive: true }
+    const whereClause: any = {
+      role: 'user',
+      isActive: true,
+      NOT: [
+        { email: { contains: '@removed.local' } },
+        { name: { startsWith: 'Deleted User' } }
+      ]
+    }
 
     if (teamOnly && userId) {
       let currentLevelIds = [userId]

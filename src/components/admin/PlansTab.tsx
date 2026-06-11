@@ -1990,9 +1990,9 @@ function PlanEditor({
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <NumberField label="Bonus Day Chance %" suffix="%" value={(plan as any).bonusDayChance || 5} onChange={v => ch('bonusDayChance' as any, v)} />
-              <NumberField label="Reinvest Bonus %" suffix="%" value={(plan as any).reinvestBonus || 2} onChange={v => ch('reinvestBonus' as any, v)} />
               <NumberField label="Custom Referral %" suffix="%" value={(plan as any).customReferralPct || 0} onChange={v => ch('customReferralPct' as any, v)} />
               <NumberField label="Team Requirement" value={(plan as any).teamRequirement || 0} onChange={v => ch('teamRequirement' as any, v)} />
+              <NumberField label="Early Exit Penalty" suffix="%" value={plan.earlyExitPenalty || 0} onChange={v => ch('earlyExitPenalty', v)} />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -2036,15 +2036,40 @@ function PlanEditor({
             {/* Toggles */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
-                <div><p className="text-xs font-medium">Auto-Reinvest</p><p className="text-[9px] text-muted-foreground">Auto reinvest profits</p></div>
-                <Switch checked={(plan as any).autoReinvest || false} onCheckedChange={v => ch('autoReinvest' as any, v)} />
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
                 <div><p className="text-xs font-medium">Require KYC</p><p className="text-[9px] text-muted-foreground">KYC needed to invest</p></div>
                 <Switch checked={(plan as any).requireKyc || false} onCheckedChange={v => ch('requireKyc' as any, v)} />
               </div>
             </div>
 
+          </div>
+        </SectionCard>
+
+        {/* Dedicated Re-Investment Configuration Section */}
+        <SectionCard icon={<RefreshCw className="h-4 w-4 text-emerald-400" />} title="Re-Investment Configuration" description="Configure settings for automatic or manual profit reinvestments and compounds">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Auto-Reinvest Profits</p>
+                  <p className="text-[9px] text-muted-foreground">Automatically reinvest profits back into the active plan</p>
+                </div>
+                <Switch checked={(plan as any).autoReinvest || false} onCheckedChange={v => ch('autoReinvest' as any, v)} />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Auto-Compound Yields</p>
+                  <p className="text-[9px] text-muted-foreground">Compounding yields directly to active principal</p>
+                </div>
+                <Switch checked={plan.autoCompound || false} onCheckedChange={v => ch('autoCompound', v)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <NumberField label="Re-Investment Bonus %" suffix="%" value={(plan as any).reinvestBonus || 2} onChange={v => ch('reinvestBonus' as any, v)} hint="Bonus added on manual/auto reinvest" />
+              <NumberField label="Min Re-Investment Amount ($)" suffix="$" value={(plan as any).minReinvestAmount || 0} onChange={v => ch('minReinvestAmount' as any, v)} hint="Minimum amount to reinvest (0 = default to plan min)" />
+              <NumberField label="Re-Investment Lock Period" suffix="days" value={(plan as any).reinvestLockPeriod || 0} onChange={v => ch('reinvestLockPeriod' as any, v)} hint="Separate lock for reinvested funds (0 = no lock)" />
+            </div>
           </div>
         </SectionCard>
 

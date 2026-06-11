@@ -49,6 +49,7 @@ export function AdminDepositsTab() {
     if (res.ok) {
       setPayments(prev => prev.map(p => p.id === paymentId ? { ...p, status: action === 'confirm' ? 'confirmed' : 'failed' } : p))
       toast({ title: `Deposit ${action === 'confirm' ? 'confirmed' : 'rejected'}` })
+      window.dispatchEvent(new Event('admin-stats-refresh'))
     }
   }
 

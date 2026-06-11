@@ -21,6 +21,7 @@ import { ResourcesTab } from './ResourcesTab'
 import { HelpCenterTab } from './HelpCenterTab'
 import { WelcomeTour } from './WelcomeTour'
 import { MobileBottomNav } from './MobileBottomNav'
+import { NotificationCenter } from './NotificationCenter'
 import { ProfitNotification } from './ProfitNotification'
 import { SessionTimeout } from '@/components/SessionTimeout'
 import { ScreenTimeNP } from './ScreenTimeNP'
@@ -78,11 +79,14 @@ const TAB_META: Record<
 }
 
 export function UserDashboard() {
-  const { dashboardTab, user, updateUserWallets } = useAppStore()
+  const { dashboardTab, user, updateUserWallets, setDashboardTab } = useAppStore()
   const [transferModalOpen, setTransferModalOpen] = useState(false)
   const [transferAmount, setTransferAmount] = useState('')
   const [transferring, setTransferring] = useState(false)
-  const [transferDirection, setTransferDirection] = useState<'trading_to_withdrawal' | 'withdrawal_to_trading'>('trading_to_withdrawal')
+  const [transferDirection, setTransferDirection] = useState<'trading_to_withdrawal' | 'withdrawal_to_trading' | 'p2p'>('trading_to_withdrawal')
+  const [recipientEmail, setRecipientEmail] = useState('')
+  const [transferNote, setTransferNote] = useState('')
+  const [transactionPin, setTransactionPin] = useState('')
   const [unreadNotifs, setUnreadNotifs] = useState(0)
   const { toast } = useToast()
   const [resendingEmail, setResendingEmail] = useState(false)
@@ -139,9 +143,67 @@ export function UserDashboard() {
       toast({ title: 'Invalid amount', variant: 'destructive' })
       return
     }
-    const sourceBalance = transferDirection === 'trading_to_withdrawal' ? tradingBalance : withdrawalBalance
+    const sourceBalance = transferDirection === 'trading_to_withdrawal' || transferDirection === 'p2p' ? tradingBalance : withdrawalBalance
     if (amount > sourceBalance) {
       toast({ title: 'Insufficient balance', variant: 'destructive' })
+      return
+    }
+
+    if (transferDirection === 'p2p') {
+      if (!recipientEmail) {
+        toast({ title: 'Recipient email required', variant: 'destructive' })
+        return
+      }
+      if (!user?.hasTransactionPin) {
+        toast({
+          title: 'Transaction PIN Required',
+          description: 'Please set up a 6-digit transaction PIN in your Security tab before requesting a transfer.',
+          variant: 'destructive',
+        })
+        setDashboardTab('security')
+        setTransferModalOpen(false)
+        return
+      }
+      if (!transactionPin || transactionPin.length !== 6) {
+        toast({ title: 'Enter a valid 6-digit PIN', variant: 'destructive' })
+        return
+      }
+
+      setTransferring(true)
+      try {
+        const res = await fetch('/api/p2p-transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            senderId: user.id,
+            receiverEmail: recipientEmail,
+            amount,
+            note: transferNote || undefined,
+            pin: transactionPin,
+          }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          toast({ title: 'Transfer successful!', description: `$${amount.toFixed(2)} sent to ${recipientEmail}` })
+          setTransferAmount('')
+          setRecipientEmail('')
+          setTransferNote('')
+          setTransactionPin('')
+          setTransferModalOpen(false)
+          // Refresh user wallets
+          const meRes = await fetch(`/api/auth/me?userId=${user.id}`)
+          if (meRes.ok) {
+            const meData = await meRes.json()
+            updateUserWallets(meData.tradingBalance, meData.withdrawalBalance)
+          }
+        } else {
+          toast({ title: data.error || 'Transfer failed', variant: 'destructive' })
+        }
+      } catch {
+        toast({ title: 'Network error', variant: 'destructive' })
+      } finally {
+        setTransferring(false)
+      }
       return
     }
 
@@ -247,14 +309,7 @@ export function UserDashboard() {
                 <ArrowRightLeft className="size-3.5 md:size-4" />
                 <span className="hidden md:inline">Transfer</span>
               </Button>
-              <button className="relative p-2 rounded-full hover:bg-muted active:scale-90 transition-all" onClick={() => { /* notifications */ }}>
-                <Bell className="size-4 text-muted-foreground" />
-                {unreadNotifs > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-500 text-[9px] text-white flex items-center justify-center font-bold animate-pulse">
-                    {unreadNotifs > 9 ? '9+' : unreadNotifs}
-                  </span>
-                )}
-              </button>
+              <NotificationCenter />
             </div>
           </div>
         </header>
@@ -298,7 +353,7 @@ export function UserDashboard() {
               Transfer Funds
             </DialogTitle>
             <DialogDescription>
-              Move funds between your wallets
+              Move funds between your wallets or to another user
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -314,39 +369,74 @@ export function UserDashboard() {
             </div>
 
             {/* Direction Toggle */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setTransferDirection('trading_to_withdrawal')}
-                className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                className={`py-2 px-1 rounded-lg border text-[10px] font-medium transition-all ${
                   transferDirection === 'trading_to_withdrawal'
                     ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                     : 'border-border/50 text-muted-foreground'
                 }`}
               >
-                Trading → Withdrawal
+                Trading → Withdraw
               </button>
               <button
                 onClick={() => setTransferDirection('withdrawal_to_trading')}
-                className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                className={`py-2 px-1 rounded-lg border text-[10px] font-medium transition-all ${
                   transferDirection === 'withdrawal_to_trading'
                     ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
                     : 'border-border/50 text-muted-foreground'
                 }`}
               >
-                Withdrawal → Trading
+                Withdraw → Trading
+              </button>
+              <button
+                onClick={() => setTransferDirection('p2p')}
+                className={`py-2 px-1 rounded-lg border text-[10px] font-medium transition-all ${
+                  transferDirection === 'p2p'
+                    ? 'bg-violet-500/15 border-violet-500/30 text-violet-400'
+                    : 'border-border/50 text-muted-foreground'
+                }`}
+              >
+                To User (P2P)
               </button>
             </div>
 
+            {transferDirection === 'p2p' && (
+              <>
+                <div className="space-y-1">
+                  <Label className="text-xs">Recipient Email</Label>
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    value={recipientEmail}
+                    onChange={e => setRecipientEmail(e.target.value)}
+                    className="h-9 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Note (optional)</Label>
+                  <Input
+                    type="text"
+                    placeholder="What is this for?"
+                    value={transferNote}
+                    onChange={e => setTransferNote(e.target.value)}
+                    className="h-9 text-xs"
+                  />
+                </div>
+              </>
+            )}
+
             <div className="space-y-2">
-              <Label>Amount (USDC)</Label>
+              <Label className="text-xs">Amount (USDC)</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
                 <Input
                   type="number"
                   placeholder="0.00"
                   value={transferAmount}
                   onChange={e => setTransferAmount(e.target.value)}
-                  className="pl-7"
+                  className="pl-7 h-9 text-xs"
                   min="0"
                   step="0.01"
                 />
@@ -357,8 +447,8 @@ export function UserDashboard() {
                     key={val}
                     variant="outline"
                     size="sm"
-                    className="flex-1 text-xs"
-                    onClick={() => setTransferAmount(Math.min(val, transferDirection === 'trading_to_withdrawal' ? tradingBalance : withdrawalBalance).toFixed(2))}
+                    className="flex-1 text-[10px] h-7"
+                    onClick={() => setTransferAmount(Math.min(val, transferDirection === 'trading_to_withdrawal' || transferDirection === 'p2p' ? tradingBalance : withdrawalBalance).toFixed(2))}
                   >
                     ${val}
                   </Button>
@@ -366,18 +456,43 @@ export function UserDashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 text-xs text-primary"
-                  onClick={() => setTransferAmount((transferDirection === 'trading_to_withdrawal' ? tradingBalance : withdrawalBalance).toFixed(2))}
+                  className="flex-1 text-[10px] h-7 text-primary"
+                  onClick={() => setTransferAmount((transferDirection === 'trading_to_withdrawal' || transferDirection === 'p2p' ? tradingBalance : withdrawalBalance).toFixed(2))}
                 >
                   Max
                 </Button>
               </div>
             </div>
 
+            {transferDirection === 'p2p' && (
+              <div className="space-y-1">
+                <Label className="text-xs">Transaction PIN (6-digit)</Label>
+                <Input
+                  type="password"
+                  placeholder="000000"
+                  maxLength={6}
+                  value={transactionPin}
+                  onChange={e => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="font-mono text-center text-sm tracking-widest h-9"
+                />
+                {!user?.hasTransactionPin && (
+                  <p className="text-[10px] text-rose-400">
+                    ⚠️ Set up a 6-digit transaction PIN in your Security tab first.
+                  </p>
+                )}
+              </div>
+            )}
+
             <Button
-              className="w-full gap-2"
+              className="w-full gap-2 h-9 text-xs"
               onClick={handleTransfer}
-              disabled={transferring || !transferAmount || parseFloat(transferAmount) <= 0 || parseFloat(transferAmount) > (transferDirection === 'trading_to_withdrawal' ? tradingBalance : withdrawalBalance)}
+              disabled={
+                transferring || 
+                !transferAmount || 
+                parseFloat(transferAmount) <= 0 || 
+                parseFloat(transferAmount) > (transferDirection === 'trading_to_withdrawal' || transferDirection === 'p2p' ? tradingBalance : withdrawalBalance) ||
+                (transferDirection === 'p2p' && (!recipientEmail || !transactionPin || transactionPin.length !== 6))
+              }
             >
               {transferring ? 'Transferring...' : 'Confirm Transfer'}
             </Button>

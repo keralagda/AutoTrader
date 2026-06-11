@@ -66,6 +66,8 @@ export interface PlanType {
   gracePeriodDays?: number
   autoReinvest?: boolean
   reinvestBonus?: number
+  minReinvestAmount?: number
+  reinvestLockPeriod?: number
   customReferralPct?: number
   volatilityMode?: string
   lossDayChance?: number
@@ -228,7 +230,7 @@ export interface ProfitDistributionType {
 export interface PaymentGatewayType {
   id: string
   name: string
-  type: string // "crypto" or "indian"
+  type: string // "crypto" or "indian" or "manual"
   network?: string
   address?: string
   apiKey?: string
@@ -239,6 +241,8 @@ export interface PaymentGatewayType {
   feePercent: number
   isActive: boolean
   sortOrder: number
+  qrImage?: string
+  instructions?: string
 }
 
 export interface PaymentType {

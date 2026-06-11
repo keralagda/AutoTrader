@@ -62,6 +62,7 @@ export function WithdrawalsTab() {
       })
       if (!res.ok) throw new Error()
       toast({ title: 'Withdrawal Updated', description: `Status changed to ${status}` })
+      window.dispatchEvent(new Event('admin-stats-refresh'))
       fetchWithdrawals()
     } catch {
       toast({ title: 'Error', description: 'Failed to update withdrawal', variant: 'destructive' })
@@ -83,6 +84,7 @@ export function WithdrawalsTab() {
       toast({ title: 'Withdrawal Completed', description: 'Transaction hash recorded' })
       setTxHashModal(null)
       setTxHash('')
+      window.dispatchEvent(new Event('admin-stats-refresh'))
       fetchWithdrawals()
     } catch {
       toast({ title: 'Error', description: 'Failed to mark withdrawal as complete', variant: 'destructive' })

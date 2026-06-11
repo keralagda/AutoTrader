@@ -60,6 +60,11 @@ export async function PUT(request: Request) {
 
     const updateData: any = { ...data }
 
+    if (updateData.minReinvestAmount !== undefined) updateData.minReinvestAmount = Number(updateData.minReinvestAmount || 0)
+    if (updateData.reinvestLockPeriod !== undefined) updateData.reinvestLockPeriod = Math.round(Number(updateData.reinvestLockPeriod || 0))
+    if (updateData.reinvestBonus !== undefined) updateData.reinvestBonus = Number(updateData.reinvestBonus || 0)
+    if (updateData.autoReinvest !== undefined) updateData.autoReinvest = Boolean(updateData.autoReinvest)
+
     // Auto-generate plain English descriptions only if not explicitly provided
     if (data.earningMechanism === undefined && (data.dailyEarningPercent !== undefined || data.maxEarningLimit !== undefined || data.autoCompound !== undefined)) {
       const daily = data.dailyEarningPercent ?? 0
@@ -164,6 +169,11 @@ export async function POST(request: Request) {
 
     // Remove fields that shouldn't be in create
     const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, referralRules, conditionalLogics, ...createData } = data as any
+
+    createData.minReinvestAmount = Number(createData.minReinvestAmount || 0)
+    createData.reinvestLockPeriod = Math.round(Number(createData.reinvestLockPeriod || 0))
+    createData.reinvestBonus = Number(createData.reinvestBonus || 0)
+    createData.autoReinvest = Boolean(createData.autoReinvest)
 
     // Auto-generate plain English descriptions as fallback
     const daily = data.dailyEarningPercent ?? 0

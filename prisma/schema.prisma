@@ -65,6 +65,8 @@ model User {
   affiliateClicks       Int       @default(0)
   customPromoHeadline   String?
   customPromoLogo       String?
+  depositWallets        String?
+  withdrawWallets       String?
 
   affiliateApplications AffiliateApplication[]
 }
@@ -159,6 +161,8 @@ model Plan {
   gracePeriodDays     Int      @default(0)
   autoReinvest        Boolean  @default(false)
   reinvestBonus       Float    @default(2)
+  minReinvestAmount     Float    @default(0)
+  reinvestLockPeriod    Int      @default(0)
   customReferralPct   Float?
   volatilityMode      String   @default("moderate")
   lossDayChance       Float    @default(0)
@@ -456,9 +460,9 @@ model Payment {
 model PaymentGateway {
   id          String   @id @default(cuid())
   name        String   // e.g. "USDC (Polygon)", "UPI", "Razorpay"
-  type        String   // "crypto" or "indian"
+  type        String   // "crypto" or "indian" or "manual"
   network     String?  // e.g. "polygon", "ethereum", "bitcoin"
-  address     String?  // Wallet address for crypto
+  address     String?  // Wallet address for crypto or receiving address for manual
   apiKey      String?  // API key for gateways
   apiSecret   String?  // API secret for gateways
   webhookUrl  String?  // Webhook URL for payment confirmations
@@ -467,6 +471,8 @@ model PaymentGateway {
   feePercent  Float    @default(0)
   isActive    Boolean  @default(false)
   sortOrder   Int      @default(0)
+  qrImage     String?  // Uploaded QR code image url/path
+  instructions String? // Custom instructions for payment
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

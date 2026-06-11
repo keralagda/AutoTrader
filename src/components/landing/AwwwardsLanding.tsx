@@ -356,12 +356,12 @@ export function AwwwardsLanding() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {(plans || []).slice(0, 4).map((plan, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {(plans || []).map((plan, i) => (
               <FadeInView key={plan.id} delay={i * 0.1}>
                 <div className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 p-6 hover:border-amber-500/20 transition-all duration-500 group backdrop-blur-sm flex flex-col justify-between h-full">
                   <div>
-                    <div className="text-3xl mb-4">{['🛡️', '💎', '👑', '🚀'][i] || '📈'}</div>
+                    <div className="text-3xl mb-4">{['🛡️', '⚡', '💎', '👑', '🚀'][i] || '📈'}</div>
                     <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
                     <p className="text-white/40 text-xs mb-4">From ${plan.minDeposit}</p>
                     <div className="space-y-2 text-sm border-t border-white/[0.05] pt-4">

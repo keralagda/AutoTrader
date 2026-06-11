@@ -271,7 +271,7 @@ export async function POST(request: Request) {
         where: { planId: plan.id, type: 'deposit', enabled: true }
       })
 
-      const DEFAULT_DEP_PERCENTS = isDailyFlashPlan ? [5, 2, 1, 0.5, 0.5, 0.5, 0.5] : [0, 0, 0, 0, 0, 0, 0]
+      const DEFAULT_DEP_PERCENTS = [5, 3, 2, 1, 1, 0.5, 0.5]
       const maxLevels = plan.registrationReferralLevels || 7
 
       let currentReferrerId = user.referredById
