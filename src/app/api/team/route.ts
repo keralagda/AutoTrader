@@ -21,8 +21,25 @@ export async function GET(request: Request) {
         totalEarnings: true,
         isActive: true,
         createdAt: true,
+        deposits: {
+          where: { status: { in: ['active', 'locked'] } },
+          select: { amount: true }
+        }
       },
       orderBy: { createdAt: 'desc' },
+    })
+
+    const directReferralsFormatted = directReferrals.map(m => {
+      const activeDepositsTotal = m.deposits.reduce((sum, d) => sum + d.amount, 0)
+      return {
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        totalDeposited: activeDepositsTotal > 0 ? activeDepositsTotal : m.totalDeposited,
+        totalEarnings: m.totalEarnings,
+        isActive: m.isActive,
+        createdAt: m.createdAt,
+      }
     })
 
     // Build team tree up to 7 levels
@@ -40,12 +57,29 @@ export async function GET(request: Request) {
           totalEarnings: true,
           isActive: true,
           createdAt: true,
+          deposits: {
+            where: { status: { in: ['active', 'locked'] } },
+            select: { amount: true }
+          }
         },
+      })
+
+      const membersFormatted = members.map(m => {
+        const activeDepositsTotal = m.deposits.reduce((sum, d) => sum + d.amount, 0)
+        return {
+          id: m.id,
+          name: m.name,
+          email: m.email,
+          totalDeposited: activeDepositsTotal > 0 ? activeDepositsTotal : m.totalDeposited,
+          totalEarnings: m.totalEarnings,
+          isActive: m.isActive,
+          createdAt: m.createdAt,
+        }
       })
 
       teamByLevel.push({
         level,
-        members,
+        members: membersFormatted,
         count: members.length,
       })
 
@@ -54,10 +88,10 @@ export async function GET(request: Request) {
     }
 
     const totalTeam = teamByLevel.reduce((sum, l) => sum + l.count, 0)
-    const totalDirect = directReferrals.length
+    const totalDirect = directReferralsFormatted.length
 
     return NextResponse.json({
-      directReferrals,
+      directReferrals: directReferralsFormatted,
       teamByLevel,
       totalTeam,
       totalDirect,
