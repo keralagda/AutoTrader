@@ -201,9 +201,14 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
+    // Check feature flag: investment_approval
+    const flagsSetting = await db.setting.findUnique({ where: { key: 'feature_flags' } })
+    const flags = flagsSetting ? JSON.parse(flagsSetting.value) : {}
+    const investmentApprovalRequired = flags.investment_approval !== undefined ? flags.investment_approval : true
+
     // Create deposit - pending approval for regular users, active for admin
     let depositStatus: string
-    if (isAdmin) {
+    if (isAdmin || !investmentApprovalRequired) {
       depositStatus = plan.lockPeriodDays > 0 ? 'locked' : 'active'
     } else {
       depositStatus = 'pending' // Requires admin approval before profits start

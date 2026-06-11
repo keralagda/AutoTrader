@@ -31,6 +31,7 @@ const DEFAULT_FLAGS: Record<string, { enabled: boolean; label: string; descripti
   nowpayments: { enabled: true, label: 'NOWPayments Gateway', description: 'NOWPayments crypto gateway', category: 'Finance' },
   auto_compound: { enabled: true, label: 'Auto-Compound', description: 'Allow users to auto-reinvest earnings', category: 'Finance' },
   deposit_approval: { enabled: true, label: 'Deposit Approval Required', description: 'All deposits require admin approval', category: 'Finance' },
+  investment_approval: { enabled: true, label: 'Investment Approval Required', description: 'All plan investments require admin approval', category: 'Finance' },
   stacking: { enabled: true, label: 'Deposit Stacking', description: 'Allow multiple deposits on same plan', category: 'Finance' },
 
   // Security
