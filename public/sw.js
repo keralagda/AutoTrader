@@ -37,6 +37,15 @@ self.addEventListener('fetch', (event) => {
   // Skip API requests - always go to network
   if (event.request.url.includes('/api/')) return;
 
+  // Skip Next.js chunks, hot-reload updates, and Turbopack files
+  if (
+    event.request.url.includes('/_next/') || 
+    event.request.url.includes('hot-update') || 
+    event.request.url.includes('turbopack')
+  ) {
+    return;
+  }
+
   // Skip non-http(s) schemes (chrome-extension, etc.)
   if (!event.request.url.startsWith('http')) return;
 
@@ -47,7 +56,10 @@ self.addEventListener('fetch', (event) => {
         if (response.status === 200 && event.request.url.startsWith(self.location.origin)) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
+            cache.put(event.request, responseClone).catch((err) => {
+              // Gracefully handle caching errors (e.g. range requests, dynamic assets)
+              console.warn('Cache.put failed for request:', event.request.url, err);
+            });
           });
         }
         return response;
