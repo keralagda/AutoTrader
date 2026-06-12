@@ -104,6 +104,13 @@ export function TransactionsTab() {
                     <div className="flex items-center gap-2">
                       <Badge className={`text-[9px] ${typeColors[tx.type] || 'bg-muted text-muted-foreground'}`}>{tx.type.replace('_', ' ')}</Badge>
                       <Badge variant="outline" className="text-[9px]">{tx.wallet}</Badge>
+                      {tx.status && tx.status !== 'completed' && (
+                        <Badge className={`text-[9px] ${
+                          tx.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                        }`}>
+                          {tx.status}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{tx.description || tx.type}</p>
                     <p className="text-[10px] text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</p>

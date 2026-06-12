@@ -17,6 +17,7 @@ import { Building2, Copy, Check, Loader2, AlertCircle, Globe } from 'lucide-reac
 interface BankTransferModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
 }
 
 interface SupportedBank {
@@ -27,7 +28,7 @@ interface SupportedBank {
   flag: string
 }
 
-export function BankTransferModal({ open, onOpenChange }: BankTransferModalProps) {
+export function BankTransferModal({ open, onOpenChange, onSuccess }: BankTransferModalProps) {
   const { user } = useAppStore()
   const { toast } = useToast()
   const [receivingBank, setReceivingBank] = useState<any>(null)
@@ -85,6 +86,7 @@ export function BankTransferModal({ open, onOpenChange }: BankTransferModalProps
         toast({ title: 'Wire transfer submitted', description: 'Processing: 1-3 business days.' })
         onOpenChange(false)
         setForm({ amount: '', referenceNumber: '', bankName: '', senderName: '', senderIban: '' })
+        onSuccess?.()
       } else {
         toast({ title: data.error || 'Failed', variant: 'destructive' })
       }

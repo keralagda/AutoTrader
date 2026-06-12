@@ -512,7 +512,7 @@ export function DepositTab() {
       </Card>
 
       {/* Bank Transfer Modal */}
-      <BankTransferModal open={bankTransferOpen} onOpenChange={setBankTransferOpen} />
+      <BankTransferModal open={bankTransferOpen} onOpenChange={setBankTransferOpen} onSuccess={fetchDeposits} />
     </div>
   )
 }
