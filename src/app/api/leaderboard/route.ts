@@ -11,6 +11,7 @@ export async function GET(request: Request) {
     const whereClause: any = {
       role: 'user',
       isActive: true,
+      totalDeposited: { gt: 0 },
       NOT: [
         { email: { contains: '@removed.local' } },
         { name: { startsWith: 'Deleted User' } }
