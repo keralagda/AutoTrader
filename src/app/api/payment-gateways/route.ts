@@ -36,6 +36,8 @@ export async function GET() {
         maxAmount: true,
         feePercent: true,
         sortOrder: true,
+        qrImage: true,
+        instructions: true,
       },
       orderBy: { sortOrder: 'asc' },
     })

@@ -45,7 +45,7 @@ export function DepositTab() {
   const { user, updateUserWallets } = useAppStore()
   const { toast } = useToast()
   const [amount, setAmount] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('crypto_usdc')
+  const [paymentMethod, setPaymentMethod] = useState('')
   const [gateways, setGateways] = useState<PaymentGatewayType[]>([])
   const [deposits, setDeposits] = useState<DepositRecord[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -65,6 +65,14 @@ export function DepositTab() {
       if (res.ok) {
         const data = await res.json()
         setGateways(data)
+        if (data.length > 0) {
+          const defaultGw = data.find((g: any) => g.isActive && g.name.toLowerCase() !== 'metamask')
+            || data.find((g: any) => g.isActive)
+            || data[0]
+          if (defaultGw) {
+            setPaymentMethod(defaultGw.id)
+          }
+        }
       }
     } catch {}
   }, [])
@@ -84,10 +92,8 @@ export function DepositTab() {
     fetchDeposits()
   }, [fetchGateways, fetchDeposits])
 
-  const selectedGateway = gateways.find(g => {
-    const gwKey = g.type === 'crypto' ? `crypto_${g.network || 'usdc'}` : g.name.toLowerCase().replace(/\s+/g, '_')
-    return gwKey === paymentMethod
-  })
+  const selectedGateway = gateways.find(g => g.id === paymentMethod)
+  const isMetaMask = selectedGateway ? selectedGateway.name.toLowerCase() === 'metamask' : paymentMethod === 'metamask'
 
   const handleDeposit = async () => {
     if (!user?.id || parsedAmount <= 0) return
@@ -100,7 +106,7 @@ export function DepositTab() {
         body: JSON.stringify({
           userId: user.id,
           amount: parsedAmount,
-          method: paymentMethod,
+          method: selectedGateway?.name || paymentMethod,
           txHash: txHash || undefined,
           proofUrl: proofUrl || undefined,
         }),
@@ -195,14 +201,14 @@ export function DepositTab() {
             <Label>Payment Method</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {gateways.length > 0 ? gateways.map(gw => {
-                const gwKey = gw.name.toLowerCase().replace(/[^a-z0-9]/g, '_')
+                const isSelected = paymentMethod === gw.id
                 return (
                   <button
                     key={gw.id}
-                    onClick={() => setPaymentMethod(gwKey)}
+                    onClick={() => setPaymentMethod(gw.id)}
                     disabled={user?.isEmailVerified === false}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${
-                      paymentMethod === gwKey
+                      isSelected
                         ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                         : 'border-border/50 text-muted-foreground hover:border-border'
                     } ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -243,8 +249,8 @@ export function DepositTab() {
             </div>
           </div>
 
-          {/* Gateway Details (if crypto or manual) */}
-          {selectedGateway && (selectedGateway.address || selectedGateway.instructions || selectedGateway.qrImage) && (
+          {/* Gateway Details (if crypto or manual and NOT MetaMask) */}
+          {selectedGateway && !isMetaMask && (selectedGateway.address || selectedGateway.instructions || selectedGateway.qrImage) && (
             <div className="rounded-lg bg-muted/50 border border-border/50 p-4 space-y-3">
               <p className="text-xs text-muted-foreground font-medium">
                 {selectedGateway.type === 'manual' ? 'Payment Details:' : 'Send funds to this address:'}
@@ -307,7 +313,7 @@ export function DepositTab() {
           )}
 
           {/* MetaMask Connect (when MetaMask is selected) */}
-          {paymentMethod === 'metamask' && (
+          {isMetaMask && (
             <MetaMaskConnect />
           )}
 
