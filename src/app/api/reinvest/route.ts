@@ -50,18 +50,18 @@ export async function POST(request: Request) {
       // Reinvest = original deposit amount + all earnings from that deposit
       reinvestAmount = sourceDeposit.amount + sourceDeposit.earnedSoFar
 
-      // Close the source deposit
-      await db.deposit.update({
-        where: { id: sourceDepositId },
-        data: { status: 'completed' },
-      })
-
       // Deduct the earned amount from user's trading balance (it was already credited there by cron)
       // The original deposit amount was already deducted when first invested
       // So we only need to deduct the earnedSoFar from trading balance for the reinvestment
       if (user.role !== 'admin' && sourceDeposit.earnedSoFar > user.tradingBalance) {
         return NextResponse.json({ error: `Insufficient balance. Need $${sourceDeposit.earnedSoFar.toFixed(2)} from earnings in trading wallet.` }, { status: 400 })
       }
+
+      // Close the source deposit
+      await db.deposit.update({
+        where: { id: sourceDepositId },
+        data: { status: 'completed' },
+      })
     } else {
       // Manual reinvest from trading balance (legacy flow)
       const body = await request.clone().json()

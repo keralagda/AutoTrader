@@ -97,23 +97,37 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    const withdrawal = await db.withdrawal.create({
-      data: {
-        userId,
-        amount,
-        walletAddress,
-        paymentMethod: paymentMethod || 'crypto_usdc',
-        status: 'pending',
-      },
-    })
+    try {
+      const withdrawal = await db.$transaction(async (tx) => {
+        if (user.role !== 'admin') {
+          const freshUser = await tx.user.findUnique({ where: { id: userId } })
+          if (!freshUser || amount > freshUser.withdrawalBalance) {
+            throw new Error('Insufficient withdrawal balance')
+          }
+        }
 
-    // Deduct from withdrawal balance
-    await db.user.update({
-      where: { id: userId },
-      data: { withdrawalBalance: user.withdrawalBalance - amount },
-    })
+        const w = await tx.withdrawal.create({
+          data: {
+            userId,
+            amount,
+            walletAddress,
+            paymentMethod: paymentMethod || 'crypto_usdc',
+            status: 'pending',
+          },
+        })
 
-    return NextResponse.json(withdrawal, { status: 201 })
+        await tx.user.update({
+          where: { id: userId },
+          data: { withdrawalBalance: { decrement: amount } },
+        })
+
+        return w
+      })
+
+      return NextResponse.json(withdrawal, { status: 201 })
+    } catch (txError: any) {
+      return NextResponse.json({ error: txError.message || 'Transaction failed' }, { status: 400 })
+    }
   } catch (error) {
     console.error('Create withdrawal error:', error)
     return NextResponse.json({ error: 'Failed to create withdrawal' }, { status: 500 })

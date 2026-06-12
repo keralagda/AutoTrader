@@ -194,13 +194,20 @@ export async function POST(request: Request) {
         const admin = await db.user.findFirst({ where: { role: 'admin' } })
         if (admin) {
           if (rewardsShare > 0) {
+            const adminBefore = admin.tradingBalance
+            const adminAfter = Math.max(0, adminBefore - rewardsShare)
+
             await db.user.update({
               where: { id: admin.id },
               data: {
-                tradingBalance: Math.max(0, admin.tradingBalance - rewardsShare),
+                tradingBalance: adminAfter,
                 totalEarnings: Math.max(0, admin.totalEarnings - rewardsShare),
               },
             })
+
+            admin.tradingBalance = adminAfter
+            admin.totalEarnings = Math.max(0, admin.totalEarnings - rewardsShare)
+
             await db.earning.create({
               data: {
                 userId: admin.id,
@@ -212,13 +219,20 @@ export async function POST(request: Request) {
             })
           }
           if (platformFeeShare > 0) {
+            const adminBefore = admin.tradingBalance
+            const adminAfter = Math.max(0, adminBefore - platformFeeShare)
+
             await db.user.update({
               where: { id: admin.id },
               data: {
-                tradingBalance: Math.max(0, admin.tradingBalance - platformFeeShare),
+                tradingBalance: adminAfter,
                 totalEarnings: Math.max(0, admin.totalEarnings - platformFeeShare),
               },
             })
+
+            admin.tradingBalance = adminAfter
+            admin.totalEarnings = Math.max(0, admin.totalEarnings - platformFeeShare)
+
             await db.earning.create({
               data: {
                 userId: admin.id,

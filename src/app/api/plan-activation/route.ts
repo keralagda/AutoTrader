@@ -175,13 +175,19 @@ export async function POST(req: NextRequest) {
 
         for (const split of splitsToAdmin) {
           if (split.amount > 0) {
+            const adminBefore = admin.tradingBalance
+            const adminAfter = adminBefore + split.amount
+
             await db.user.update({
               where: { id: admin.id },
               data: {
-                tradingBalance: admin.tradingBalance + split.amount,
+                tradingBalance: adminAfter,
                 totalEarnings: admin.totalEarnings + split.amount,
               },
             })
+
+            admin.tradingBalance = adminAfter
+            admin.totalEarnings += split.amount
 
             await db.earning.create({
               data: {
