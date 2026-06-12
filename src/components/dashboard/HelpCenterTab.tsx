@@ -199,7 +199,7 @@ export function HelpCenterTab() {
                             <CheckCircle2 className="size-4 shrink-0" />
                             <div className="text-xs">
                               <p className="font-semibold">Assessment Completed ✓</p>
-                              <p className="opacity-80">You have earned 50 XP for this guide.</p>
+                              <p className="opacity-80">You have earned 50 NP for this guide.</p>
                             </div>
                           </div>
                         ) : activeQuizId === guide.id ? (
@@ -211,7 +211,7 @@ export function HelpCenterTab() {
                                 </div>
                                 <div className="space-y-1">
                                   <h5 className="font-bold text-sm text-emerald-400">Perfect Score!</h5>
-                                  <p className="text-xs text-muted-foreground">You completed the assessment and earned +50 XP!</p>
+                                  <p className="text-xs text-muted-foreground">You completed the assessment and earned +50 NP!</p>
                                 </div>
                                 <Button size="sm" onClick={() => { setActiveQuizId(null); setQuizSuccess(false); }} className="mt-2">
                                   Done
@@ -222,7 +222,7 @@ export function HelpCenterTab() {
                                 {/* Header / Progress */}
                                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
                                   <span>Question {currentQuestionIndex + 1} of {guide.quiz.length}</span>
-                                  <span className="font-medium text-primary">XP Reward: +50 XP</span>
+                                  <span className="font-medium text-primary">NP Reward: +50 NP</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mb-4">
                                   <div
@@ -343,7 +343,7 @@ export function HelpCenterTab() {
                             }}
                           >
                             <Sparkles className="size-3.5" />
-                            Take Assessment (+50 XP)
+                            Take Assessment (+50 NP)
                           </Button>
                         )}
                       </div>

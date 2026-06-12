@@ -564,7 +564,7 @@ export const DEFAULT_CHALLENGES = [
   // Daily Challenges
   {
     title: 'Daily Check-In',
-    description: 'Check in every day to earn XP and keep your streak alive. Consecutive days earn bonus XP!',
+    description: 'Check in every day to earn NP and keep your streak alive. Consecutive days earn bonus NP!',
     category: 'daily',
     challengeType: 'action',
     targetValue: 1,
@@ -582,7 +582,7 @@ export const DEFAULT_CHALLENGES = [
   },
   {
     title: 'Daily Depositor',
-    description: 'Make at least one deposit today to earn bonus XP and move up the leaderboard.',
+    description: 'Make at least one deposit today to earn bonus NP and move up the leaderboard.',
     category: 'daily',
     challengeType: 'target',
     targetValue: 1,
@@ -601,7 +601,7 @@ export const DEFAULT_CHALLENGES = [
   // Weekly Challenges
   {
     title: 'Weekly Warrior',
-    description: 'Complete 5 daily check-ins this week to earn a substantial XP bonus and USDC reward.',
+    description: 'Complete 5 daily check-ins this week to earn a substantial NP bonus and USDC reward.',
     category: 'weekly',
     challengeType: 'target',
     targetValue: 5,
@@ -840,7 +840,7 @@ export const DEFAULT_BADGES = [
     category: 'achievement',
     rarity: 'uncommon',
     xpRequired: 4000,
-    condition: 'Reach Level 5 (earn 4,000 XP)',
+    condition: 'Reach Level 5 (earn 4,000 NP)',
     colorTheme: 'amber',
   },
   {
@@ -920,7 +920,7 @@ export const DEFAULT_BADGES = [
     category: 'achievement',
     rarity: 'rare',
     xpRequired: 9000,
-    condition: 'Reach Level 10 (earn 9,000 XP)',
+    condition: 'Reach Level 10 (earn 9,000 NP)',
     colorTheme: 'amber',
   },
   {
@@ -930,7 +930,7 @@ export const DEFAULT_BADGES = [
     category: 'achievement',
     rarity: 'epic',
     xpRequired: 24000,
-    condition: 'Reach Level 25 (earn 24,000 XP)',
+    condition: 'Reach Level 25 (earn 24,000 NP)',
     colorTheme: 'amber',
   },
   {
@@ -940,7 +940,7 @@ export const DEFAULT_BADGES = [
     category: 'achievement',
     rarity: 'legendary',
     xpRequired: 49000,
-    condition: 'Reach Level 50 (earn 49,000 XP)',
+    condition: 'Reach Level 50 (earn 49,000 NP)',
     colorTheme: 'amber',
   },
   {

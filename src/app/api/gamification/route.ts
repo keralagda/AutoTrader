@@ -369,7 +369,7 @@ export async function POST(request: Request) {
         data: {
           userId,
           title: 'Assessment Completed',
-          message: `You completed the "${guideTitle}" assessment and earned 50 XP!`,
+          message: `You completed the "${guideTitle}" assessment and earned 50 NP!`,
           type: 'success',
         }
       })

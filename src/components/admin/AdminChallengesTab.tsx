@@ -422,7 +422,7 @@ export function AdminChallengesTab() {
                             </div>
                             <p className="text-xs text-muted-foreground truncate">{challenge.description}</p>
                             <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
-                              <span className="flex items-center gap-0.5"><Zap className="size-3 text-amber-400" /> {challenge.xpReward} XP</span>
+                              <span className="flex items-center gap-0.5"><Zap className="size-3 text-amber-400" /> {challenge.xpReward} NP</span>
                               {challenge.reward > 0 && <span className="flex items-center gap-0.5"><Star className="size-3 text-amber-400" /> ${challenge.reward}</span>}
                               <span className="flex items-center gap-0.5"><Users className="size-3" /> {challenge.participantCount} joined</span>
                             </div>
@@ -495,7 +495,7 @@ export function AdminChallengesTab() {
                             <p className="text-xs text-muted-foreground truncate">{badge.description}</p>
                             <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
                               <span>{badge.earnedByCount} earned</span>
-                              {badge.xpRequired > 0 && <span>{badge.xpRequired} XP auto-unlock</span>}
+                              {badge.xpRequired > 0 && <span>{badge.xpRequired} NP auto-unlock</span>}
                             </div>
                           </div>
                         </div>
@@ -650,7 +650,7 @@ export function AdminChallengesTab() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>XP Reward</Label>
+                  <Label>NP Reward</Label>
                   <Input
                     type="number"
                     placeholder="0"
@@ -848,7 +848,7 @@ export function AdminChallengesTab() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>XP Required (0 = no auto-unlock)</Label>
+                <Label>NP Required (0 = no auto-unlock)</Label>
                 <Input
                   type="number"
                   placeholder="0"
