@@ -116,6 +116,8 @@ export function InvestmentTab() {
   const activatedPlans = plans.filter(p => activatedPlanIds.includes(p.id))
   const parsedAmount = parseFloat(amount) || 0
   const tradingBalance = user?.tradingBalance || 0
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+  const isVerificationRequired = user?.isEmailVerified === false && !isAdmin
 
   const loadData = useCallback(async () => {
     if (!user?.id) return
@@ -143,7 +145,7 @@ export function InvestmentTab() {
 
   const handleActivatePlan = async (planId: string) => {
     if (!user?.id) return
-    if (user?.isEmailVerified === false) {
+    if (isVerificationRequired) {
       toast({ title: 'Email verification required', description: 'Please verify your email address first.', variant: 'destructive' })
       return
     }
@@ -206,7 +208,7 @@ export function InvestmentTab() {
   })()
 
   const validationError = (() => {
-    if (user?.isEmailVerified === false) return 'Email verification is required to invest.'
+    if (isVerificationRequired) return 'Email verification is required to invest.'
     if (!selectedPlan || parsedAmount <= 0) return null
     if (user?.role !== 'admin') {
       if (parsedAmount < selectedPlan.minDeposit) return `Minimum is $${selectedPlan.minDeposit}`
@@ -218,7 +220,7 @@ export function InvestmentTab() {
 
   const handleInvest = async () => {
     if (!user?.id || !selectedPlanId || parsedAmount <= 0) return
-    if (user?.isEmailVerified === false) {
+    if (isVerificationRequired) {
       toast({ title: 'Email verification required', description: 'Please verify your email address first.', variant: 'destructive' })
       return
     }
@@ -343,7 +345,7 @@ export function InvestmentTab() {
   }
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {user?.isEmailVerified === false && (
+      {isVerificationRequired && (
         <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4 flex items-start gap-3">
           <span className="text-amber-500 text-lg">⚠️</span>
           <div>
@@ -364,14 +366,14 @@ export function InvestmentTab() {
             <span className="font-bold text-emerald-400">${tradingBalance.toFixed(2)}</span>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setActivateModalOpen(true)} className="gap-1.5" disabled={user?.isEmailVerified === false}>
+            <Button variant="outline" onClick={() => setActivateModalOpen(true)} className="gap-1.5" disabled={isVerificationRequired}>
               <Zap className="size-4" />
               Activate Plan
             </Button>
             <Button
               onClick={() => setInvestModalOpen(true)}
               className="gap-1.5"
-              disabled={user?.isEmailVerified === false || activatedPlanIds.length === 0}
+              disabled={isVerificationRequired || activatedPlanIds.length === 0}
               title={activatedPlanIds.length === 0 ? 'Activate a plan first' : ''}
             >
               <Plus className="size-4" />
@@ -668,7 +670,7 @@ export function InvestmentTab() {
                     size="sm"
                     className="w-full mt-3 gap-1.5 bg-amber-500 hover:bg-amber-600 text-black"
                     onClick={() => handleActivatePlan(plan.id)}
-                    disabled={activating || (user?.tradingBalance || 0) < plan.entryFee || user?.isEmailVerified === false}
+                    disabled={activating || (user?.tradingBalance || 0) < plan.entryFee || isVerificationRequired}
                   >
                     {activating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
                     {(user?.tradingBalance || 0) < plan.entryFee ? `Need $${plan.entryFee}` : `Activate for $${plan.entryFee}`}

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     // Email verification check
-    if (!user.isEmailVerified) {
+    if (!user.isEmailVerified && user.role !== 'admin' && user.role !== 'super_admin') {
       return NextResponse.json({ error: 'Email verification is required to initiate deposits.' }, { status: 403 })
     }
 

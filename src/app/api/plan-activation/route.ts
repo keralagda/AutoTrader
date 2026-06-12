@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
     // Email verification check
-    if (!user.isEmailVerified) {
+    if (!user.isEmailVerified && user.role !== 'admin' && user.role !== 'super_admin') {
       return NextResponse.json({ error: 'Email verification is required to activate plans.' }, { status: 403 })
     }
 

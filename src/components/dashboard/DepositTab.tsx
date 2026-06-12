@@ -58,10 +58,12 @@ export function DepositTab() {
   const parsedAmount = parseFloat(amount) || 0
   const tradingBalance = user?.tradingBalance || 0
   const withdrawalBalance = user?.withdrawalBalance || 0
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+  const isVerificationRequired = user?.isEmailVerified === false && !isAdmin
 
   const fetchGateways = useCallback(async () => {
     try {
-      const res = await fetch('/api/payment-gateways')
+      const res = await fetch('/api/payment-gateways?t=' + Date.now(), { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         setGateways(data)
@@ -186,7 +188,7 @@ export function DepositTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {user?.isEmailVerified === false && (
+          {isVerificationRequired && (
             <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex items-start gap-2.5">
               <span className="text-amber-500 text-sm">⚠️</span>
               <div className="text-xs">
@@ -206,12 +208,12 @@ export function DepositTab() {
                   <button
                     key={gw.id}
                     onClick={() => setPaymentMethod(gw.id)}
-                    disabled={user?.isEmailVerified === false}
+                    disabled={isVerificationRequired}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${
                       isSelected
                         ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                         : 'border-border/50 text-muted-foreground hover:border-border'
-                    } ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    } ${isVerificationRequired ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {gw.type === 'manual' ? (
                       <CreditCard className="size-4" />
@@ -225,22 +227,22 @@ export function DepositTab() {
                 <>
                   <button
                     onClick={() => setPaymentMethod('metamask')}
-                    disabled={user?.isEmailVerified === false}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'metamask' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'} ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    disabled={isVerificationRequired}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'metamask' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'} ${isVerificationRequired ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Bitcoin className="size-4" /> MetaMask
                   </button>
                   <button
                     onClick={() => setPaymentMethod('coinpayments')}
-                    disabled={user?.isEmailVerified === false}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'coinpayments' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'} ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    disabled={isVerificationRequired}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'coinpayments' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'} ${isVerificationRequired ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Bitcoin className="size-4" /> CoinPayments
                   </button>
                   <button
                     onClick={() => setPaymentMethod('nowpayments')}
-                    disabled={user?.isEmailVerified === false}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'nowpayments' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'} ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    disabled={isVerificationRequired}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all ${paymentMethod === 'nowpayments' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'border-border/50 text-muted-foreground'} ${isVerificationRequired ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Bitcoin className="size-4" /> NOWPayments
                   </button>
@@ -286,7 +288,7 @@ export function DepositTab() {
                   <code className="flex-1 text-xs font-mono bg-background/50 rounded px-2 py-1.5 truncate" dir="ltr">
                     {selectedGateway.address}
                   </code>
-                  <Button variant="outline" size="icon" className="shrink-0 size-8" onClick={handleCopyAddress} disabled={user?.isEmailVerified === false}>
+                  <Button variant="outline" size="icon" className="shrink-0 size-8" onClick={handleCopyAddress} disabled={isVerificationRequired}>
                     {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
                   </Button>
                 </div>
@@ -330,7 +332,7 @@ export function DepositTab() {
                 className="pl-9"
                 min="0"
                 step="0.01"
-                disabled={user?.isEmailVerified === false}
+                disabled={isVerificationRequired}
               />
             </div>
             <div className="flex gap-2">
@@ -341,7 +343,7 @@ export function DepositTab() {
                   size="sm"
                   className="flex-1 text-xs"
                   onClick={() => setAmount(val.toString())}
-                  disabled={user?.isEmailVerified === false}
+                  disabled={isVerificationRequired}
                 >
                   ${val}
                 </Button>
@@ -359,7 +361,7 @@ export function DepositTab() {
                 onChange={e => setTxHash(e.target.value)}
                 placeholder="0x... or UTR number or payment reference"
                 className="font-mono text-xs"
-                disabled={user?.isEmailVerified === false}
+                disabled={isVerificationRequired}
               />
             </div>
             <div className="space-y-2">
@@ -371,14 +373,14 @@ export function DepositTab() {
                     <img src={proofUrl} alt="Proof" className="w-full max-h-48 object-contain bg-muted/20" />
                     <button
                       onClick={() => setProofUrl('')}
-                      disabled={user?.isEmailVerified === false}
+                      disabled={isVerificationRequired}
                       className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs hover:bg-black/80"
                     >
                       ✕
                     </button>
                   </div>
                 ) : (
-                  <label className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-dashed border-border/50 hover:border-primary/30 cursor-pointer transition-colors bg-muted/10 ${user?.isEmailVerified === false ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <label className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-dashed border-border/50 hover:border-primary/30 cursor-pointer transition-colors bg-muted/10 ${isVerificationRequired ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     <svg className="h-8 w-8 text-muted-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                     </svg>
@@ -388,7 +390,7 @@ export function DepositTab() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      disabled={user?.isEmailVerified === false}
+                      disabled={isVerificationRequired}
                       onChange={async (e) => {
                         const file = e.target.files?.[0]
                         if (!file) return
@@ -417,7 +419,7 @@ export function DepositTab() {
                   onChange={e => setProofUrl(e.target.value)}
                   placeholder="https://... image URL"
                   className="text-xs h-8"
-                  disabled={user?.isEmailVerified === false}
+                  disabled={isVerificationRequired}
                 />
               </div>
             </div>
@@ -441,7 +443,7 @@ export function DepositTab() {
           <Button
             className="w-full"
             onClick={handleDeposit}
-            disabled={submitting || parsedAmount <= 0 || user?.isEmailVerified === false}
+            disabled={submitting || parsedAmount <= 0 || isVerificationRequired}
           >
             {submitting ? (
               <><Loader2 className="size-4 animate-spin mr-2" /> Processing...</>
@@ -461,7 +463,7 @@ export function DepositTab() {
               size="sm"
               onClick={() => setBankTransferOpen(true)}
               className="gap-2"
-              disabled={user?.isEmailVerified === false}
+              disabled={isVerificationRequired}
             >
               <Landmark className="size-3.5" />
               EU/US Wire Transfer
