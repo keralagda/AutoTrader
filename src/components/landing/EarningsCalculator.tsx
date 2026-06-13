@@ -26,7 +26,7 @@ interface PlanData {
 }
 
 const FALLBACK_PLANS: PlanData[] = [
-  { id: '1', name: 'Starter', minDeposit: 100, maxDeposit: 1000, dailyEarningPercent: 6, maxEarningLimit: 1000, maxEarningMultiplier: 2.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
+  { id: '1', name: 'Starter', minDeposit: 50, maxDeposit: 1000, dailyEarningPercent: 6, maxEarningLimit: 1000, maxEarningMultiplier: 2.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
   { id: '2', name: 'Silver', minDeposit: 500, maxDeposit: 5000, dailyEarningPercent: 8, maxEarningLimit: 2500, maxEarningMultiplier: 2.5, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
   { id: '3', name: 'Gold', minDeposit: 1000, maxDeposit: 10000, dailyEarningPercent: 10, maxEarningLimit: 5000, maxEarningMultiplier: 3.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
   { id: '4', name: 'Platinum', minDeposit: 5000, maxDeposit: 50000, dailyEarningPercent: 15, maxEarningLimit: 25000, maxEarningMultiplier: 4.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },

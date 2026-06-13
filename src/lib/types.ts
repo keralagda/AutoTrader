@@ -336,7 +336,7 @@ export const DEFAULT_PLANS = [
     name: 'Starter',
     description: 'Perfect for beginners looking to start their trading journey with steady, reliable returns.',
     entryFee: 25,
-    minDeposit: 100,
+    minDeposit: 50,
     maxDeposit: 1000,
     dailyEarningPercent: 6,
     maxEarningLimit: 1000,
