@@ -180,8 +180,8 @@ export async function POST() {
       })
     }
 
-    // Sync totalDeposited for all users with the sum of their confirmed payments
-    const allUsers = await db.user.findMany({ select: { id: true } })
+    // Sync totalDeposited for all real users with the sum of their confirmed payments
+    const allUsers = await db.user.findMany({ where: { isFake: false }, select: { id: true } })
     for (const u of allUsers) {
       const confirmedPayments = await db.payment.aggregate({
         where: { userId: u.id, status: 'confirmed' },
