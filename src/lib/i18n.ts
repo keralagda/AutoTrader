@@ -45,6 +45,7 @@ type TranslationKeys = {
   'nav.about': string
   'nav.calculator': string
   'nav.revenue': string
+  'nav.leaderboard': string
   'nav.login': string
   'nav.register': string
   'hero.title': string
@@ -85,7 +86,7 @@ type TranslationKeys = {
 
 const translations: Record<Locale, TranslationKeys> = {
   en: {
-    'nav.home': 'Home', 'nav.plans': 'Plans', 'nav.about': 'About', 'nav.calculator': 'Calculator', 'nav.revenue': 'Revenue', 'nav.login': 'Login', 'nav.register': 'Register',
+    'nav.home': 'Home', 'nav.plans': 'Plans', 'nav.about': 'About', 'nav.calculator': 'Calculator', 'nav.revenue': 'Revenue', 'nav.leaderboard': 'Leaderboard', 'nav.login': 'Login', 'nav.register': 'Register',
     'hero.title': 'The Future of Crypto Investing', 'hero.subtitle': 'AI-powered trading algorithms delivering consistent daily returns. Join thousands of investors earning passively.', 'hero.cta': 'Start Earning Now', 'hero.ctaSecondary': 'View Plans',
     'dashboard.welcome': 'Welcome back', 'dashboard.overview': 'Dashboard', 'dashboard.deposit': 'Deposit', 'dashboard.withdraw': 'Withdraw', 'dashboard.earnings': 'Earnings', 'dashboard.team': 'Team', 'dashboard.security': 'Security', 'dashboard.invest': 'Invest',
     'common.loading': 'Loading...', 'common.submit': 'Submit', 'common.cancel': 'Cancel', 'common.save': 'Save', 'common.confirm': 'Confirm', 'common.success': 'Success', 'common.error': 'Error', 'common.amount': 'Amount', 'common.status': 'Status',
@@ -94,16 +95,16 @@ const translations: Record<Locale, TranslationKeys> = {
     'footer.rights': 'All rights reserved.', 'footer.powered': 'Powered by BNFX Protocol',
   },
   ar: {
-    'nav.home': 'الرئيسية', 'nav.plans': 'الخطط', 'nav.about': 'حول', 'nav.calculator': 'الحاسبة', 'nav.revenue': 'الإيرادات', 'nav.login': 'تسجيل الدخول', 'nav.register': 'إنشاء حساب',
+    'nav.home': 'الرئيسية', 'nav.plans': 'الخطط', 'nav.about': 'حول', 'nav.calculator': 'الحاسبة', 'nav.revenue': 'الإيرادات', 'nav.leaderboard': 'المتصدرين', 'nav.login': 'تسجيل الدخول', 'nav.register': 'إنشاء حساب',
     'hero.title': 'مستقبل الاستثمار في العملات الرقمية', 'hero.subtitle': 'خوارزميات تداول مدعومة بالذكاء الاصطناعي تقدم عوائد يومية ثابتة. انضم إلى آلاف المستثمرين.', 'hero.cta': 'ابدأ الربح الآن', 'hero.ctaSecondary': 'عرض الخطط',
     'dashboard.welcome': 'مرحباً بعودتك', 'dashboard.overview': 'لوحة التحكم', 'dashboard.deposit': 'إيداع', 'dashboard.withdraw': 'سحب', 'dashboard.earnings': 'الأرباح', 'dashboard.team': 'الفريق', 'dashboard.security': 'الأمان', 'dashboard.invest': 'استثمار',
     'common.loading': 'جاري التحميل...', 'common.submit': 'إرسال', 'common.cancel': 'إلغاء', 'common.save': 'حفظ', 'common.confirm': 'تأكيد', 'common.success': 'نجاح', 'common.error': 'خطأ', 'common.amount': 'المبلغ', 'common.status': 'الحالة',
-    'auth.login': 'تسجيل الدخول', 'auth.register': 'إنشاء حساب', 'auth.email': 'البريد الإلكتروني', 'auth.password': 'كلمة المرور', 'auth.name': 'الاسم الكامل', 'auth.referralCode': 'رمز الإحالة (اختياري)', 'auth.forgotPassword': 'نسيت كلمة المرور؟',
+    'auth.login': 'تسجيل الدخول', 'auth.register': 'إنشاء حساب', 'auth.email': 'البرीड الإلكتروني', 'auth.password': 'كلمة المرور', 'auth.name': 'الاسم الكامل', 'auth.referralCode': 'رمز الإحالة (اختياري)', 'auth.forgotPassword': 'نسيت كلمة المرور؟',
     'plans.title': 'خطط الاستثمار', 'plans.subtitle': 'اختر الخطة المناسبة لأهدافك', 'plans.invest': 'استثمر الآن', 'plans.daily': 'العائد اليومي',
     'footer.rights': 'جميع الحقوق محفوظة.', 'footer.powered': 'مدعوم من بروتوكول BNFX',
   },
   fr: {
-    'nav.home': 'Accueil', 'nav.plans': 'Plans', 'nav.about': 'À propos', 'nav.calculator': 'Calculateur', 'nav.revenue': 'Revenus', 'nav.login': 'Connexion', 'nav.register': "S'inscrire",
+    'nav.home': 'Accueil', 'nav.plans': 'Plans', 'nav.about': 'À propos', 'nav.calculator': 'Calculateur', 'nav.revenue': 'Revenus', 'nav.leaderboard': 'Classement', 'nav.login': 'Connexion', 'nav.register': "S'inscrire",
     'hero.title': "L'avenir de l'investissement crypto", 'hero.subtitle': "Algorithmes de trading IA offrant des rendements quotidiens constants. Rejoignez des milliers d'investisseurs.", 'hero.cta': 'Commencer à gagner', 'hero.ctaSecondary': 'Voir les plans',
     'dashboard.welcome': 'Bon retour', 'dashboard.overview': 'Tableau de bord', 'dashboard.deposit': 'Dépôt', 'dashboard.withdraw': 'Retrait', 'dashboard.earnings': 'Gains', 'dashboard.team': 'Équipe', 'dashboard.security': 'Sécurité', 'dashboard.invest': 'Investir',
     'common.loading': 'Chargement...', 'common.submit': 'Soumettre', 'common.cancel': 'Annuler', 'common.save': 'Enregistrer', 'common.confirm': 'Confirmer', 'common.success': 'Succès', 'common.error': 'Erreur', 'common.amount': 'Montant', 'common.status': 'Statut',
@@ -112,7 +113,7 @@ const translations: Record<Locale, TranslationKeys> = {
     'footer.rights': 'Tous droits réservés.', 'footer.powered': 'Propulsé par BNFX Protocol',
   },
   es: {
-    'nav.home': 'Inicio', 'nav.plans': 'Planes', 'nav.about': 'Acerca de', 'nav.calculator': 'Calculadora', 'nav.revenue': 'Ingresos', 'nav.login': 'Iniciar sesión', 'nav.register': 'Registrarse',
+    'nav.home': 'Inicio', 'nav.plans': 'Planes', 'nav.about': 'Acerca de', 'nav.calculator': 'Calculadora', 'nav.revenue': 'Ingresos', 'nav.leaderboard': 'Clasificación', 'nav.login': 'Iniciar sesión', 'nav.register': 'Registrarse',
     'hero.title': 'El futuro de la inversión cripto', 'hero.subtitle': 'Algoritmos de trading con IA que ofrecen rendimientos diarios consistentes. Únete a miles de inversores.', 'hero.cta': 'Empieza a ganar', 'hero.ctaSecondary': 'Ver planes',
     'dashboard.welcome': 'Bienvenido de vuelta', 'dashboard.overview': 'Panel', 'dashboard.deposit': 'Depositar', 'dashboard.withdraw': 'Retirar', 'dashboard.earnings': 'Ganancias', 'dashboard.team': 'Equipo', 'dashboard.security': 'Seguridad', 'dashboard.invest': 'Invertir',
     'common.loading': 'Cargando...', 'common.submit': 'Enviar', 'common.cancel': 'Cancelar', 'common.save': 'Guardar', 'common.confirm': 'Confirmar', 'common.success': 'Éxito', 'common.error': 'Error', 'common.amount': 'Monto', 'common.status': 'Estado',
@@ -121,16 +122,16 @@ const translations: Record<Locale, TranslationKeys> = {
     'footer.rights': 'Todos los derechos reservados.', 'footer.powered': 'Impulsado por BNFX Protocol',
   },
   pt: {
-    'nav.home': 'Início', 'nav.plans': 'Planos', 'nav.about': 'Sobre', 'nav.calculator': 'Calculadora', 'nav.revenue': 'Receita', 'nav.login': 'Entrar', 'nav.register': 'Cadastrar',
+    'nav.home': 'Início', 'nav.plans': 'Planos', 'nav.about': 'Sobre', 'nav.calculator': 'Calculadora', 'nav.revenue': 'Receita', 'nav.leaderboard': 'Líderes', 'nav.login': 'Entrar', 'nav.register': 'Cadastrar',
     'hero.title': 'O futuro do investimento cripto', 'hero.subtitle': 'Algoritmos de trading com IA entregando retornos diários consistentes. Junte-se a milhares de investidores.', 'hero.cta': 'Comece a ganhar', 'hero.ctaSecondary': 'Ver planos',
     'dashboard.welcome': 'Bem-vindo de volta', 'dashboard.overview': 'Painel', 'dashboard.deposit': 'Depósito', 'dashboard.withdraw': 'Saque', 'dashboard.earnings': 'Ganhos', 'dashboard.team': 'Equipe', 'dashboard.security': 'Segurança', 'dashboard.invest': 'Investir',
     'common.loading': 'Carregando...', 'common.submit': 'Enviar', 'common.cancel': 'Cancelar', 'common.save': 'Salvar', 'common.confirm': 'Confirmar', 'common.success': 'Sucesso', 'common.error': 'Erro', 'common.amount': 'Valor', 'common.status': 'Status',
     'auth.login': 'Entrar', 'auth.register': 'Criar conta', 'auth.email': 'Email', 'auth.password': 'Senha', 'auth.name': 'Nome completo', 'auth.referralCode': 'Código de indicação (Opcional)', 'auth.forgotPassword': 'Esqueceu a senha?',
-    'plans.title': 'Planos de investimento', 'plans.subtitle': 'Escolha um plano que se adapte aos seus objetivos', 'plans.invest': 'Investir agora', 'plans.daily': 'Retorno diário',
+    'plans.title': 'Planos de investimento', 'plans.subtitle': 'Escolha um plan que se adapte aos seus objetivos', 'plans.invest': 'Investir agora', 'plans.daily': 'Retorno diário',
     'footer.rights': 'Todos os direitos reservados.', 'footer.powered': 'Desenvolvido por BNFX Protocol',
   },
   ru: {
-    'nav.home': 'Главная', 'nav.plans': 'Планы', 'nav.about': 'О нас', 'nav.calculator': 'Калькулятор', 'nav.revenue': 'Доход', 'nav.login': 'Войти', 'nav.register': 'Регистрация',
+    'nav.home': 'Главная', 'nav.plans': 'Планы', 'nav.about': 'О нас', 'nav.calculator': 'Калькулятор', 'nav.revenue': 'Доход', 'nav.leaderboard': 'Рейтинг', 'nav.login': 'Войти', 'nav.register': 'Регистрация',
     'hero.title': 'Будущее крипто-инвестиций', 'hero.subtitle': 'Алгоритмы торговли на базе ИИ, обеспечивающие стабильный ежедневный доход. Присоединяйтесь к тысячам инвесторов.', 'hero.cta': 'Начать зарабатывать', 'hero.ctaSecondary': 'Смотреть планы',
     'dashboard.welcome': 'С возвращением', 'dashboard.overview': 'Панель', 'dashboard.deposit': 'Депозит', 'dashboard.withdraw': 'Вывод', 'dashboard.earnings': 'Доходы', 'dashboard.team': 'Команда', 'dashboard.security': 'Безопасность', 'dashboard.invest': 'Инвестировать',
     'common.loading': 'Загрузка...', 'common.submit': 'Отправить', 'common.cancel': 'Отмена', 'common.save': 'Сохранить', 'common.confirm': 'Подтвердить', 'common.success': 'Успех', 'common.error': 'Ошибка', 'common.amount': 'Сумма', 'common.status': 'Статус',
@@ -139,7 +140,7 @@ const translations: Record<Locale, TranslationKeys> = {
     'footer.rights': 'Все права защищены.', 'footer.powered': 'Работает на BNFX Protocol',
   },
   tr: {
-    'nav.home': 'Ana Sayfa', 'nav.plans': 'Planlar', 'nav.about': 'Hakkında', 'nav.calculator': 'Hesaplayıcı', 'nav.revenue': 'Gelir', 'nav.login': 'Giriş', 'nav.register': 'Kayıt Ol',
+    'nav.home': 'Ana Sayfa', 'nav.plans': 'Planlar', 'nav.about': 'Hakkında', 'nav.calculator': 'Hesaplayıcı', 'nav.revenue': 'Gelir', 'nav.leaderboard': 'Sıralama', 'nav.login': 'Giriş', 'nav.register': 'Kayıt Ol',
     'hero.title': 'Kripto Yatırımın Geleceği', 'hero.subtitle': 'Yapay zeka destekli ticaret algoritmaları ile tutarlı günlük getiriler. Binlerce yatırımcıya katılın.', 'hero.cta': 'Kazanmaya Başla', 'hero.ctaSecondary': 'Planları Gör',
     'dashboard.welcome': 'Tekrar hoş geldiniz', 'dashboard.overview': 'Panel', 'dashboard.deposit': 'Yatırım', 'dashboard.withdraw': 'Çekim', 'dashboard.earnings': 'Kazançlar', 'dashboard.team': 'Takım', 'dashboard.security': 'Güvenlik', 'dashboard.invest': 'Yatır',
     'common.loading': 'Yükleniyor...', 'common.submit': 'Gönder', 'common.cancel': 'İptal', 'common.save': 'Kaydet', 'common.confirm': 'Onayla', 'common.success': 'Başarılı', 'common.error': 'Hata', 'common.amount': 'Tutar', 'common.status': 'Durum',
@@ -148,7 +149,7 @@ const translations: Record<Locale, TranslationKeys> = {
     'footer.rights': 'Tüm hakları saklıdır.', 'footer.powered': 'BNFX Protocol ile çalışır',
   },
   hi: {
-    'nav.home': 'होम', 'nav.plans': 'प्लान', 'nav.about': 'हमारे बारे में', 'nav.calculator': 'कैलकुलेटर', 'nav.revenue': 'राजस्व', 'nav.login': 'लॉगिन', 'nav.register': 'रजिस्टर',
+    'nav.home': 'होम', 'nav.plans': 'प्लान', 'nav.about': 'हमारे बारे में', 'nav.calculator': 'कैलकुलेटर', 'nav.revenue': 'राजस्व', 'nav.leaderboard': 'लीडरबोर्ड', 'nav.login': 'लॉगिन', 'nav.register': 'रजिस्टर',
     'hero.title': 'क्रिप्टो निवेश का भविष्य', 'hero.subtitle': 'AI-संचालित ट्रेडिंग एल्गोरिदम जो लगातार दैनिक रिटर्न देते हैं। हजारों निवेशकों से जुड़ें।', 'hero.cta': 'अभी कमाना शुरू करें', 'hero.ctaSecondary': 'प्लान देखें',
     'dashboard.welcome': 'वापसी पर स्वागत', 'dashboard.overview': 'डैशबोर्ड', 'dashboard.deposit': 'जमा', 'dashboard.withdraw': 'निकासी', 'dashboard.earnings': 'कमाई', 'dashboard.team': 'टीम', 'dashboard.security': 'सुरक्षा', 'dashboard.invest': 'निवेश',
     'common.loading': 'लोड हो रहा है...', 'common.submit': 'जमा करें', 'common.cancel': 'रद्द', 'common.save': 'सहेजें', 'common.confirm': 'पुष्टि', 'common.success': 'सफल', 'common.error': 'त्रुटि', 'common.amount': 'राशि', 'common.status': 'स्थिति',
@@ -157,7 +158,7 @@ const translations: Record<Locale, TranslationKeys> = {
     'footer.rights': 'सर्वाधिकार सुरक्षित।', 'footer.powered': 'BNFX प्रोटोकॉल द्वारा संचालित',
   },
   id: {
-    'nav.home': 'Beranda', 'nav.plans': 'Paket', 'nav.about': 'Tentang', 'nav.calculator': 'Kalkulator', 'nav.revenue': 'Pendapatan', 'nav.login': 'Masuk', 'nav.register': 'Daftar',
+    'nav.home': 'Beranda', 'nav.plans': 'Paket', 'nav.about': 'Tentang', 'nav.calculator': 'Kalkulator', 'nav.revenue': 'Pendapatan', 'nav.leaderboard': 'Peringkat', 'nav.login': 'Masuk', 'nav.register': 'Daftar',
     'hero.title': 'Masa Depan Investasi Kripto', 'hero.subtitle': 'Algoritma trading bertenaga AI yang memberikan pengembalian harian konsisten. Bergabunglah dengan ribuan investor.', 'hero.cta': 'Mulai Menghasilkan', 'hero.ctaSecondary': 'Lihat Paket',
     'dashboard.welcome': 'Selamat datang kembali', 'dashboard.overview': 'Dasbor', 'dashboard.deposit': 'Deposit', 'dashboard.withdraw': 'Penarikan', 'dashboard.earnings': 'Penghasilan', 'dashboard.team': 'Tim', 'dashboard.security': 'Keamanan', 'dashboard.invest': 'Investasi',
     'common.loading': 'Memuat...', 'common.submit': 'Kirim', 'common.cancel': 'Batal', 'common.save': 'Simpan', 'common.confirm': 'Konfirmasi', 'common.success': 'Berhasil', 'common.error': 'Kesalahan', 'common.amount': 'Jumlah', 'common.status': 'Status',
@@ -166,7 +167,7 @@ const translations: Record<Locale, TranslationKeys> = {
     'footer.rights': 'Hak cipta dilindungi.', 'footer.powered': 'Didukung oleh BNFX Protocol',
   },
   zh: {
-    'nav.home': '首页', 'nav.plans': '计划', 'nav.about': '关于', 'nav.calculator': '计算器', 'nav.revenue': '收入', 'nav.login': '登录', 'nav.register': '注册',
+    'nav.home': '首页', 'nav.plans': '计划', 'nav.about': '关于', 'nav.calculator': '计算器', 'nav.revenue': '收入', 'nav.leaderboard': '排行榜', 'nav.login': '登录', 'nav.register': '注册',
     'hero.title': '加密投资的未来', 'hero.subtitle': 'AI驱动的交易算法，提供稳定的每日回报。加入数千名投资者的行列。', 'hero.cta': '立即开始赚钱', 'hero.ctaSecondary': '查看计划',
     'dashboard.welcome': '欢迎回来', 'dashboard.overview': '仪表板', 'dashboard.deposit': '存款', 'dashboard.withdraw': '提款', 'dashboard.earnings': '收益', 'dashboard.team': '团队', 'dashboard.security': '安全', 'dashboard.invest': '投资',
     'common.loading': '加载中...', 'common.submit': '提交', 'common.cancel': '取消', 'common.save': '保存', 'common.confirm': '确认', 'common.success': '成功', 'common.error': '错误', 'common.amount': '金额', 'common.status': '状态',

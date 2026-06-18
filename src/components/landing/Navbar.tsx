@@ -10,10 +10,11 @@ import { useLandingContent } from './LandingPage'
 import { t } from '@/lib/i18n'
 
 const navLinks = [
-  { key: 'nav.home' as const, href: '#home' },
-  { key: 'nav.plans' as const, href: '#plans' },
-  { key: 'nav.calculator' as const, href: '#calculator' },
-  { key: 'nav.revenue' as const, href: '#referral' },
+  { key: 'nav.home' as const, href: '#home', isExternal: false },
+  { key: 'nav.plans' as const, href: '#plans', isExternal: false },
+  { key: 'nav.calculator' as const, href: '#calculator', isExternal: false },
+  { key: 'nav.revenue' as const, href: '#referral', isExternal: false },
+  { key: 'nav.leaderboard' as const, href: '/leaderboard', isExternal: true },
 ]
 
 export default function Navbar() {
@@ -48,8 +49,12 @@ export default function Navbar() {
     setShowAuthModal(true)
   }
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = (href: string, isExternal?: boolean) => {
     setIsMobileOpen(false)
+    if (isExternal) {
+      window.location.href = href
+      return
+    }
     const el = document.querySelector(href)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' })
@@ -82,7 +87,7 @@ export default function Navbar() {
             {navLinks.map((link) => (
               <button
                 key={link.href}
-                onClick={() => handleNavClick(link.href)}
+                onClick={() => handleNavClick(link.href, link.isExternal)}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer"
               >
                 {t(link.key)}
@@ -144,7 +149,7 @@ export default function Navbar() {
               {navLinks.map((link) => (
                 <button
                   key={link.href}
-                  onClick={() => handleNavClick(link.href)}
+                  onClick={() => handleNavClick(link.href, link.isExternal)}
                   className="block w-full text-left text-sm text-muted-foreground hover:text-foreground py-2 transition-colors"
                 >
                   {t(link.key)}
