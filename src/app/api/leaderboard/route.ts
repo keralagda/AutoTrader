@@ -1,8 +1,36 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+function getDeterministicFakeWithdrawal(userId: string, totalEarnings: number): number {
+  let hash = 0
+  for (let i = 0; i < userId.length; i++) {
+    hash = userId.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  // Generate a stable ratio between 0.15 and 0.55 of earnings
+  const ratio = 0.15 + (Math.abs(hash) % 40) / 100
+  return Math.round((totalEarnings * ratio) * 100) / 100
+}
+
 export async function GET(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'all_time'
     const teamOnly = searchParams.get('teamOnly') === 'true'
@@ -40,19 +68,51 @@ export async function GET(request: Request) {
         id: true,
         name: true,
         totalEarnings: true,
+        totalDeposited: true,
+        isFake: true,
       },
       orderBy: { totalEarnings: 'desc' },
       take: 50,
     })
 
-    const leaderboard = users.map((user, index) => ({
-      id: user.id,
-      userId: user.id,
-      userName: user.name,
-      totalEarnings: user.totalEarnings,
-      rank: index + 1,
-      period,
-    }))
+    // Aggregate real withdrawals
+    const realUserIds = users.filter(u => !u.isFake).map(u => u.id)
+    const withdrawalSums = await db.withdrawal.groupBy({
+      by: ['userId'],
+      where: {
+        userId: { in: realUserIds },
+        status: { in: ['completed', 'approved'] }
+      },
+      _sum: {
+        amount: true
+      }
+    })
+
+    const withdrawalMap = new Map<string, number>()
+    withdrawalSums.forEach(w => {
+      withdrawalMap.set(w.userId, w._sum.amount || 0)
+    })
+
+    const leaderboard = users.map((user, index) => {
+      let totalWithdrawals = 0
+      if (user.isFake) {
+        totalWithdrawals = getDeterministicFakeWithdrawal(user.id, user.totalEarnings)
+      } else {
+        totalWithdrawals = withdrawalMap.get(user.id) || 0
+      }
+
+      return {
+        id: user.id,
+        userId: user.id,
+        userName: user.name,
+        totalEarnings: user.totalEarnings,
+        totalDeposited: user.totalDeposited,
+        totalWithdrawals,
+        isFake: user.isFake,
+        rank: index + 1,
+        period,
+      }
+    })
 
     return NextResponse.json(leaderboard)
   } catch (error) {
@@ -60,3 +120,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to get leaderboard' }, { status: 500 })
   }
 }
+

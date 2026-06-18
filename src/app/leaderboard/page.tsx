@@ -1,9 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Trophy, Medal, Crown, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
@@ -11,6 +20,8 @@ interface LeaderboardEntry {
   userId: string
   userName: string
   totalEarnings: number
+  totalDeposited: number
+  totalWithdrawals: number
   rank: number
 }
 
@@ -31,114 +42,196 @@ export default function PublicLeaderboardPage() {
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1: return <Crown className="size-5 text-amber-400" />
-      case 2: return <Medal className="size-5 text-slate-300" />
-      case 3: return <Medal className="size-5 text-amber-600" />
-      default: return <span className="text-sm font-bold text-muted-foreground w-5 text-center">#{rank}</span>
+      case 2: return <Medal className="size-5 text-slate-350" />
+      case 3: return <Medal className="size-5 text-amber-700" />
+      default: return <span className="text-xs font-mono font-bold text-muted-foreground w-5 text-center">#{rank}</span>
     }
   }
 
-  const getRankBg = (rank: number) => {
-    switch (rank) {
-      case 1: return 'bg-amber-500/10 border-amber-500/30'
-      case 2: return 'bg-slate-400/10 border-slate-400/30'
-      case 3: return 'bg-amber-700/10 border-amber-700/30'
-      default: return 'bg-card/50 border-border/50'
-    }
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
+      <header className="border-b border-border/40 bg-card/30 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-85 transition-opacity">
+            <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/20">
               <TrendingUp className="size-4 text-primary" />
             </div>
-            <span className="font-bold">BNFX</span>
+            <span className="font-bold tracking-tight text-lg">BNFX</span>
           </Link>
-          <Badge className="bg-primary/20 text-primary border-primary/30">
-            <Trophy className="size-3 mr-1" />
+          <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors">
+            <Trophy className="size-3.5 mr-1.5 text-amber-400" />
             Public Leaderboard
           </Badge>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">🏆 Leaderboard</h1>
-          <p className="text-muted-foreground">Top earners on BNFX platform</p>
+      <main className="max-w-5xl mx-auto px-4 py-10 space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-foreground/95 to-foreground/80 bg-clip-text">
+            🏆 Global Leaderboard
+          </h1>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+            Live rankings of top earners on the BNFX platform showcasing performance, deposits, and withdrawals.
+          </p>
         </div>
 
-        <Tabs value={period} onValueChange={setPeriod} className="w-full">
-          <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
-            <TabsTrigger value="all_time">Global</TabsTrigger>
-            <TabsTrigger value="monthly">Regional</TabsTrigger>
-            <TabsTrigger value="weekly">Local</TabsTrigger>
+        <Tabs value={period} onValueChange={setPeriod} className="w-full space-y-6">
+          <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto bg-muted/40 p-1 border border-border/30 rounded-xl">
+            <TabsTrigger value="all_time" className="rounded-lg text-xs font-semibold">Global</TabsTrigger>
+            <TabsTrigger value="monthly" className="rounded-lg text-xs font-semibold">Regional</TabsTrigger>
+            <TabsTrigger value="weekly" className="rounded-lg text-xs font-semibold">Local</TabsTrigger>
           </TabsList>
 
-          <TabsContent value={period} className="mt-6">
+          <TabsContent value={period} className="space-y-6 outline-none">
             {/* Top 3 Podium */}
             {entries.length >= 3 && (
-              <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto items-end pt-4 pb-2">
                 {/* 2nd Place */}
-                <div className="flex flex-col items-center pt-8">
-                  <div className="h-12 w-12 rounded-full bg-slate-400/20 border-2 border-slate-400/50 flex items-center justify-center mb-2">
-                    <span className="text-lg font-bold text-slate-300">2</span>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative">
+                    <Avatar className="size-16 ring-2 ring-slate-400/30 border border-background">
+                      <AvatarFallback className="bg-muted text-sm font-bold">
+                        {getInitials(entries[1]?.userName || '')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -top-2 -right-1 h-6 w-6 rounded-full bg-slate-400/20 border border-slate-400/40 flex items-center justify-center backdrop-blur-sm">
+                      <Medal className="size-3 text-slate-350" />
+                    </div>
                   </div>
-                  <p className="text-xs font-medium truncate max-w-full">{entries[1]?.userName}</p>
-                  <p className="text-xs text-slate-300 font-bold">${entries[1]?.totalEarnings.toFixed(2)}</p>
+                  <Card className="w-full border-border/50 bg-gradient-to-b from-slate-400/5 to-transparent backdrop-blur-sm">
+                    <CardContent className="p-3 text-center space-y-1">
+                      <p className="text-xs font-semibold truncate max-w-full text-foreground/90">{entries[1]?.userName}</p>
+                      <p className="text-sm font-bold text-foreground">${entries[1]?.totalEarnings.toFixed(2)}</p>
+                      <div className="text-[10px] text-muted-foreground space-y-0.5 border-t border-border/30 pt-1 mt-1">
+                        <div>Dep: <span className="font-medium text-foreground/80">${entries[1]?.totalDeposited.toFixed(0)}</span></div>
+                        <div>Wd: <span className="font-medium text-foreground/80">${entries[1]?.totalWithdrawals.toFixed(0)}</span></div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
+
                 {/* 1st Place */}
-                <div className="flex flex-col items-center">
-                  <Crown className="size-6 text-amber-400 mb-1" />
-                  <div className="h-14 w-14 rounded-full bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center mb-2">
-                    <span className="text-xl font-bold text-amber-400">1</span>
+                <div className="flex flex-col items-center gap-2 sm:scale-105">
+                  <div className="relative">
+                    <Avatar className="size-20 ring-4 ring-amber-500/20 border border-background">
+                      <AvatarFallback className="bg-muted text-base font-bold">
+                        {getInitials(entries[0]?.userName || '')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -top-3 -right-2 h-7 w-7 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center backdrop-blur-sm">
+                      <Crown className="size-4 text-amber-400" />
+                    </div>
                   </div>
-                  <p className="text-sm font-bold truncate max-w-full">{entries[0]?.userName}</p>
-                  <p className="text-sm text-amber-400 font-bold">${entries[0]?.totalEarnings.toFixed(2)}</p>
+                  <Card className="w-full border-amber-500/20 bg-gradient-to-b from-amber-500/10 to-transparent backdrop-blur-sm">
+                    <CardContent className="p-3.5 text-center space-y-1">
+                      <p className="text-sm font-bold truncate max-w-full text-foreground">{entries[0]?.userName}</p>
+                      <p className="text-base font-black text-amber-400">${entries[0]?.totalEarnings.toFixed(2)}</p>
+                      <div className="text-[10px] text-amber-400/70 space-y-0.5 border-t border-amber-500/20 pt-1 mt-1">
+                        <div>Dep: <span className="font-medium text-foreground">${entries[0]?.totalDeposited.toFixed(0)}</span></div>
+                        <div>Wd: <span className="font-medium text-foreground">${entries[0]?.totalWithdrawals.toFixed(0)}</span></div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
+
                 {/* 3rd Place */}
-                <div className="flex flex-col items-center pt-12">
-                  <div className="h-10 w-10 rounded-full bg-amber-700/20 border-2 border-amber-700/50 flex items-center justify-center mb-2">
-                    <span className="text-base font-bold text-amber-600">3</span>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative">
+                    <Avatar className="size-14 ring-2 ring-amber-750/30 border border-background">
+                      <AvatarFallback className="bg-muted text-xs font-bold">
+                        {getInitials(entries[2]?.userName || '')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -top-2 -right-1 h-5 w-5 rounded-full bg-amber-700/20 border border-amber-700/40 flex items-center justify-center backdrop-blur-sm">
+                      <Medal className="size-2.5 text-amber-600" />
+                    </div>
                   </div>
-                  <p className="text-xs font-medium truncate max-w-full">{entries[2]?.userName}</p>
-                  <p className="text-xs text-amber-600 font-bold">${entries[2]?.totalEarnings.toFixed(2)}</p>
+                  <Card className="w-full border-border/50 bg-gradient-to-b from-amber-700/5 to-transparent backdrop-blur-sm">
+                    <CardContent className="p-3 text-center space-y-1">
+                      <p className="text-xs font-semibold truncate max-w-full text-foreground/90">{entries[2]?.userName}</p>
+                      <p className="text-sm font-bold text-foreground">${entries[2]?.totalEarnings.toFixed(2)}</p>
+                      <div className="text-[10px] text-muted-foreground space-y-0.5 border-t border-border/30 pt-1 mt-1">
+                        <div>Dep: <span className="font-medium text-foreground/80">${entries[2]?.totalDeposited.toFixed(0)}</span></div>
+                        <div>Wd: <span className="font-medium text-foreground/80">${entries[2]?.totalWithdrawals.toFixed(0)}</span></div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             )}
 
-            {/* Full List */}
-            <div className="space-y-2">
-              {entries.map(entry => (
-                <Card key={entry.userId} className={`${getRankBg(entry.rank)} transition-colors`}>
-                  <CardContent className="p-3 flex items-center gap-3">
-                    <div className="w-8 flex justify-center">
-                      {getRankIcon(entry.rank)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{entry.userName}</p>
-                    </div>
-                    <p className="text-sm font-bold text-emerald-400">
-                      ${(entry.totalEarnings || 0).toFixed(2)}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* High-density Table List */}
+            <Card className="border-border/40 bg-card/30 backdrop-blur-md overflow-hidden rounded-2xl shadow-xl">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b border-border/40 bg-muted/10">
+                      <TableHead className="w-20 text-center font-bold text-xs uppercase tracking-wider text-muted-foreground">Rank</TableHead>
+                      <TableHead className="font-bold text-xs uppercase tracking-wider text-muted-foreground">User / Alias</TableHead>
+                      <TableHead className="text-right font-bold text-xs uppercase tracking-wider text-muted-foreground">Deposited</TableHead>
+                      <TableHead className="text-right font-bold text-xs uppercase tracking-wider text-muted-foreground">Withdrawals</TableHead>
+                      <TableHead className="text-right font-bold text-xs uppercase tracking-wider text-muted-foreground">Total Earnings</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {entries.map((entry) => (
+                      <TableRow
+                        key={entry.userId}
+                        className="border-b border-border/40 hover:bg-muted/15 transition-colors"
+                      >
+                        <TableCell className="text-center font-semibold">
+                          <div className="flex justify-center items-center">
+                            {getRankIcon(entry.rank)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="size-8 ring-1 ring-border/50">
+                              <AvatarFallback className="text-xs font-bold bg-muted/70 text-muted-foreground">
+                                {getInitials(entry.userName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-semibold text-sm text-foreground/90">
+                              {entry.userName}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-muted-foreground/80">
+                          ${entry.totalDeposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs text-muted-foreground/80">
+                          ${entry.totalWithdrawals.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-sm font-bold text-emerald-400">
+                          ${entry.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {entries.length === 0 && !loading && (
-                <Card className="bg-card/50 border-border/50">
-                  <CardContent className="p-8 text-center">
-                    <Trophy className="size-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">No leaderboard data yet</p>
-                  </CardContent>
-                </Card>
+                <div className="p-16 text-center space-y-2">
+                  <Trophy className="size-12 text-muted-foreground/40 mx-auto" />
+                  <p className="text-muted-foreground text-sm">No leaderboard data found for this period</p>
+                </div>
               )}
-            </div>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
     </div>
   )
 }
+
