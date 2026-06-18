@@ -140,6 +140,9 @@ export function AwwwardsLanding() {
             <a href="#referrals" className="hover:text-white transition-colors">
               [ Referral Network ]
             </a>
+            <a href="/leaderboard" className="hover:text-white transition-colors">
+              [ Leaderboard ]
+            </a>
           </div>
           <div className="flex items-center gap-3">
             <button
