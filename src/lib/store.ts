@@ -51,6 +51,14 @@ export interface UserData {
   usdcTronAddress?: string
   depositWallets?: string
   withdrawWallets?: string
+  binaryTreePosition?: string
+  binaryTreeParentId?: string | null
+  binaryTreeLeftChildId?: string | null
+  binaryTreeRightChildId?: string | null
+  binaryTreeLeftVolume?: number
+  binaryTreeRightVolume?: number
+  binaryTreeLeftVolumeCarryForward?: number
+  binaryTreeRightVolumeCarryForward?: number
 }
 
 export const useAppStore = create<AppState>((set) => ({

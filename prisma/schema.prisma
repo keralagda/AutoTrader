@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model TestModel3 {
+  id    String   @id @default(cuid())
+  key   String   @unique
+  value String
+}
+
 model User {
   id               String    @id @default(cuid())
   email            String    @unique
@@ -54,6 +60,7 @@ model User {
   p2pReceived         P2PTransfer[]    @relation("P2PReceived")
   loginHistory        LoginHistory[]
   transactionLogs     TransactionLog[]
+  binaryTreeAuditLogs BinaryTreeAuditLog[] @relation("BinaryTreeAuditLogs")
 
   telegramChatId        String?   @unique
   telegramVerificationCode String?
@@ -67,6 +74,15 @@ model User {
   customPromoLogo       String?
   depositWallets        String?
   withdrawWallets       String?
+
+  binaryTreePosition               String    @default("")
+  binaryTreeParentId               String?
+  binaryTreeLeftChildId            String?
+  binaryTreeRightChildId           String?
+  binaryTreeLeftVolume             Float     @default(0)
+  binaryTreeRightVolume            Float     @default(0)
+  binaryTreeLeftVolumeCarryForward Float     @default(0)
+  binaryTreeRightVolumeCarryForward Float    @default(0)
 
   affiliateApplications AffiliateApplication[]
 }
@@ -136,6 +152,26 @@ model Plan {
   dailyEarningCapPercent     Float    @default(0.0)
   cappingAppliesTo           String   @default("all")
   registrationReferralLevels Int      @default(7)
+
+  // Binary MLM Configuration
+  isBinaryMlmEnabled          Boolean   @default(false)
+  binaryPairingBonusPercent   Float     @default(10.0)
+  binaryPairingBonusType      String    @default("percent")
+  binaryPairingBonusFixed     Float     @default(0.0)
+  binaryMatchingType          String    @default("weaker_leg")
+  binaryDailyPairingCap       Int       @default(0)
+  binaryWeeklyPairingCap      Int       @default(0)
+  binaryCarryForward          Boolean   @default(true)
+  binarySpilloverPlacement    String    @default("balanced")
+  binaryDepthLimit            Int       @default(0)
+  binaryFlushBonusEnabled     Boolean   @default(false)
+  binaryFlushBonusPercent     Float     @default(5.0)
+  binaryFlushBonusThreshold   Int       @default(200)
+  binaryCycleEnabled          Boolean   @default(false)
+  binaryCycleRatio            String    @default("1:1")
+  binaryCycleBonusPercent     Float     @default(5.0)
+  binaryCycleBonusType        String    @default("percent")
+  binaryCycleBonusFixed       Float     @default(0.0)
 
   // Advanced Profit & Loss Configuration
   minLossPercent             Float    @default(0.1)
@@ -706,4 +742,21 @@ model PromoBanner {
   size        String   // e.g. "728x90", "300x250", "1080x1080"
   downloadUrl String
   createdAt   DateTime @default(now())
+}
+
+model BinaryTreeAuditLog {
+  id            String   @id @default(cuid())
+  userId        String
+  actionType    String   // PLACE, VOLUME_UPDATE, BALANCE_ADJUST, etc.
+  actionDetails Json     // Specifics of what changed
+  performedBy   String?  // Admin/System/User
+  performedAt   DateTime @default(now())
+
+  user          User     @relation("BinaryTreeAuditLogs", fields: [userId], references: [id])
+}
+
+model TestModel2 {
+  id    String   @id @default(cuid())
+  key   String   @unique
+  value String
 }

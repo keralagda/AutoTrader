@@ -69,6 +69,13 @@ export async function POST(request: Request) {
 
     // Signup referral bonus: notify referrer
     if (referredById) {
+      try {
+        const { placeUserInBinaryTree } = await import('@/lib/binary-tree')
+        await placeUserInBinaryTree(user.id, referredById)
+      } catch (err) {
+        console.error('Failed to place user in binary tree:', err)
+      }
+
       const referrer = await db.user.findUnique({ where: { id: referredById } })
       if (referrer) {
         // Notify referrer about new team member

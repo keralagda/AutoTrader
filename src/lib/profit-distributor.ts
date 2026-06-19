@@ -28,6 +28,7 @@ export async function runProfitDistribution() {
   let credited = 0
   let completed = 0
   let capitalReturned = 0
+  const processedUsers = new Set<string>()
 
   // Load global logic builder config
   const globalSetting = await db.setting.findUnique({ where: { key: 'logic_builder_config' } })
@@ -536,7 +537,18 @@ export async function runProfitDistribution() {
       }
     }
 
-    // Process Insurance reserve vault contribution
+    // Distribute binary MLM pairing bonuses
+    if (plan.isBinaryMlmEnabled && !processedUsers.has(user.id)) {
+      processedUsers.add(user.id)
+      try {
+        const { distributeBinaryPairingBonusesForUser } = await import('./binary-tree')
+        await distributeBinaryPairingBonusesForUser(user.id, plan, now)
+      } catch (err) {
+        console.error(`Failed to distribute binary pairing bonus for user ${user.id}:`, err)
+      }
+    }
+
+  // Process Insurance reserve vault contribution
     if (insuranceShare > 0) {
       await db.planInsuranceVault.upsert({
         where: { planId: plan.id },

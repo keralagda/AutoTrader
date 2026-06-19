@@ -220,7 +220,7 @@ export function EarningsTab() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <SummaryCard
           title="Total Earnings"
           amount={summary.total}
@@ -248,6 +248,13 @@ export function EarningsTab() {
           icon={Zap}
           change={5.7}
           color="bg-primary/20 text-primary"
+        />
+        <SummaryCard
+          title="Bonus Income"
+          amount={summary.bonus}
+          icon={Zap}
+          change={3.2}
+          color="bg-violet-500/20 text-violet-400"
         />
       </div>
 

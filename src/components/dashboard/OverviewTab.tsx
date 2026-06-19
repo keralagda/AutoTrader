@@ -21,6 +21,14 @@ interface ProfileData {
   investmentAmount: number
   directCount: number
   totalTeam: number
+  binaryTreePosition: string
+  binaryTreeParentId: string | null
+  binaryTreeLeftChildId: string | null
+  binaryTreeRightChildId: string | null
+  binaryTreeLeftVolume: number
+  binaryTreeRightVolume: number
+  binaryTreeLeftVolumeCarryForward: number
+  binaryTreeRightVolumeCarryForward: number
 }
 
 export function OverviewTab() {
@@ -102,6 +110,42 @@ export function OverviewTab() {
       icon: Wallet,
       color: 'text-amber-400',
       bgColor: 'bg-amber-500/10',
+    },
+    // Binary MLM Stats
+    {
+      label: 'Binary Tree Position',
+      value: profile?.binaryTreePosition || 'Not Set',
+      icon: '🌳',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50/10',
+    },
+    {
+      label: 'Left Volume',
+      value: `$${(profile?.binaryTreeLeftVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      icon: '⬅️',
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50/10',
+    },
+    {
+      label: 'Right Volume',
+      value: `$${(profile?.binaryTreeRightVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      icon: '➡️',
+      color: 'text-red-600',
+      bgColor: 'bg-red-50/10',
+    },
+    {
+      label: 'Left Carry Forward',
+      value: `$${(profile?.binaryTreeLeftVolumeCarryForward || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      icon: '↶',
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50/10',
+    },
+    {
+      label: 'Right Carry Forward',
+      value: `$${(profile?.binaryTreeRightVolumeCarryForward || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      icon: '↷',
+      color: 'text-pink-600',
+      bgColor: 'bg-pink-50/10',
     },
   ]
 

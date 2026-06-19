@@ -45,6 +45,14 @@ export async function GET(request: Request) {
         totalDeposited: true,
         createdAt: true,
         isEmailVerified: true,
+        binaryTreePosition: true,
+        binaryTreeParentId: true,
+        binaryTreeLeftChildId: true,
+        binaryTreeRightChildId: true,
+        binaryTreeLeftVolume: true,
+        binaryTreeRightVolume: true,
+        binaryTreeLeftVolumeCarryForward: true,
+        binaryTreeRightVolumeCarryForward: true,
       },
     })
 

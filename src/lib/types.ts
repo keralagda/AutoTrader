@@ -81,6 +81,26 @@ export interface PlanType {
   isActive: boolean
   sortOrder: number
   referralRules?: any[]
+
+  // Binary MLM Configuration
+  isBinaryMlmEnabled?: boolean
+  binaryPairingBonusPercent?: number
+  binaryPairingBonusType?: 'percent' | 'fixed'
+  binaryPairingBonusFixed?: number
+  binaryMatchingType?: 'weaker_leg' | 'both_legs' | 'stronger_leg'
+  binaryDailyPairingCap?: number
+  binaryWeeklyPairingCap?: number
+  binaryCarryForward?: boolean
+  binarySpilloverPlacement?: 'left' | 'right' | 'balanced' | 'cycle_fill'
+  binaryDepthLimit?: number
+  binaryFlushBonusEnabled?: boolean
+  binaryFlushBonusPercent?: number
+  binaryFlushBonusThreshold?: number
+  binaryCycleEnabled?: boolean
+  binaryCycleRatio?: string
+  binaryCycleBonusPercent?: number
+  binaryCycleBonusType?: 'percent' | 'fixed'
+  binaryCycleBonusFixed?: number
 }
 
 export interface DepositType {
@@ -1002,4 +1022,28 @@ export const SUBSCRIPTION_DISTRIBUTION = {
   referralAndProfit: 80,
   rewardsOffers: 15,
   platformFee: 5,
+}
+
+export interface UserType {
+  id: string
+  email: string
+  name: string
+  role: string
+  referralCode: string
+  referredById?: string | null
+  tradingBalance: number
+  withdrawalBalance: number
+  totalEarnings: number
+  totalDeposited: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+  binaryTreePosition?: string
+  binaryTreeParentId?: string | null
+  binaryTreeLeftChildId?: string | null
+  binaryTreeRightChildId?: string | null
+  binaryTreeLeftVolume?: number
+  binaryTreeRightVolume?: number
+  binaryTreeLeftVolumeCarryForward?: number
+  binaryTreeRightVolumeCarryForward?: number
 }
