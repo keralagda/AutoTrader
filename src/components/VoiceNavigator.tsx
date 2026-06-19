@@ -61,8 +61,8 @@ export function VoiceNavigator() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = voiceSettings.rate
-      utterance.pitch = voiceSettings.pitch
+      utterance.rate = voiceSettings?.rate ?? 1.0
+      utterance.pitch = voiceSettings?.pitch ?? 1.0
       window.speechSynthesis.speak(utterance)
     }
   }
@@ -76,7 +76,12 @@ export function VoiceNavigator() {
           const data = await res.json()
           if (data.success) {
             setCommands(data.commands)
-            setVoiceSettings(data.settings)
+            if (data.settings) {
+              setVoiceSettings(prev => ({
+                ...prev,
+                ...data.settings
+              }))
+            }
           }
         }
       } catch (err) {
@@ -142,7 +147,7 @@ export function VoiceNavigator() {
         return
       }
 
-      const triggerKey = voiceSettings.triggerKey || 'v'
+      const triggerKey = voiceSettings?.triggerKey || 'v'
       if (e.key.toLowerCase() === triggerKey.toLowerCase()) {
         e.preventDefault()
         toggleListening()
@@ -163,7 +168,7 @@ export function VoiceNavigator() {
       return
     }
 
-    if (!voiceSettings.enabled) {
+    if (!voiceSettings?.enabled) {
       toast({
         title: 'Voice navigation disabled',
         description: 'Voice navigation settings are currently toggled off by administrator.',
@@ -191,7 +196,7 @@ export function VoiceNavigator() {
     const cmd = commandText.toLowerCase().trim()
     console.log('Voice Command Received:', cmd)
 
-    if (!voiceSettings.enabled) {
+    if (!voiceSettings?.enabled) {
       speakFeedback('Voice navigation is currently disabled.')
       return
     }
@@ -284,7 +289,7 @@ export function VoiceNavigator() {
             <span className={`relative inline-flex rounded-full h-3.5 w-3.5 ${isListening ? 'bg-black' : 'bg-amber-500'}`}></span>
           </span>
           <span className="absolute right-14 bg-black/95 text-white/50 border border-white/[0.06] text-[9px] font-mono uppercase tracking-[0.2em] px-2 py-1 rounded shadow-md pointer-events-none select-none opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">
-            Press [{voiceSettings.triggerKey.toUpperCase()}]
+            Press [{(voiceSettings?.triggerKey || 'v').toUpperCase()}]
           </span>
         </MagneticButton>
       </div>

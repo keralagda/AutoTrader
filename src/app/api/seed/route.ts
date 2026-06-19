@@ -23,7 +23,7 @@ export async function POST() {
     }
 
     // Create admin user if not exists
-    const existingAdmin = await db.user.findFirst({ where: { role: 'admin' } })
+    const existingAdmin = await db.user.findUnique({ where: { email: 'admin@bnfx.com' } })
     if (!existingAdmin) {
       await db.user.create({
         data: {
@@ -37,10 +37,11 @@ export async function POST() {
         },
       })
     } else {
-      // Ensure admin always has unlimited funds
+      // Ensure admin always has admin role and unlimited funds
       await db.user.update({
         where: { id: existingAdmin.id },
         data: {
+          role: 'admin',
           tradingBalance: Math.max(existingAdmin.tradingBalance, 1000000),
           withdrawalBalance: Math.max(existingAdmin.withdrawalBalance, 1000000),
         },

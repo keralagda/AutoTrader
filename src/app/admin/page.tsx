@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Users, TrendingUp, Shield, Activity, Wallet, Bot, Settings, MessageSquare, Zap } from 'lucide-react'
 
 export default function AdminDashboard() {

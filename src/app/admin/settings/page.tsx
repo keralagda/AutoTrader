@@ -175,7 +175,7 @@ export default function SettingsPage() {
                 value={updatedSettings['binaryMlmFakeProfilesPlanId'] || ''}
                 onChange={(e) => handleSettingChange('binaryMlmFakeProfilesPlanId', e.target.value)}
                 className="mb-2"
-              )
+              />
               <p className="text-xs text-muted-foreground">
                 The plan ID that fake profiles will use for Binary MLM functionality
               </p>
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                 className="mb-2"
                 min="0"
                 step="0.01"
-              )
+              />
               <p className="text-xs text-muted-foreground">
                 The amount of deposit to create for each fake profile to activate Binary MLM participation
               </p>
