@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils'
 import {
   Plus, Save, Edit2, X, Trash2, ChevronDown, ChevronUp,
   DollarSign, Percent, Lock, Layers, BarChart3, Eye,
-  RefreshCw, Info, AlertTriangle, Clock, Zap, Sparkles, Settings, Package
+  RefreshCw, Info, AlertTriangle, Clock, Zap, Sparkles, Settings, Package, Network
 } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 
@@ -170,11 +170,7 @@ export function PlansTab() {
   const [simPrincipal, setSimPrincipal] = useState(1000)
   const [simYieldPercent, setSimYieldPercent] = useState(1.5)
 
-  // Binary MLM Config Section States
-  const [showShowBinaryPairingConfig, setShowShowBinaryPairingConfig] = useState(false)
-  const [showShowBinarySpilloverConfig, setShowShowBinarySpilloverConfig] = useState(false)
-  const [showShowBinaryFlushConfig, setShowShowBinaryFlushConfig] = useState(false)
-  const [showShowBinaryCycleConfig, setShowShowBinaryCycleConfig] = useState(false)
+
 
   const activeEditingPlan = plans.find(p => p.isEditing)
 
@@ -398,6 +394,7 @@ export function PlansTab() {
       dailyEarningCapPercent: 200.0,
       cappingAppliesTo: 'all',
       registrationReferralLevels: 7,
+      isBinaryMlmEnabled: false,
       minLossPercent: 0.1,
       maxLossPercent: 5.0,
       allowNegativeBalance: false,
@@ -995,6 +992,12 @@ function PlanEditor({
   const [showProfitOverrides, setShowProfitOverrides] = useState(false)
   const [showDepositOverrides, setShowDepositOverrides] = useState(false)
   const [showConditionalLogics, setShowConditionalLogics] = useState(false)
+
+  // Binary MLM Config Section States
+  const [showShowBinaryPairingConfig, setShowShowBinaryPairingConfig] = useState(false)
+  const [showShowBinarySpilloverConfig, setShowShowBinarySpilloverConfig] = useState(false)
+  const [showShowBinaryFlushConfig, setShowShowBinaryFlushConfig] = useState(false)
+  const [showShowBinaryCycleConfig, setShowShowBinaryCycleConfig] = useState(false)
 
   // Global Logic Builder variables configuration
   const [logicConfig, setLogicConfig] = useState<any>(null)
@@ -2841,6 +2844,11 @@ function PlanSummary({
             >
               {plan.isActive ? 'Active' : 'Inactive'}
             </Badge>
+            {plan.isBinaryMlmEnabled && (
+              <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30">
+                <Network className="h-3 w-3 mr-1" /> Binary MLM
+              </Badge>
+            )}
             {plan.stackingEnabled && (
               <Badge className="bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 border-violet-500/30">
                 <Layers className="h-3 w-3 mr-1" /> Stacking
@@ -2940,6 +2948,32 @@ function PlanSummary({
                 <p className="text-sm text-foreground">{plan.withdrawalRule || 'No lock-in period.'}</p>
               </div>
             </div>
+
+            {plan.isBinaryMlmEnabled && (
+              <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                <p className="text-xs font-medium text-emerald-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <Network className="h-3.5 w-3.5" /> Binary MLM Settings
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 bg-background/25 p-2.5 rounded border border-border/50">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block uppercase">Pairing Bonus</span>
+                    <span className="text-xs font-semibold text-foreground">{plan.binaryPairingBonusType === 'percent' ? `${plan.binaryPairingBonusPercent || 10}%` : `$${plan.binaryPairingBonusFixed || 0}`}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block uppercase">Matching Type</span>
+                    <span className="text-xs font-semibold text-foreground capitalize">{plan.binaryMatchingType?.replace('_', ' ') || 'Weaker Leg'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block uppercase">Spillover Placement</span>
+                    <span className="text-xs font-semibold text-foreground capitalize">{plan.binarySpilloverPlacement || 'Balanced'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block uppercase">Carry Forward</span>
+                    <span className="text-xs font-semibold text-foreground">{plan.binaryCarryForward !== false ? 'Yes' : 'No'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Distribution Bar (compact) */}
             <div>
