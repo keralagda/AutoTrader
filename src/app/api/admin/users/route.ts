@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { hashPassword } from '@/lib/auth'
 
 export async function GET(request: Request) {
   try {
@@ -364,3 +365,108 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
   }
 }
+
+// POST - Manually create a user with optional back-date and sponsor
+export async function POST(request: Request) {
+  try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
+    const { name, email, password, referredById, createdAt } = await request.json()
+
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 })
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+    }
+
+    const existing = await db.user.findUnique({ where: { email: email.trim().toLowerCase() } })
+    if (existing) {
+      return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
+    }
+
+    const hashedPassword = await hashPassword(password)
+    const userRefCode = `AT${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`
+
+    const userCreationDate = createdAt ? new Date(createdAt) : new Date()
+
+    const user = await db.user.create({
+      data: {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password: hashedPassword,
+        referralCode: userRefCode,
+        referredById: referredById || null,
+        isActive: true, // Directly activate admin-created users
+        tradingBalance: 0,
+        withdrawalBalance: 0,
+        totalEarnings: 0,
+        totalDeposited: 0,
+        isEmailVerified: true, // Skip verification for admin-created users
+        createdAt: userCreationDate,
+      },
+    })
+
+    // Binary tree placement if referred
+    if (referredById) {
+      try {
+        const { placeUserInBinaryTree } = await import('@/lib/binary-tree')
+        await placeUserInBinaryTree(user.id, referredById)
+      } catch (err) {
+        console.error('Failed to place user in binary tree during admin creation:', err)
+      }
+
+      const referrer = await db.user.findUnique({ where: { id: referredById } })
+      if (referrer) {
+        await db.notification.create({
+          data: {
+            userId: referrer.id,
+            title: 'New Team Member! 🎉',
+            message: `${user.name} has been placed in your network.`,
+            type: 'referral',
+            createdAt: userCreationDate,
+          },
+        })
+      }
+    }
+
+    // Log admin activity
+    await db.activityLog.create({
+      data: {
+        action: 'admin_create_user',
+        details: JSON.stringify({
+          userId: user.id,
+          email: user.email,
+          createdAt: userCreationDate.toISOString(),
+        }),
+      },
+    })
+
+    return NextResponse.json({ success: true, user })
+  } catch (error) {
+    console.error('Create user error:', error)
+    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
+  }
+}
+

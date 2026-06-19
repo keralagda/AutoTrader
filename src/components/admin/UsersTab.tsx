@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2, MonitorPlay, Pencil, KeyRound } from 'lucide-react'
+import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2, MonitorPlay, Pencil, KeyRound, UserPlus, Calendar } from 'lucide-react'
 import { UserDetailView } from './UserDetailView'
 
 interface UserRecord {
@@ -86,6 +86,17 @@ export function UsersTab() {
   // Password reset state
   const [resetPwUserId, setResetPwUserId] = useState<string | null>(null)
   const [resetPwValue, setResetPwValue] = useState('')
+
+  // Create user state
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    referredById: '',
+    createdAt: '',
+  })
+  const [createSaving, setCreateSaving] = useState(false)
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -178,6 +189,38 @@ export function UsersTab() {
       toast({ title: 'Network error', variant: 'destructive' })
     } finally {
       setEditSaving(false)
+    }
+  }
+
+  const handleCreateUser = async () => {
+    if (!createForm.name || !createForm.email || !createForm.password) {
+      toast({ title: 'Validation Error', description: 'Name, email, and password are required', variant: 'destructive' })
+      return
+    }
+    if (createForm.password.length < 8) {
+      toast({ title: 'Validation Error', description: 'Password must be at least 8 characters', variant: 'destructive' })
+      return
+    }
+    setCreateSaving(true)
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createForm),
+      })
+      if (res.ok) {
+        toast({ title: 'Success', description: 'User created successfully' })
+        setShowCreateModal(false)
+        setCreateForm({ name: '', email: '', password: '', referredById: '', createdAt: '' })
+        fetchUsers()
+      } else {
+        const data = await res.json()
+        toast({ title: 'Error', description: data.error || 'Failed to create user', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error', variant: 'destructive' })
+    } finally {
+      setCreateSaving(false)
     }
   }
 
@@ -319,7 +362,7 @@ export function UsersTab() {
                 className="bg-muted/50 border-border/50 pl-9"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap items-center sm:ml-auto">
               {(['all', 'active', 'inactive'] as const).map(status => (
                 <Button
                   key={status}
@@ -331,6 +374,17 @@ export function UsersTab() {
                   {status.charAt(0).toUpperCase() + status.slice(1)}
                 </Button>
               ))}
+              <Button
+                size="sm"
+                onClick={() => {
+                  setCreateForm({ name: '', email: '', password: '', referredById: '', createdAt: '' })
+                  setShowCreateModal(true)
+                }}
+                className="bg-primary hover:bg-primary/90 text-white flex items-center gap-1.5 sm:ml-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Add User
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -845,6 +899,87 @@ export function UsersTab() {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setResetPwUserId(null)}>Cancel</Button>
               <Button onClick={handleResetPassword} className="bg-orange-600 hover:bg-orange-700 text-white">Reset Password</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="bg-card border-border/50 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Create User Profile
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Full Name <span className="text-destructive">*</span></label>
+              <input 
+                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" 
+                value={createForm.name} 
+                onChange={e => setCreateForm({ ...createForm, name: e.target.value })} 
+                placeholder="e.g. John Doe"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Email Address <span className="text-destructive">*</span></label>
+              <input 
+                type="email"
+                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" 
+                value={createForm.email} 
+                onChange={e => setCreateForm({ ...createForm, email: e.target.value })} 
+                placeholder="e.g. john@example.com"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Password <span className="text-destructive">*</span></label>
+              <input 
+                type="password"
+                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" 
+                value={createForm.password} 
+                onChange={e => setCreateForm({ ...createForm, password: e.target.value })} 
+                placeholder="Minimum 8 characters"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium">Sponsor / Referrer (Optional)</label>
+              <select 
+                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" 
+                value={createForm.referredById} 
+                onChange={e => setCreateForm({ ...createForm, referredById: e.target.value })}
+              >
+                <option value="">No Sponsor</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                Registration Date (Back-Date Option)
+              </label>
+              <input 
+                type="datetime-local"
+                className="w-full h-9 rounded-md border border-border bg-background px-3 text-sm" 
+                value={createForm.createdAt} 
+                onChange={e => setCreateForm({ ...createForm, createdAt: e.target.value })} 
+                placeholder="Leave blank for current time"
+              />
+              <p className="text-[10px] text-muted-foreground">Specify a past date to setup profile with a back-dated registration time.</p>
+            </div>
+            <div className="flex justify-end gap-2 pt-3 border-t border-border/30">
+              <Button variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+              <Button onClick={handleCreateUser} disabled={createSaving} className="bg-primary hover:bg-primary/90 text-white">
+                {createSaving ? 'Creating...' : 'Create User'}
+              </Button>
             </div>
           </div>
         </DialogContent>
