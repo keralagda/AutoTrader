@@ -188,36 +188,80 @@ export async function placeUserInBinaryTree(newUserId: string, sponsorId: string
 
 /**
  * Updates the cumulative left/right volumes and carry forward volumes recursively upwards for all ancestors.
+ * Also increments the PV for the user, BV for the sponsor, and TV recursively for ancestors, then runs rank checks.
  */
 export async function updateBinaryTreeVolumes(userId: string, amount: number) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, referredById: true }
+  })
+  if (!user) return
+
+  // Find user's active plan with binary MLM enabled or fallback
+  const activeDeposits = await db.deposit.findMany({
+    where: { userId, status: { in: ['active', 'locked'] } },
+    include: { plan: true }
+  })
+  let plan = activeDeposits.map(d => d.plan).find(p => p.isBinaryMlmEnabled)
+  if (!plan) {
+    plan = await db.plan.findFirst({
+      where: { isBinaryMlmEnabled: true }
+    })
+  }
+
+  const pvRatio = plan?.binaryPvRatio ?? 1.0
+  const bvRatio = plan?.binaryBvRatio ?? 1.0
+  const tvRatio = plan?.binaryTvRatio ?? 1.0
+
+  const userIdsToUpgrade = new Set<string>()
+
+  // 1. Personal Volume increment
+  const pvIncrement = amount * pvRatio
+  if (pvIncrement > 0) {
+    await db.user.update({
+      where: { id: userId },
+      data: { personalVolume: { increment: pvIncrement } }
+    })
+    userIdsToUpgrade.add(userId)
+  }
+
+  // 2. Business Volume increment (sponsor)
+  const bvIncrement = amount * bvRatio
+  if (user.referredById && bvIncrement > 0) {
+    await db.user.update({
+      where: { id: user.referredById },
+      data: { businessVolume: { increment: bvIncrement } }
+    })
+    userIdsToUpgrade.add(user.referredById)
+  }
+
+  // 3. Team Volume and Leg volume updates recursively for ancestors
+  const tvIncrement = amount * tvRatio
   let current = await db.user.findUnique({ where: { id: userId } })
-  if (!current) return
-
-  const volume = amount
-
-  // Walk up the binary tree
+  
   while (current && current.binaryTreeParentId) {
     const parent = await db.user.findUnique({ where: { id: current.binaryTreeParentId } })
     if (!parent) break
 
+    const dataToUpdate: any = {}
     if (parent.binaryTreeLeftChildId === current.id) {
-      await db.user.update({
-        where: { id: parent.id },
-        data: {
-          binaryTreeLeftVolume: { increment: volume },
-          binaryTreeLeftVolumeCarryForward: { increment: volume },
-        }
-      })
+      dataToUpdate.binaryTreeLeftVolume = { increment: amount }
+      dataToUpdate.binaryTreeLeftVolumeCarryForward = { increment: amount }
     } else if (parent.binaryTreeRightChildId === current.id) {
-      await db.user.update({
-        where: { id: parent.id },
-        data: {
-          binaryTreeRightVolume: { increment: volume },
-          binaryTreeRightVolumeCarryForward: { increment: volume },
-        }
-      })
+      dataToUpdate.binaryTreeRightVolume = { increment: amount }
+      dataToUpdate.binaryTreeRightVolumeCarryForward = { increment: amount }
     }
 
+    if (tvIncrement > 0) {
+      dataToUpdate.teamVolume = { increment: tvIncrement }
+    }
+
+    await db.user.update({
+      where: { id: parent.id },
+      data: dataToUpdate
+    })
+
+    userIdsToUpgrade.add(parent.id)
     current = parent
   }
 
@@ -226,11 +270,169 @@ export async function updateBinaryTreeVolumes(userId: string, amount: number) {
     userId,
     'VOLUME_UPDATE',
     {
-      amount: volume,
-      note: 'Volume updated and propagated up the tree'
+      amount,
+      pvIncrement,
+      bvIncrement,
+      tvIncrement,
+      note: 'Volumes (PV, BV, TV) updated and team volume/legs propagated'
     },
     null // System performed the action
   )
+
+  // Run rank checks for all affected users
+  for (const id of userIdsToUpgrade) {
+    try {
+      await checkMlmRankUpgrade(id, plan)
+    } catch (e) {
+      console.error(`Failed rank upgrade check for user ${id}:`, e)
+    }
+  }
+}
+
+interface MlmRankConfig {
+  level: number
+  name: string
+  reqPv: number
+  reqBv: number
+  reqTv: number
+  bonus: number
+  perks: string
+}
+
+export function getDefaultRanks(): MlmRankConfig[] {
+  return [
+    { level: 0, name: 'Member', reqPv: 0, reqBv: 0, reqTv: 0, bonus: 0, perks: 'Access to basic plan' },
+    { level: 1, name: 'Executive', reqPv: 100, reqBv: 500, reqTv: 1000, bonus: 50, perks: 'Executive Badge, 5% pairing limit increase' },
+    { level: 2, name: 'Manager', reqPv: 500, reqBv: 2500, reqTv: 5000, bonus: 250, perks: 'Manager Badge, 10% pairing limit increase' },
+    { level: 3, name: 'Director', reqPv: 2000, reqBv: 10000, reqTv: 20000, bonus: 1000, perks: 'Director Badge, Retreat invite, 15% pairing limit increase' },
+    { level: 4, name: 'President', reqPv: 10000, reqBv: 50000, reqTv: 100000, bonus: 5000, perks: 'President Ring, Luxury car program, 20% pairing limit increase' },
+  ]
+}
+
+export async function checkMlmRankUpgrade(userId: string, plan?: any) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      personalVolume: true,
+      businessVolume: true,
+      teamVolume: true,
+      mlmRank: true,
+      mlmLevel: true,
+      tradingBalance: true
+    }
+  })
+  if (!user) return
+
+  let resolvedPlan = plan
+  if (!resolvedPlan) {
+    // Find active plan with binary MLM enabled
+    const activeDeposits = await db.deposit.findMany({
+      where: { userId, status: { in: ['active', 'locked'] } },
+      include: { plan: true }
+    })
+    resolvedPlan = activeDeposits.map(d => d.plan).find(p => p.isBinaryMlmEnabled)
+    if (!resolvedPlan) {
+      resolvedPlan = await db.plan.findFirst({
+        where: { isBinaryMlmEnabled: true }
+      })
+    }
+  }
+
+  let ranks = getDefaultRanks()
+  if (resolvedPlan?.mlmRewardsConfig) {
+    try {
+      const parsed = JSON.parse(resolvedPlan.mlmRewardsConfig)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        ranks = parsed
+      }
+    } catch (e) {
+      console.error('Failed to parse mlmRewardsConfig', e)
+    }
+  }
+
+  // Sort ranks descending by level so we find the highest matching rank first
+  const sortedRanks = [...ranks].sort((a, b) => b.level - a.level)
+
+  const qualifiedRank = sortedRanks.find(r => 
+    (user.personalVolume ?? 0) >= (r.reqPv ?? 0) &&
+    (user.businessVolume ?? 0) >= (r.reqBv ?? 0) &&
+    (user.teamVolume ?? 0) >= (r.reqTv ?? 0)
+  )
+
+  if (qualifiedRank && qualifiedRank.level > (user.mlmLevel ?? 0)) {
+    const oldRank = user.mlmRank || 'Member'
+    const newRank = qualifiedRank.name
+    const newLevel = qualifiedRank.level
+    const bonus = qualifiedRank.bonus ?? 0
+
+    await db.$transaction(async (tx) => {
+      // 1. Update User Rank, Level and tradingBalance
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          mlmRank: newRank,
+          mlmLevel: newLevel,
+          tradingBalance: bonus > 0 ? { increment: bonus } : undefined
+        }
+      })
+
+      // 2. Log Earning if bonus > 0
+      if (bonus > 0) {
+        await tx.earning.create({
+          data: {
+            userId,
+            amount: bonus,
+            type: 'rank_promotion_bonus',
+            walletTarget: 'trading',
+          }
+        })
+
+        // 3. Log Transaction
+        await tx.transactionLog.create({
+          data: {
+            userId,
+            type: 'bonus',
+            amount: bonus,
+            balanceBefore: user.tradingBalance,
+            balanceAfter: user.tradingBalance + bonus,
+            wallet: 'trading',
+            description: `Leadership promotion bonus for rank: ${newRank}`,
+            status: 'completed',
+          }
+        })
+      }
+
+      // 4. Create notification
+      await tx.notification.create({
+        data: {
+          userId,
+          title: '🎉 Leadership Rank Promoted!',
+          message: `Congratulations! You have been promoted from ${oldRank} to ${newRank}. ${bonus > 0 ? `A cash bonus of $${bonus.toFixed(2)} has been credited to your trading wallet.` : ''}`,
+          type: 'info',
+        }
+      })
+
+      // 5. Audit Log
+      await tx.binaryTreeAuditLog.create({
+        data: {
+          userId,
+          actionType: 'RANK_UPGRADE',
+          actionDetails: JSON.parse(JSON.stringify({
+            oldRank,
+            newRank,
+            newLevel,
+            bonusAwarded: bonus,
+            reqPv: qualifiedRank.reqPv,
+            reqBv: qualifiedRank.reqBv,
+            reqTv: qualifiedRank.reqTv,
+          })),
+          performedBy: 'SYSTEM'
+        }
+      })
+    })
+  }
 }
 
 /**

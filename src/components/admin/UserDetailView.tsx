@@ -337,6 +337,71 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
           </CardContent>
         </Card>
 
+        {/* Binary MLM Volumes & Leadership */}
+        <Card className="bg-card/50 border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-emerald-400" /> MLM Volumes & Leadership
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/30">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase font-semibold">Leadership Rank</p>
+                <p className="text-sm font-bold text-foreground mt-0.5">{user.mlmRank || 'Member'}</p>
+              </div>
+              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                Level {user.mlmLevel || 0}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="p-2.5 rounded-lg bg-muted/20 border border-border/30 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase font-mono">Personal (PV)</p>
+                <p className="text-base font-bold text-foreground mt-1">{Number(user.personalVolume || 0).toLocaleString()}</p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-muted/20 border border-border/30 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase font-mono">Business (BV)</p>
+                <p className="text-base font-bold text-foreground mt-1">{Number(user.businessVolume || 0).toLocaleString()}</p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-muted/20 border border-border/30 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase font-mono">Team (TV)</p>
+                <p className="text-base font-bold text-foreground mt-1">{Number(user.teamVolume || 0).toLocaleString()}</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-mono text-muted-foreground">Binary Tree Legs Accumulation</Label>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-2.5 rounded-lg bg-background/20 border border-border/50 space-y-1">
+                  <span className="text-muted-foreground text-[10px] block font-mono">LEFT LEG</span>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Vol:</span>
+                    <span className="font-semibold">{Number(user.binaryTreeLeftVolume || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border/10 pt-1">
+                    <span className="text-muted-foreground">Carry Fwd:</span>
+                    <span className="font-semibold text-emerald-400">{Number(user.binaryTreeLeftVolumeCarryForward || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-background/20 border border-border/50 space-y-1">
+                  <span className="text-muted-foreground text-[10px] block font-mono">RIGHT LEG</span>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Vol:</span>
+                    <span className="font-semibold">{Number(user.binaryTreeRightVolume || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border/10 pt-1">
+                    <span className="text-muted-foreground">Carry Fwd:</span>
+                    <span className="font-semibold text-emerald-400">{Number(user.binaryTreeRightVolumeCarryForward || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Deposits */}
         <Card className="bg-card/50 border-border/50">
           <CardHeader className="pb-3">

@@ -101,6 +101,11 @@ export interface PlanType {
   binaryCycleBonusPercent?: number
   binaryCycleBonusType?: 'percent' | 'fixed'
   binaryCycleBonusFixed?: number
+  binaryPvRatio?: number
+  binaryBvRatio?: number
+  binaryTvRatio?: number
+  mlmRewardsConfig?: string | null
+  mlmPoolsConfig?: string | null
 }
 
 export interface DepositType {

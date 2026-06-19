@@ -97,10 +97,23 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
     const skip = (page - 1) * limit
+    const typeFilter = searchParams.get('type') || 'all' // 'all' | 'standard' | 'binary'
+
+    let whereClause: any = { isFake: true }
+
+    if (typeFilter === 'standard') {
+      whereClause.binaryTreePosition = ''
+      whereClause.binaryTreeParentId = null
+    } else if (typeFilter === 'binary') {
+      whereClause.OR = [
+        { binaryTreePosition: { not: '' } },
+        { binaryTreeParentId: { not: null } }
+      ]
+    }
 
     const [profiles, total] = await Promise.all([
       db.user.findMany({
-        where: { isFake: true },
+        where: whereClause,
         select: {
           id: true,
           name: true,
@@ -113,15 +126,30 @@ export async function GET(request: Request) {
           totalDeposited: true,
           isActive: true,
           createdAt: true,
+          binaryTreePosition: true,
+          binaryTreeParentId: true,
+          personalVolume: true,
+          businessVolume: true,
+          teamVolume: true,
+          mlmRank: true,
+          mlmLevel: true,
         },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      db.user.count({ where: { isFake: true } }),
+      db.user.count({ where: whereClause }),
     ])
 
-    return NextResponse.json({ profiles, total, page, limit })
+    const processedProfiles = profiles.map(p => {
+      const isBinary = p.binaryTreePosition !== '' || p.binaryTreeParentId !== null || p.personalVolume > 0 || p.teamVolume > 0
+      return {
+        ...p,
+        isBinary
+      }
+    })
+
+    return NextResponse.json({ profiles: processedProfiles, total, page, limit })
   } catch (error) {
     console.error('Get fake profiles error:', error)
     return NextResponse.json({ error: 'Failed to get fake profiles' }, { status: 500 })
@@ -131,18 +159,43 @@ export async function GET(request: Request) {
 // POST - Mass generate fake profiles
 export async function POST(request: Request) {
   try {
-    const { count, minBalance, maxBalance, minEarnings, maxEarnings, minDeposited, maxDeposited, region } = await request.json()
+    const body = await request.json()
+    const {
+      count,
+      minBalance,
+      maxBalance,
+      minEarnings,
+      maxEarnings,
+      minDeposited,
+      maxDeposited,
+      region,
+      profileType = 'standard', // 'standard' or 'binary'
+      binaryPlanId,
+      binaryPlacementStrategy,
+      binaryActivateDeposit,
+      binaryDepositAmount,
+    } = body
 
     // Fetch settings for Binary MLM fake profiles
     const settings = await db.setting.findMany()
     const settingsMap: Record<string, string> = {}
     settings.forEach(s => { settingsMap[s.key] = s.value })
 
-    const binaryMlmEnabled = settingsMap['binaryMlmFakeProfilesEnabled'] === 'true'
-    const binaryMlmPlanId = settingsMap['binaryMlmFakeProfilesPlanId']
-    const binaryMlmPlacementStrategy = settingsMap['binaryMlmFakeProfilesPlacementStrategy'] || 'balanced'
-    const binaryMlmActivateDeposit = settingsMap['binaryMlmFakeProfilesActivateDeposit'] === 'true'
-    const binaryMlmDepositAmount = parseFloat(settingsMap['binaryMlmFakeProfilesDepositAmount'] || '100')
+    const isBinaryType = profileType === 'binary'
+
+    // Resolve binary plan ID
+    let activePlanId = binaryPlanId
+    if (isBinaryType && !activePlanId) {
+      activePlanId = settingsMap['binaryMlmFakeProfilesPlanId']
+      if (!activePlanId) {
+        const fallbackPlan = await db.plan.findFirst({ where: { isBinaryMlmEnabled: true, isActive: true } })
+        activePlanId = fallbackPlan?.id
+      }
+    }
+
+    const placementStrategy = binaryPlacementStrategy || settingsMap['binaryMlmFakeProfilesPlacementStrategy'] || 'balanced'
+    const activateDeposit = binaryActivateDeposit !== undefined ? binaryActivateDeposit : (settingsMap['binaryMlmFakeProfilesActivateDeposit'] === 'true')
+    const depositAmount = binaryDepositAmount !== undefined ? parseFloat(binaryDepositAmount) : parseFloat(settingsMap['binaryMlmFakeProfilesDepositAmount'] || '100')
 
     const numProfiles = Math.min(Math.max(count || 10, 1), 500)
     const balMin = minBalance || 100
@@ -153,8 +206,6 @@ export async function POST(request: Request) {
     const depMax = maxDeposited || 100000
 
     const created: any[] = []
-
-    // Keep track of users created in this batch for binary tree placement
     const batchUsers: Array<{id: string, name: string}> = []
 
     for (let i = 0; i < numProfiles; i++) {
@@ -197,14 +248,9 @@ export async function POST(request: Request) {
       }
 
       // If Binary MLM is enabled for fake profiles, set up binary tree fields
-      if (binaryMlmEnabled && binaryMlmPlanId) {
-        userData.planId = binaryMlmPlanId
-
-        // Set binary tree position (we'll update parent and position after creating the user)
-        // For now, we'll set a default position and update it later based on placement strategy
-        userData.binaryTreePosition = ''
-
+      if (isBinaryType && activePlanId) {
         // Initialize binary tree fields
+        userData.binaryTreePosition = ''
         userData.binaryTreeLeftVolume = 0
         userData.binaryTreeRightVolume = 0
         userData.binaryTreeLeftVolumeCarryForward = 0
@@ -216,40 +262,24 @@ export async function POST(request: Request) {
       })
 
       // If Binary MLM is enabled, set up binary tree relationships
-      if (binaryMlmEnabled && binaryMlmPlanId) {
+      if (isBinaryType && activePlanId) {
         let parentId: string | null = null
         let position: 'left' | 'right' = 'left'
 
         // Determine placement based on strategy
-        if (binaryMlmPlacementStrategy === 'balanced') {
-          // Alternate between left and right to keep tree balanced
-          // We'll use the index to determine placement
+        if (placementStrategy === 'balanced') {
           position = i % 2 === 0 ? 'left' : 'right'
-
-          // Find a suitable parent - for simplicity, we'll use the first user in the batch as root
-          // and then assign subsequent users to it
-          if (batchUsers.length === 0) {
-            // First user is root (no parent)
-            parentId = null
-          } else {
-            // Assign to the first user in batch as parent for simplicity
-            // In a real system, you'd want a more sophisticated tree building algorithm
-            parentId = batchUsers[0].id
-          }
-        } else if (binaryMlmPlacementStrategy === 'left') {
-          // Always place as left child
+          parentId = batchUsers.length > 0 ? batchUsers[0].id : null
+        } else if (placementStrategy === 'left') {
           position = 'left'
           parentId = batchUsers.length > 0 ? batchUsers[0].id : null
-        } else if (binaryMlmPlacementStrategy === 'right') {
-          // Always place as right child
+        } else if (placementStrategy === 'right') {
           position = 'right'
           parentId = batchUsers.length > 0 ? batchUsers[0].id : null
-        } else if (binaryMlmPlacementStrategy === 'random') {
-          // Randomly choose left or right
+        } else if (placementStrategy === 'random') {
           position = Math.random() > 0.5 ? 'left' : 'right'
           parentId = batchUsers.length > 0 ? batchUsers[Math.floor(Math.random() * batchUsers.length)].id : null
         } else {
-          // Default to balanced
           position = i % 2 === 0 ? 'left' : 'right'
           parentId = batchUsers.length > 0 ? batchUsers[0].id : null
         }
@@ -260,33 +290,27 @@ export async function POST(request: Request) {
           data: {
             binaryTreeParentId: parentId,
             binaryTreePosition: position,
-            // Update the parent's child pointer
             ...(parentId && {
               [position === 'left' ? 'binaryTreeLeftChildId' : 'binaryTreeRightChildId']: user.id
             })
           }
         })
 
-        // If we set a parent, we need to update the parent's child pointer in a separate transaction
-        // But for simplicity in this example, we'll handle it in the update above by using the dynamic field
-        // Actually, the above update already handles setting the parent's child pointer via the dynamic field
-
         // Create deposit to activate binary MLM participation if enabled
-        if (binaryMlmActivateDeposit && binaryMlmDepositAmount > 0) {
+        if (activateDeposit && depositAmount > 0) {
           await db.deposit.create({
             data: {
               userId: user.id,
-              planId: binaryMlmPlanId,
-              amount: binaryMlmDepositAmount,
+              planId: activePlanId,
+              amount: depositAmount,
               status: 'active',
             }
           })
 
-          // Update user's totalDeposited to reflect the deposit
           await db.user.update({
             where: { id: user.id },
             data: {
-              totalDeposited: binaryMlmDepositAmount
+              totalDeposited: depositAmount
             }
           })
         }
@@ -309,7 +333,20 @@ export async function POST(request: Request) {
 // PUT - Update a fake profile
 export async function PUT(request: Request) {
   try {
-    const { id, name, email, phone, tradingBalance, withdrawalBalance, totalEarnings, totalDeposited, isActive } = await request.json()
+    const {
+      id,
+      name,
+      email,
+      phone,
+      tradingBalance,
+      withdrawalBalance,
+      totalEarnings,
+      totalDeposited,
+      isActive,
+      referredById,
+      binaryTreeParentId,
+      binaryTreePositionLeg, // 'left' | 'right' | null
+    } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'Profile ID required' }, { status: 400 })
@@ -318,6 +355,50 @@ export async function PUT(request: Request) {
     const profile = await db.user.findUnique({ where: { id } })
     if (!profile || !profile.isFake) {
       return NextResponse.json({ error: 'Fake profile not found' }, { status: 404 })
+    }
+
+    let finalBinaryTreeParentId = undefined
+    let finalBinaryTreePosition = undefined
+
+    if (binaryTreeParentId !== undefined) {
+      if (binaryTreeParentId === null) {
+        finalBinaryTreeParentId = null
+        finalBinaryTreePosition = ""
+
+        if (profile.binaryTreeParentId) {
+          const oldParent = await db.user.findUnique({ where: { id: profile.binaryTreeParentId } })
+          if (oldParent) {
+            if (oldParent.binaryTreeLeftChildId === id) {
+              await db.user.update({ where: { id: oldParent.id }, data: { binaryTreeLeftChildId: null } })
+            } else if (oldParent.binaryTreeRightChildId === id) {
+              await db.user.update({ where: { id: oldParent.id }, data: { binaryTreeRightChildId: null } })
+            }
+          }
+        }
+      } else {
+        const parentUser = await db.user.findUnique({ where: { id: binaryTreeParentId } })
+        if (parentUser) {
+          finalBinaryTreeParentId = binaryTreeParentId
+          finalBinaryTreePosition = (parentUser.binaryTreePosition || "") + (binaryTreePositionLeg === "right" ? "R" : "L")
+
+          if (profile.binaryTreeParentId && profile.binaryTreeParentId !== binaryTreeParentId) {
+            const oldParent = await db.user.findUnique({ where: { id: profile.binaryTreeParentId } })
+            if (oldParent) {
+              if (oldParent.binaryTreeLeftChildId === id) {
+                await db.user.update({ where: { id: oldParent.id }, data: { binaryTreeLeftChildId: null } })
+              } else if (oldParent.binaryTreeRightChildId === id) {
+                await db.user.update({ where: { id: oldParent.id }, data: { binaryTreeRightChildId: null } })
+              }
+            }
+          }
+
+          if (binaryTreePositionLeg === "right") {
+            await db.user.update({ where: { id: binaryTreeParentId }, data: { binaryTreeRightChildId: id } })
+          } else {
+            await db.user.update({ where: { id: binaryTreeParentId }, data: { binaryTreeLeftChildId: id } })
+          }
+        }
+      }
     }
 
     const updated = await db.user.update({
@@ -331,6 +412,9 @@ export async function PUT(request: Request) {
         ...(totalEarnings !== undefined && { totalEarnings }),
         ...(totalDeposited !== undefined && { totalDeposited }),
         ...(isActive !== undefined && { isActive }),
+        ...(referredById !== undefined && { referredById }),
+        ...(finalBinaryTreeParentId !== undefined && { binaryTreeParentId: finalBinaryTreeParentId }),
+        ...(finalBinaryTreePosition !== undefined && { binaryTreePosition: finalBinaryTreePosition }),
       },
     })
 

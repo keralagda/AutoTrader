@@ -614,6 +614,20 @@ export async function runProfitDistribution() {
     credited += investorShare
   }
 
+  // Distribute MLM Bonus Pools if we credited anything
+  if (credited > 0) {
+    try {
+      const binaryPlan = await db.plan.findFirst({
+        where: { isBinaryMlmEnabled: true, isActive: true },
+      })
+      if (binaryPlan) {
+        await distributeMlmBonusPools(credited, binaryPlan, now)
+      }
+    } catch (poolErr) {
+      console.error('Failed to distribute MLM bonus pools:', poolErr)
+    }
+  }
+
   // Log the cron run
   await db.activityLog.create({
     data: {
@@ -629,5 +643,94 @@ export async function runProfitDistribution() {
     completed,
     capitalReturned,
     timestamp: nowStr,
+  }
+}
+
+export async function distributeMlmBonusPools(totalCredited: number, plan: any, now: Date) {
+  if (!plan.mlmPoolsConfig) return
+
+  let pools = []
+  try {
+    pools = JSON.parse(plan.mlmPoolsConfig)
+  } catch (e) {
+    console.error('Failed to parse mlmPoolsConfig:', e)
+    return
+  }
+
+  if (!Array.isArray(pools) || pools.length === 0) return
+
+  for (const pool of pools) {
+    if (!pool.enabled) continue
+
+    const percent = parseFloat(pool.percent)
+    if (isNaN(percent) || percent <= 0) continue
+
+    const poolAmount = totalCredited * (percent / 100)
+    if (poolAmount <= 0) continue
+
+    const minLevel = parseInt(pool.eligibilityMinLevel) || 0
+    const eligibleUsers = await db.user.findMany({
+      where: {
+        isActive: true,
+        mlmLevel: { gte: minLevel },
+      },
+      select: {
+        id: true,
+        name: true,
+        tradingBalance: true,
+        mlmRank: true,
+        mlmLevel: true,
+      }
+    })
+
+    if (eligibleUsers.length === 0) {
+      continue
+    }
+
+    const shareAmount = poolAmount / eligibleUsers.length
+
+    for (const u of eligibleUsers) {
+      const newBalance = u.tradingBalance + shareAmount
+
+      await db.user.update({
+        where: { id: u.id },
+        data: {
+          tradingBalance: newBalance,
+          totalEarnings: { increment: shareAmount },
+        }
+      })
+
+      await db.earning.create({
+        data: {
+          userId: u.id,
+          amount: shareAmount,
+          type: 'mlm_pool_bonus',
+          walletTarget: 'trading',
+          level: u.mlmLevel,
+        }
+      })
+
+      await db.transactionLog.create({
+        data: {
+          userId: u.id,
+          type: 'bonus',
+          amount: shareAmount,
+          balanceBefore: u.tradingBalance,
+          balanceAfter: newBalance,
+          wallet: 'trading',
+          description: `MLM Bonus Pool payout: ${pool.name || 'Pool'} (${percent}% allocation)`,
+          status: 'completed',
+        }
+      })
+
+      await db.notification.create({
+        data: {
+          userId: u.id,
+          title: '🎉 MLM Bonus Pool Payout!',
+          message: `You received $${shareAmount.toFixed(2)} from the ${pool.name || 'Bonus Pool'} as a qualified leader (${u.mlmRank}).`,
+          type: 'earning',
+        }
+      })
+    }
   }
 }

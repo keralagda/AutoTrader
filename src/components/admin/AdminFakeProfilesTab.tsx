@@ -41,6 +41,7 @@ interface FakeProfile {
   totalDeposited: number
   isActive: boolean
   createdAt: string
+  isBinary?: boolean
 }
 
 export function AdminFakeProfilesTab() {
@@ -50,6 +51,8 @@ export function AdminFakeProfilesTab() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [page, setPage] = useState(1)
+  const [profileTypeFilter, setProfileTypeFilter] = useState<'all' | 'standard' | 'binary'>('all')
+  const [genProfileType, setGenProfileType] = useState<'standard' | 'binary'>('standard')
 
   // Generation form
   const [genCount, setGenCount] = useState(25)
@@ -62,11 +65,23 @@ export function AdminFakeProfilesTab() {
 
   // Edit
   const [editProfile, setEditProfile] = useState<FakeProfile | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '', tradingBalance: 0, totalEarnings: 0, totalDeposited: 0, isActive: true })
+  const [editForm, setEditForm] = useState<any>({
+    name: '',
+    email: '',
+    phone: '',
+    tradingBalance: 0,
+    totalEarnings: 0,
+    totalDeposited: 0,
+    isActive: true,
+    referredById: null,
+    binaryTreeParentId: null,
+    binaryTreePositionLeg: 'left'
+  })
 
   const fetchProfiles = useCallback(async () => {
+    setLoading(true)
     try {
-      const res = await fetch(`/api/admin/fake-profiles?page=${page}&limit=50`)
+      const res = await fetch(`/api/admin/fake-profiles?page=${page}&limit=50&type=${profileTypeFilter}`)
       if (res.ok) {
         const data = await res.json()
         setProfiles(data.profiles)
@@ -74,11 +89,26 @@ export function AdminFakeProfilesTab() {
       }
     } catch {}
     finally { setLoading(false) }
-  }, [page])
+  }, [page, profileTypeFilter])
+
+  const [realUsers, setRealUsers] = useState<any[]>([])
+
+  const fetchRealUsers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/users')
+      if (res.ok) {
+        const data = await res.json()
+        setRealUsers(data)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
 
   useEffect(() => {
     fetchProfiles()
-  }, [fetchProfiles])
+    fetchRealUsers()
+  }, [fetchProfiles, fetchRealUsers])
 
   const handleGenerate = async () => {
     setGenerating(true)
@@ -94,6 +124,7 @@ export function AdminFakeProfilesTab() {
           maxEarnings: genMaxEarnings,
           minDeposited: genMinDeposited,
           maxDeposited: genMaxDeposited,
+          profileType: genProfileType,
         }),
       })
       if (res.ok) {
@@ -146,6 +177,9 @@ export function AdminFakeProfilesTab() {
       totalEarnings: profile.totalEarnings,
       totalDeposited: profile.totalDeposited,
       isActive: profile.isActive,
+      referredById: (profile as any).referredById || null,
+      binaryTreeParentId: (profile as any).binaryTreeParentId || null,
+      binaryTreePositionLeg: (profile as any).binaryTreePosition ? ((profile as any).binaryTreePosition.endsWith('R') ? 'right' : 'left') : 'left'
     })
   }
 
@@ -211,6 +245,40 @@ export function AdminFakeProfilesTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Profile Type Toggle */}
+          <div className="space-y-1.5 pb-3 border-b border-border/30">
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Profile Type</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setGenProfileType('standard')}
+                className={`py-1.5 px-3.5 rounded-lg border text-xs font-semibold transition-all ${
+                  genProfileType === 'standard'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                    : 'border-border/50 text-muted-foreground hover:border-border hover:text-foreground'
+                }`}
+              >
+                💼 Standard Investment User
+              </button>
+              <button
+                type="button"
+                onClick={() => setGenProfileType('binary')}
+                className={`py-1.5 px-3.5 rounded-lg border text-xs font-semibold transition-all ${
+                  genProfileType === 'binary'
+                    ? 'bg-purple-500/15 border-purple-500/30 text-purple-400'
+                    : 'border-border/50 text-muted-foreground hover:border-border hover:text-foreground'
+                }`}
+              >
+                ⚡ Binary MLM User
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              {genProfileType === 'binary'
+                ? 'Creates fake users connected to the Binary MLM tree, with carry forward/leg volumes and binary plan active deposits.'
+                : 'Creates standard fake users with balance statistics for regular investment plans.'}
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Count</Label>
@@ -280,11 +348,26 @@ export function AdminFakeProfilesTab() {
       {/* Profiles List */}
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Users className="size-4" />
               Fake Profiles ({total})
             </CardTitle>
+            <div className="flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border/40 text-[11px] self-start sm:self-auto">
+              {(['all', 'standard', 'binary'] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => { setProfileTypeFilter(type); setPage(1) }}
+                  className={`px-2.5 py-1 rounded-md capitalize transition-all ${
+                    profileTypeFilter === type
+                      ? 'bg-background text-foreground shadow-sm font-medium'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
             <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30">
               Admin Only View
             </Badge>
@@ -303,6 +386,11 @@ export function AdminFakeProfilesTab() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium truncate">{profile.name}</p>
                         <Badge className="bg-violet-500/20 text-violet-400 border-violet-500/30 text-[9px]">FAKE</Badge>
+                        {profile.isBinary ? (
+                          <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[9px]">BINARY MLM</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[9px]">STANDARD PLAN</Badge>
+                        )}
                         {!profile.isActive && <Badge className="bg-rose-500/20 text-rose-400 text-[9px]">Inactive</Badge>}
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate">{profile.email}</p>
@@ -311,6 +399,22 @@ export function AdminFakeProfilesTab() {
                         <span>Earned: <span className="text-cyan-400">${(profile.totalEarnings || 0).toFixed(0)}</span></span>
                         <span>Dep: <span className="text-amber-400">${(profile.totalDeposited || 0).toFixed(0)}</span></span>
                       </div>
+                      {((profile as any).referredById || (profile as any).binaryTreeParentId) && (
+                        <div className="flex flex-wrap gap-2 text-[9px] text-muted-foreground mt-1 bg-muted/40 p-1.5 rounded border border-border/20">
+                          {(profile as any).referredById && (() => {
+                            const sponsor = realUsers.find(x => x.id === (profile as any).referredById)
+                            return sponsor ? (
+                              <span>💼 Sponsor: <span className="text-emerald-400 font-semibold">{sponsor.name}</span></span>
+                            ) : null
+                          })()}
+                          {(profile as any).binaryTreeParentId && (() => {
+                            const parent = realUsers.find(x => x.id === (profile as any).binaryTreeParentId)
+                            return parent ? (
+                              <span>⚡ Parent: <span className="text-purple-400 font-semibold">{parent.name}</span> ({(profile as any).binaryTreePosition?.endsWith('R') ? 'Right' : 'Left'})</span>
+                            ) : null
+                          })()}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0 ml-2">
@@ -390,6 +494,106 @@ export function AdminFakeProfilesTab() {
               <Switch checked={editForm.isActive} onCheckedChange={v => setEditForm({ ...editForm, isActive: v })} />
               <Label>Active</Label>
             </div>
+
+            <Separator className="my-2 border-border/30" />
+
+            <div className="space-y-3 p-3 rounded-lg bg-muted/20 border border-border/40">
+              <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                🔗 Real Profile Associations
+              </p>
+              
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Select Real Profile (Sponsor/Parent)</Label>
+                <select
+                  value={editForm.referredById || editForm.binaryTreeParentId || ''}
+                  onChange={e => {
+                    const val = e.target.value || null
+                    setEditForm(prev => ({
+                      ...prev,
+                      referredById: prev.referredById ? val : null,
+                      binaryTreeParentId: prev.binaryTreeParentId ? val : null
+                    }))
+                  }}
+                  className="w-full text-xs bg-background border border-border/50 rounded-lg p-2 text-foreground"
+                >
+                  <option value="">-- No Association / None Selected --</option>
+                  {realUsers.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="flex items-center justify-between p-2 rounded border border-border/30 bg-background/50">
+                  <div>
+                    <p className="text-[10px] font-semibold">Investment Sponsor</p>
+                    <p className="text-[8px] text-muted-foreground">Earns deposit commission</p>
+                  </div>
+                  <Switch
+                    checked={!!editForm.referredById}
+                    disabled={!(editForm.referredById || editForm.binaryTreeParentId || realUsers.length > 0)}
+                    onCheckedChange={checked => {
+                      const currentSelectedId = editForm.referredById || editForm.binaryTreeParentId || (realUsers[0]?.id || null)
+                      setEditForm(prev => ({
+                        ...prev,
+                        referredById: checked ? currentSelectedId : null
+                      }))
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-2 rounded border border-border/30 bg-background/50">
+                  <div>
+                    <p className="text-[10px] font-semibold">Binary Tree Leg Parent</p>
+                    <p className="text-[8px] text-muted-foreground">Adds to team volume</p>
+                  </div>
+                  <Switch
+                    checked={!!editForm.binaryTreeParentId}
+                    disabled={!(editForm.referredById || editForm.binaryTreeParentId || realUsers.length > 0)}
+                    onCheckedChange={checked => {
+                      const currentSelectedId = editForm.referredById || editForm.binaryTreeParentId || (realUsers[0]?.id || null)
+                      setEditForm(prev => ({
+                        ...prev,
+                        binaryTreeParentId: checked ? currentSelectedId : null
+                      }))
+                    }}
+                  />
+                </div>
+              </div>
+
+              {!!editForm.binaryTreeParentId && (
+                <div className="space-y-1 pt-1.5">
+                  <Label className="text-[10px] text-muted-foreground">Binary Leg Position</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm(prev => ({ ...prev, binaryTreePositionLeg: 'left' }))}
+                      className={`py-1 rounded border text-[10px] font-semibold transition-all ${
+                        editForm.binaryTreePositionLeg === 'left'
+                          ? 'bg-purple-500/10 border-purple-500/30 text-purple-400 font-bold'
+                          : 'border-border/50 text-muted-foreground'
+                      }`}
+                    >
+                      Left Leg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditForm(prev => ({ ...prev, binaryTreePositionLeg: 'right' }))}
+                      className={`py-1 rounded border text-[10px] font-semibold transition-all ${
+                        editForm.binaryTreePositionLeg === 'right'
+                          ? 'bg-purple-500/10 border-purple-500/30 text-purple-400 font-bold'
+                          : 'border-border/50 text-muted-foreground'
+                      }`}
+                    >
+                      Right Leg
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button onClick={handleSaveEdit} className="w-full gap-1.5">
               <Save className="size-4" /> Save Changes
             </Button>

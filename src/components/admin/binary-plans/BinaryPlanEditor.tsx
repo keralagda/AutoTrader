@@ -9,6 +9,7 @@ import { BinaryPairingSettings } from './BinaryPairingSettings'
 import { BinarySpilloverSettings } from './BinarySpilloverSettings'
 import { BinaryFlushSettings } from './BinaryFlushSettings'
 import { BinaryCycleSettings } from './BinaryCycleSettings'
+import { BinaryMlmSettings } from './BinaryMlmSettings'
 
 export function BinaryPlanEditor({
   plan,
@@ -45,6 +46,7 @@ export function BinaryPlanEditor({
       </div>
 
       <BinaryBasicInfo plan={plan} onChange={ch} />
+      <BinaryMlmSettings plan={plan} onChange={ch} />
       <BinaryPairingSettings plan={plan} onChange={ch} />
       <BinarySpilloverSettings plan={plan} onChange={ch} />
       <BinaryFlushSettings plan={plan} onChange={ch} />

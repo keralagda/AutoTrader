@@ -27,6 +27,11 @@ interface UserRecord {
   riskCategory?: string
   phone?: string | null
   walletAddress?: string | null
+  personalVolume?: number
+  businessVolume?: number
+  teamVolume?: number
+  mlmRank?: string
+  mlmLevel?: number
   _count: {
     deposits: number
     referrals: number
@@ -70,9 +75,10 @@ export function UsersTab() {
   const [balanceAdjustUserId, setBalanceAdjustUserId] = useState<string | null>(null)
   const [balanceAdjustAmount, setBalanceAdjustAmount] = useState('')
   const [balanceAdjustLoading, setBalanceAdjustLoading] = useState(false)
-  const [balanceAdjustWallet, setBalanceAdjustWallet] = useState<'trading' | 'withdrawal'>('trading')
+  const [balanceAdjustWallet, setBalanceAdjustWallet] = useState<'trading' | 'withdrawal' | 'pv' | 'bv' | 'tv'>('trading')
   const [balanceAdjustRemarks, setBalanceAdjustRemarks] = useState('')
   const [balanceAdjustType, setBalanceAdjustType] = useState<'add' | 'subtract'>('add')
+  const isVolumeAdjust = ['pv', 'bv', 'tv'].includes(balanceAdjustWallet)
   // Edit profile state
   const [editUserId, setEditUserId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
@@ -214,14 +220,18 @@ export function UsersTab() {
           adjustBalance: true,
           amount: balanceAdjustType === 'subtract' ? -amount : amount,
           wallet: balanceAdjustWallet,
-          remarks: balanceAdjustRemarks || `Admin ${balanceAdjustType} balance`,
+          remarks: balanceAdjustRemarks || `Admin ${balanceAdjustType} ${isVolumeAdjust ? 'volume' : 'balance'}`,
         }),
       })
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Failed')
       }
-      toast({ title: 'Balance Updated', description: `${balanceAdjustType === 'add' ? '+' : '-'}$${amount.toFixed(2)} to ${balanceAdjustWallet} wallet` })
+      const formattedValue = isVolumeAdjust ? `${amount.toFixed(2)} Vol` : `$${amount.toFixed(2)}`
+      toast({
+        title: isVolumeAdjust ? 'Volume Updated' : 'Balance Updated',
+        description: `${balanceAdjustType === 'add' ? '+' : '-'}${formattedValue} to ${balanceAdjustWallet.toUpperCase()}`
+      })
       setBalanceAdjustUserId(null)
       setBalanceAdjustAmount('')
       setBalanceAdjustRemarks('')
@@ -473,9 +483,12 @@ export function UsersTab() {
                 <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
                   <p className="text-sm font-medium">{u.name}</p>
                   <p className="text-xs text-muted-foreground">{u.email}</p>
-                  <div className="flex gap-3 mt-2 text-xs">
-                    <span className="text-emerald-400">Trading: ${(u.tradingBalance || 0).toFixed(2) || '0.00'}</span>
-                    <span className="text-cyan-400">Withdrawal: ${(u.withdrawalBalance || 0).toFixed(2) || '0.00'}</span>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 text-xs">
+                    <span className="text-emerald-400">Trading: ${(u.tradingBalance || 0).toFixed(2)}</span>
+                    <span className="text-cyan-400">Withdrawal: ${(u.withdrawalBalance || 0).toFixed(2)}</span>
+                    <span className="text-purple-400">PV: {(u.personalVolume || 0).toFixed(2)} Vol</span>
+                    <span className="text-orange-400">BV: {(u.businessVolume || 0).toFixed(2)} Vol</span>
+                    <span className="text-amber-400 col-span-2">TV: {(u.teamVolume || 0).toFixed(2)} Vol</span>
                   </div>
                 </div>
               ) : null
@@ -493,7 +506,7 @@ export function UsersTab() {
                       : 'border-border/50 text-muted-foreground hover:border-border'
                   }`}
                 >
-                  ➕ Add Balance
+                  ➕ Add Balance/Vol
                 </button>
                 <button
                   onClick={() => setBalanceAdjustType('subtract')}
@@ -503,49 +516,83 @@ export function UsersTab() {
                       : 'border-border/50 text-muted-foreground hover:border-border'
                   }`}
                 >
-                  ➖ Subtract Balance
+                  ➖ Subtract Balance/Vol
                 </button>
               </div>
             </div>
 
             {/* Wallet Selection */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Wallet</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <Label className="text-xs text-muted-foreground">Wallet / Parameter</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <button
                   onClick={() => setBalanceAdjustWallet('trading')}
-                  className={`py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                  className={`py-2 px-2.5 rounded-lg border text-xs font-medium transition-all ${
                     balanceAdjustWallet === 'trading'
                       ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
                       : 'border-border/50 text-muted-foreground hover:border-border'
                   }`}
                 >
-                  💹 Trading Wallet
+                  💹 Trading
                 </button>
                 <button
                   onClick={() => setBalanceAdjustWallet('withdrawal')}
-                  className={`py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                  className={`py-2 px-2.5 rounded-lg border text-xs font-medium transition-all ${
                     balanceAdjustWallet === 'withdrawal'
                       ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'
                       : 'border-border/50 text-muted-foreground hover:border-border'
                   }`}
                 >
-                  💰 Withdrawal Wallet
+                  💰 Withdrawal
+                </button>
+                <button
+                  onClick={() => setBalanceAdjustWallet('pv')}
+                  className={`py-2 px-2.5 rounded-lg border text-xs font-medium transition-all ${
+                    balanceAdjustWallet === 'pv'
+                      ? 'bg-purple-500/15 border-purple-500/30 text-purple-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  ⚡ PV Vol
+                </button>
+                <button
+                  onClick={() => setBalanceAdjustWallet('bv')}
+                  className={`py-2 px-2.5 rounded-lg border text-xs font-medium transition-all ${
+                    balanceAdjustWallet === 'bv'
+                      ? 'bg-orange-500/15 border-orange-500/30 text-orange-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  🔥 BV Vol
+                </button>
+                <button
+                  onClick={() => setBalanceAdjustWallet('tv')}
+                  className={`py-2 px-2.5 rounded-lg border text-xs font-medium transition-all ${
+                    balanceAdjustWallet === 'tv'
+                      ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                      : 'border-border/50 text-muted-foreground hover:border-border'
+                  }`}
+                >
+                  👑 TV Vol
                 </button>
               </div>
             </div>
 
             {/* Amount */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Amount (USD)</Label>
+              <Label className="text-xs text-muted-foreground">
+                {isVolumeAdjust ? 'Amount (Volume)' : 'Amount (USD)'}
+              </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold ${isVolumeAdjust ? 'text-purple-400' : 'text-emerald-400'}`}>
+                  {isVolumeAdjust ? 'VOL' : '$'}
+                </span>
                 <Input
                   type="number"
                   value={balanceAdjustAmount}
                   onChange={e => setBalanceAdjustAmount(e.target.value)}
                   placeholder="0.00"
-                  className="bg-muted/50 border-border/50 pl-7"
+                  className={`bg-muted/50 border-border/50 ${isVolumeAdjust ? 'pl-12' : 'pl-7'}`}
                   min="0"
                   step="0.01"
                 />
@@ -553,7 +600,7 @@ export function UsersTab() {
               <div className="flex gap-2">
                 {[10, 50, 100, 500, 1000].map(val => (
                   <Button key={val} variant="outline" size="sm" className="flex-1 text-[10px] h-7" onClick={() => setBalanceAdjustAmount(val.toString())}>
-                    ${val}
+                    {isVolumeAdjust ? `${val} Vol` : `$${val}`}
                   </Button>
                 ))}
               </div>
@@ -577,9 +624,9 @@ export function UsersTab() {
                 <p className="text-sm font-medium">
                   {balanceAdjustType === 'add' ? '➕' : '➖'} {balanceAdjustType === 'add' ? 'Adding' : 'Subtracting'}{' '}
                   <span className={balanceAdjustType === 'add' ? 'text-emerald-400' : 'text-rose-400'}>
-                    ${parseFloat(balanceAdjustAmount).toFixed(2)}
+                    {isVolumeAdjust ? `${parseFloat(balanceAdjustAmount).toFixed(2)} Vol` : `$${parseFloat(balanceAdjustAmount).toFixed(2)}`}
                   </span>{' '}
-                  {balanceAdjustType === 'add' ? 'to' : 'from'} {balanceAdjustWallet} wallet
+                  {balanceAdjustType === 'add' ? 'to' : 'from'} <span className="font-bold uppercase text-primary">{balanceAdjustWallet}</span>
                 </p>
               </div>
             )}

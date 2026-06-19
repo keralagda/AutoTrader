@@ -48,6 +48,11 @@ export async function GET(request: Request) {
         createdAt: true,
         referredById: true,
         riskCategory: true,
+        personalVolume: true,
+        businessVolume: true,
+        teamVolume: true,
+        mlmRank: true,
+        mlmLevel: true,
         _count: {
           select: {
             deposits: true,
@@ -157,20 +162,48 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
-      const targetWallet = wallet === 'withdrawal' ? 'withdrawal' : 'trading'
-      const currentBalance = targetWallet === 'withdrawal' ? user.withdrawalBalance : user.tradingBalance
+      const isVolumeAdjust = ['pv', 'bv', 'tv'].includes(wallet)
+      let currentBalance = 0
+      let targetWallet = wallet
+
+      if (wallet === 'withdrawal') {
+        currentBalance = user.withdrawalBalance
+        targetWallet = 'withdrawal'
+      } else if (wallet === 'pv') {
+        currentBalance = user.personalVolume || 0
+        targetWallet = 'pv'
+      } else if (wallet === 'bv') {
+        currentBalance = user.businessVolume || 0
+        targetWallet = 'bv'
+      } else if (wallet === 'tv') {
+        currentBalance = user.teamVolume || 0
+        targetWallet = 'tv'
+      } else {
+        currentBalance = user.tradingBalance
+        targetWallet = 'trading'
+      }
 
       // Check if subtracting more than available
       if (adjustAmount < 0 && currentBalance + adjustAmount < 0) {
-        return NextResponse.json({ error: `Insufficient ${targetWallet} balance. Current: $${currentBalance.toFixed(2)}` }, { status: 400 })
+        return NextResponse.json({
+          error: isVolumeAdjust
+            ? `Insufficient volume. Current: ${currentBalance.toFixed(2)}`
+            : `Insufficient ${targetWallet} balance. Current: $${currentBalance.toFixed(2)}`
+        }, { status: 400 })
       }
 
       const newBalance = currentBalance + adjustAmount
 
-      // Update user balance (do not auto-activate on balance addition)
+      // Update user balance or volume
       const updateData: any = {}
       if (targetWallet === 'withdrawal') {
         updateData.withdrawalBalance = newBalance
+      } else if (targetWallet === 'pv') {
+        updateData.personalVolume = newBalance
+      } else if (targetWallet === 'bv') {
+        updateData.businessVolume = newBalance
+      } else if (targetWallet === 'tv') {
+        updateData.teamVolume = newBalance
       } else {
         updateData.tradingBalance = newBalance
       }
@@ -186,7 +219,7 @@ export async function PUT(request: Request) {
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
           wallet: targetWallet,
-          description: remarks || `Admin balance ${adjustAmount > 0 ? 'addition' : 'deduction'}`,
+          description: remarks || `Admin ${isVolumeAdjust ? 'volume' : 'balance'} ${adjustAmount > 0 ? 'addition' : 'deduction'}`,
           status: 'completed',
         },
       })
@@ -195,7 +228,9 @@ export async function PUT(request: Request) {
       await db.activityLog.create({
         data: {
           userId,
-          action: adjustAmount > 0 ? 'admin_add_balance' : 'admin_subtract_balance',
+          action: adjustAmount > 0
+            ? (isVolumeAdjust ? 'admin_add_volume' : 'admin_add_balance')
+            : (isVolumeAdjust ? 'admin_subtract_volume' : 'admin_subtract_balance'),
           details: JSON.stringify({
             amount: adjustAmount,
             wallet: targetWallet,
@@ -207,16 +242,45 @@ export async function PUT(request: Request) {
       })
 
       // Send notification to user
+      const formattedAmount = isVolumeAdjust
+        ? `${adjustAmount.toFixed(2)} Vol`
+        : `$${Math.abs(adjustAmount).toFixed(2)}`
+
       await db.notification.create({
         data: {
           userId,
-          title: adjustAmount > 0 ? 'Balance Credited' : 'Balance Adjusted',
+          title: adjustAmount > 0
+            ? (isVolumeAdjust ? 'Volume Credited' : 'Balance Credited')
+            : (isVolumeAdjust ? 'Volume Adjusted' : 'Balance Adjusted'),
           message: adjustAmount > 0
-            ? `$${adjustAmount.toFixed(2)} has been added to your ${targetWallet} wallet. ${remarks ? `Reason: ${remarks}` : ''}`
-            : `$${Math.abs(adjustAmount).toFixed(2)} has been deducted from your ${targetWallet} wallet. ${remarks ? `Reason: ${remarks}` : ''}`,
+            ? `${formattedAmount} has been added to your ${targetWallet.toUpperCase()} parameter. ${remarks ? `Reason: ${remarks}` : ''}`
+            : `${formattedAmount} has been deducted from your ${targetWallet.toUpperCase()} parameter. ${remarks ? `Reason: ${remarks}` : ''}`,
           type: adjustAmount > 0 ? 'success' : 'warning',
         },
       })
+
+      // Also trigger rank upgrade checks in case adding PV/BV/TV pushes them to a new rank
+      if (isVolumeAdjust) {
+        try {
+          const activeDeposits = await db.deposit.findMany({
+            where: { userId, status: { in: ['active', 'locked'] } },
+            include: { plan: true }
+          })
+          let binaryPlan = activeDeposits.map(d => d.plan).find(p => p.isBinaryMlmEnabled)
+          if (!binaryPlan) {
+            binaryPlan = await db.plan.findFirst({
+              where: { isBinaryMlmEnabled: true, isActive: true },
+              orderBy: { sortOrder: 'asc' }
+            })
+          }
+          if (binaryPlan) {
+            const { checkMlmRankUpgrade } = await import('@/lib/binary-tree')
+            await checkMlmRankUpgrade(userId, binaryPlan)
+          }
+        } catch (e) {
+          console.error('Failed to trigger rank check after volume adjustment:', e)
+        }
+      }
 
       return NextResponse.json({ success: true, newBalance, wallet: targetWallet })
     }

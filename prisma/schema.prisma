@@ -84,6 +84,12 @@ model User {
   binaryTreeLeftVolumeCarryForward Float     @default(0)
   binaryTreeRightVolumeCarryForward Float    @default(0)
 
+  personalVolume Float @default(0)
+  businessVolume Float @default(0)
+  teamVolume     Float @default(0)
+  mlmRank        String @default("Member")
+  mlmLevel       Int    @default(0)
+
   affiliateApplications AffiliateApplication[]
 }
 
@@ -172,6 +178,12 @@ model Plan {
   binaryCycleBonusPercent     Float     @default(5.0)
   binaryCycleBonusType        String    @default("percent")
   binaryCycleBonusFixed       Float     @default(0.0)
+
+  binaryPvRatio               Float     @default(1.0)
+  binaryBvRatio               Float     @default(1.0)
+  binaryTvRatio               Float     @default(1.0)
+  mlmRewardsConfig            String?
+  mlmPoolsConfig              String?
 
   // Advanced Profit & Loss Configuration
   minLossPercent             Float    @default(0.1)
