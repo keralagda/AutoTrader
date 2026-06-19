@@ -148,7 +148,7 @@ export function VoiceNavigator() {
       }
 
       const triggerKey = voiceSettings?.triggerKey || 'v'
-      if (e.key.toLowerCase() === triggerKey.toLowerCase()) {
+      if (e.key && e.key.toLowerCase() === triggerKey.toLowerCase()) {
         e.preventDefault()
         toggleListening()
       }
