@@ -54,6 +54,7 @@ const navItems: NavItem[] = [
   { id: 'deposit', label: 'Deposit', icon: CreditCard },
   { id: 'withdraw', label: 'Withdrawal', icon: Wallet },
   { id: 'team', label: 'Team', icon: Users },
+  { id: 'mlm_rewards', label: 'Gifts & Rewards', icon: Trophy },
   { id: 'rewards', label: 'Rewards Store', icon: Sparkles, badge: 'NP' },
   { id: 'challenges', label: 'Competition', icon: Target },
   { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
@@ -145,7 +146,12 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
-          {navItems.map((item) => {
+          {navItems.filter((item) => {
+            if (item.id === 'mlm_rewards') {
+              return (user?.teamVolume || 0) >= 1000
+            }
+            return true
+          }).map((item) => {
             const isActive = dashboardTab === item.id
             const Icon = item.icon
             return (

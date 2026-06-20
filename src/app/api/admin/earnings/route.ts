@@ -123,13 +123,6 @@ export async function PUT(req: NextRequest) {
         },
       })
 
-      // Update binary MLM volumes
-      try {
-        const { updateBinaryTreeVolumes } = await import('@/lib/binary-tree')
-        await updateBinaryTreeVolumes(deposit.userId, deposit.amount)
-      } catch (err) {
-        console.error('Failed to update binary tree volumes for approved deposit:', err)
-      }
 
       // Also set the user's isActive to true so they receive profit distribution
       await db.user.update({

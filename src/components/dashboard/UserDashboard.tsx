@@ -21,6 +21,7 @@ import { ResourcesTab } from './ResourcesTab'
 import { HelpCenterTab } from './HelpCenterTab'
 import { WelcomeTour } from './WelcomeTour'
 import { MobileBottomNav } from './MobileBottomNav'
+import { MlmRewardsTab } from './MlmRewardsTab'
 import { NotificationCenter } from './NotificationCenter'
 import { ProfitNotification } from './ProfitNotification'
 import { SessionTimeout } from '@/components/SessionTimeout'
@@ -75,6 +76,7 @@ const TAB_META: Record<
   resources: { title: 'Resources', icon: Sparkles },
   help: { title: 'Help Center', icon: Sparkles },
   rewards: { title: 'Rewards Store', icon: Sparkles },
+  mlm_rewards: { title: 'Gifts & Rewards', icon: Trophy },
   security: { title: 'Security', icon: Shield },
 }
 
@@ -259,6 +261,7 @@ export function UserDashboard() {
       case 'help': return <HelpCenterTab />
       case 'security': return <SecurityTab />
       case 'rewards': return <NovaPointsStore />
+      case 'mlm_rewards': return <MlmRewardsTab />
       default: return <OverviewTab />
     }
   }

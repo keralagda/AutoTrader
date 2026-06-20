@@ -40,7 +40,7 @@ const moreNavItems: { id: DashboardTab; label: string; icon: React.ComponentType
 ]
 
 export function MobileBottomNav() {
-  const { dashboardTab, setDashboardTab, logout } = useAppStore()
+  const { dashboardTab, setDashboardTab, logout, user } = useAppStore()
   const [showMore, setShowMore] = useState(false)
 
   const handleNav = (id: DashboardTab) => {
@@ -65,7 +65,12 @@ export function MobileBottomNav() {
               </button>
             </div>
             <div className="grid grid-cols-4 gap-3">
-              {moreNavItems.map(item => {
+              {[...moreNavItems, { id: 'mlm_rewards', label: 'Gifts & Rewards', icon: Trophy } as any].filter((item) => {
+                if (item.id === 'mlm_rewards') {
+                  return (user?.teamVolume || 0) >= 1000
+                }
+                return true
+              }).map(item => {
                 const Icon = item.icon
                 const isActive = dashboardTab === item.id
                 return (

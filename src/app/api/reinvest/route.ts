@@ -110,13 +110,6 @@ export async function POST(request: Request) {
       },
     })
 
-    // Update binary MLM volumes
-    try {
-      const { updateBinaryTreeVolumes } = await import('@/lib/binary-tree')
-      await updateBinaryTreeVolumes(userId, reinvestAmount)
-    } catch (err) {
-      console.error('Failed to update binary tree volumes for reinvest deposit:', err)
-    }
 
     // Reinvestment Bonus
     const REINVEST_BONUS_PERCENT = plan.reinvestBonus !== undefined ? plan.reinvestBonus : 2

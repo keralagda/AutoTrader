@@ -121,28 +121,28 @@ export function OverviewTab() {
     },
     {
       label: 'Left Volume',
-      value: `$${(profile?.binaryTreeLeftVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      value: `${(profile?.binaryTreeLeftVolume || 0).toLocaleString()} BV`,
       icon: '⬅️',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50/10',
     },
     {
       label: 'Right Volume',
-      value: `$${(profile?.binaryTreeRightVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      value: `${(profile?.binaryTreeRightVolume || 0).toLocaleString()} BV`,
       icon: '➡️',
       color: 'text-red-600',
       bgColor: 'bg-red-50/10',
     },
     {
       label: 'Left Carry Forward',
-      value: `$${(profile?.binaryTreeLeftVolumeCarryForward || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      value: `${(profile?.binaryTreeLeftVolumeCarryForward || 0).toLocaleString()} BV`,
       icon: '↶',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50/10',
     },
     {
       label: 'Right Carry Forward',
-      value: `$${(profile?.binaryTreeRightVolumeCarryForward || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+      value: `${(profile?.binaryTreeRightVolumeCarryForward || 0).toLocaleString()} BV`,
       icon: '↷',
       color: 'text-pink-600',
       bgColor: 'bg-pink-50/10',
@@ -175,7 +175,11 @@ export function OverviewTab() {
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className={`h-10 w-10 rounded-lg ${stat.bgColor} flex items-center justify-center shrink-0`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
+                    {typeof Icon === 'string' ? (
+                      <span className="text-lg">{Icon}</span>
+                    ) : (
+                      <Icon className={`h-5 w-5 ${stat.color}`} />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">{stat.label}</p>

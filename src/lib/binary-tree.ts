@@ -76,6 +76,15 @@ async function findFirstEmptySlotBFS(startUserId: string): Promise<{ parentId: s
  * Utilizes the sponsor's active binary MLM plan spillover configuration.
  */
 export async function placeUserInBinaryTree(newUserId: string, sponsorId: string) {
+  const user = await db.user.findUnique({
+    where: { id: newUserId },
+    select: { binaryTreeParentId: true, binaryTreePosition: true }
+  })
+  if (user?.binaryTreeParentId || (user?.binaryTreePosition && user.binaryTreePosition !== '')) {
+    // Already placed in binary tree
+    return
+  }
+
   const sponsor = await db.user.findUnique({ where: { id: sponsorId } })
   if (!sponsor) return
 
@@ -84,8 +93,28 @@ export async function placeUserInBinaryTree(newUserId: string, sponsorId: string
     where: { userId: sponsorId, status: { in: ['active', 'locked'] } },
     include: { plan: true }
   })
-  const binaryPlan = activeDeposits.map(d => d.plan).find(p => p.isBinaryMlmEnabled)
-  const placement = binaryPlan?.binarySpilloverPlacement || 'balanced'
+  let binaryPlan = activeDeposits.map(d => d.plan).find(p => p.isBinaryMlmEnabled)
+
+  if (!binaryPlan) {
+    const setting = await db.setting.findUnique({ where: { key: `activated_plans_${sponsorId}` } })
+    const activatedPlanIds: string[] = setting ? JSON.parse(setting.value) : []
+    if (activatedPlanIds.length > 0) {
+      binaryPlan = await db.plan.findFirst({
+        where: { id: { in: activatedPlanIds }, isBinaryMlmEnabled: true, isActive: true }
+      })
+    }
+  }
+
+  if (!binaryPlan) {
+    binaryPlan = await db.plan.findFirst({
+      where: { isBinaryMlmEnabled: true, isActive: true },
+      orderBy: { sortOrder: 'asc' }
+    })
+  }
+
+  // Check sponsor's custom placement preference, fallback to plan config
+  const prefSetting = await db.setting.findUnique({ where: { key: `binary_placement_pref_${sponsorId}` } })
+  const placement = prefSetting?.value || binaryPlan?.binarySpilloverPlacement || 'balanced'
 
   let targetParentId = sponsorId
   let position: 'left' | 'right' = 'left'
@@ -190,19 +219,25 @@ export async function placeUserInBinaryTree(newUserId: string, sponsorId: string
  * Updates the cumulative left/right volumes and carry forward volumes recursively upwards for all ancestors.
  * Also increments the PV for the user, BV for the sponsor, and TV recursively for ancestors, then runs rank checks.
  */
-export async function updateBinaryTreeVolumes(userId: string, amount: number) {
+export async function updateBinaryTreeVolumes(userId: string, amount: number, planId?: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { id: true, referredById: true }
   })
   if (!user) return
 
-  // Find user's active plan with binary MLM enabled or fallback
-  const activeDeposits = await db.deposit.findMany({
-    where: { userId, status: { in: ['active', 'locked'] } },
-    include: { plan: true }
-  })
-  let plan = activeDeposits.map(d => d.plan).find(p => p.isBinaryMlmEnabled)
+  let plan: any = null
+  if (planId) {
+    plan = await db.plan.findUnique({ where: { id: planId } })
+  }
+  if (!plan) {
+    // Find user's active plan with binary MLM enabled or fallback
+    const activeDeposits = await db.deposit.findMany({
+      where: { userId, status: { in: ['active', 'locked'] } },
+      include: { plan: true }
+    })
+    plan = activeDeposits.map(d => d.plan).find(p => p.isBinaryMlmEnabled)
+  }
   if (!plan) {
     plan = await db.plan.findFirst({
       where: { isBinaryMlmEnabled: true }
@@ -478,15 +513,54 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
   const matchingType = plan.binaryMatchingType || 'weaker_leg'
 
   // Remaining volume after cycle deduction
-  const leftAfterCycle = Math.max(0, leftCF - cycles * leftUnit)
-  const rightAfterCycle = Math.max(0, rightCF - cycles * rightUnit)
+  let leftAfterCycle = Math.max(0, leftCF - cycles * leftUnit)
+  let rightAfterCycle = Math.max(0, rightCF - cycles * rightUnit)
 
-  if (matchingType === 'weaker_leg') {
-    matchedVolume = Math.min(leftAfterCycle, rightAfterCycle)
-  } else if (matchingType === 'both_legs') {
-    matchedVolume = leftAfterCycle + rightAfterCycle
-  } else if (matchingType === 'stronger_leg') {
-    matchedVolume = Math.max(leftAfterCycle, rightAfterCycle)
+  // First Pair Check (1:2 or 2:1 ratio from registration amount)
+  const firstPairSettingKey = `binary_first_pair_matched_${userId}`
+  const firstPairSetting = await db.setting.findUnique({ where: { key: firstPairSettingKey } })
+  const hasMatchedFirstPair = firstPairSetting?.value === 'true'
+
+  let firstPairBonus = 0
+  let isFirstPairMatch = false
+  let firstPairLeftDeduct = 0
+  let firstPairRightDeduct = 0
+
+  if (!hasMatchedFirstPair) {
+    if (leftAfterCycle >= 100 && rightAfterCycle >= 200) {
+      isFirstPairMatch = true
+      firstPairLeftDeduct = 100
+      firstPairRightDeduct = 200
+    } else if (leftAfterCycle >= 200 && rightAfterCycle >= 100) {
+      isFirstPairMatch = true
+      firstPairLeftDeduct = 200
+      firstPairRightDeduct = 100
+    }
+
+    if (isFirstPairMatch) {
+      // First pair pairing bonus is 10% of weaker side (100 BV), which is $10.
+      firstPairBonus = 100 * ((plan.binaryPairingBonusPercent || 10) / 100)
+      leftAfterCycle -= firstPairLeftDeduct
+      rightAfterCycle -= firstPairRightDeduct
+      
+      // Save setting that first pair has been matched
+      await db.setting.upsert({
+        where: { key: firstPairSettingKey },
+        update: { value: 'true' },
+        create: { key: firstPairSettingKey, value: 'true' },
+      })
+    }
+  }
+
+  // Only allow standard pairing if first pair is matched (or matched in this run)
+  if (hasMatchedFirstPair || isFirstPairMatch) {
+    if (matchingType === 'weaker_leg') {
+      matchedVolume = Math.min(leftAfterCycle, rightAfterCycle)
+    } else if (matchingType === 'both_legs') {
+      matchedVolume = leftAfterCycle + rightAfterCycle
+    } else if (matchingType === 'stronger_leg') {
+      matchedVolume = Math.max(leftAfterCycle, rightAfterCycle)
+    }
   }
 
   let finalPairingBonus = 0
@@ -553,7 +627,7 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
     }
   }
 
-  if (cycleBonus <= 0 && finalPairingBonus <= 0) return
+  if (cycleBonus <= 0 && finalPairingBonus <= 0 && firstPairBonus <= 0) return
 
   // Calculate final carry forwards
   let newLeftCF = leftAfterCycle
@@ -588,7 +662,7 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
 
   // --- 3. Execute Transaction for Pairing & Cycle Bonuses ---
   await db.$transaction(async (tx) => {
-    const totalBonus = finalPairingBonus + cycleBonus
+    const totalBonus = finalPairingBonus + cycleBonus + firstPairBonus
 
     await tx.user.update({
       where: { id: userId },
@@ -599,6 +673,42 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
         binaryTreeRightVolumeCarryForward: newRightCF,
       }
     })
+
+    let currentBalance = user.tradingBalance
+
+    if (firstPairBonus > 0) {
+      await tx.earning.create({
+        data: {
+          userId,
+          amount: firstPairBonus,
+          type: 'binary_pairing_bonus',
+          walletTarget: 'trading',
+        }
+      })
+
+      await tx.transactionLog.create({
+        data: {
+          userId,
+          type: 'bonus',
+          amount: firstPairBonus,
+          balanceBefore: currentBalance,
+          balanceAfter: currentBalance + firstPairBonus,
+          wallet: 'trading',
+          description: `Binary MLM First Pair Bonus (1:2 or 2:1 ratio)`,
+        }
+      })
+
+      await tx.notification.create({
+        data: {
+          userId,
+          title: 'First Binary Pair Matched! 🚀',
+          message: `Congratulations! You earned $${firstPairBonus.toFixed(2)} from matching your first binary pair.`,
+          type: 'earning',
+        }
+      })
+
+      currentBalance += firstPairBonus
+    }
 
     if (finalPairingBonus > 0) {
       await tx.earning.create({
@@ -615,8 +725,8 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
           userId,
           type: 'bonus',
           amount: finalPairingBonus,
-          balanceBefore: user.tradingBalance,
-          balanceAfter: user.tradingBalance + finalPairingBonus,
+          balanceBefore: currentBalance,
+          balanceAfter: currentBalance + finalPairingBonus,
           wallet: 'trading',
           description: `Binary MLM Pairing Bonus (${matchingType} matching)`,
         }
@@ -630,6 +740,8 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
           type: 'earning',
         }
       })
+
+      currentBalance += finalPairingBonus
     }
 
     if (cycleBonus > 0) {
@@ -647,8 +759,8 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
           userId,
           type: 'bonus',
           amount: cycleBonus,
-          balanceBefore: user.tradingBalance + finalPairingBonus,
-          balanceAfter: user.tradingBalance + finalPairingBonus + cycleBonus,
+          balanceBefore: currentBalance,
+          balanceAfter: currentBalance + cycleBonus,
           wallet: 'trading',
           description: `Binary MLM Cycle Bonus (${cycles} cycle(s) completed)`,
         }
@@ -735,6 +847,7 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
     {
       cycleBonus,
       finalPairingBonus,
+      firstPairBonus,
       flushBonus: typeof flushBonus !== 'undefined' ? flushBonus : 0,
       planId: plan.id,
       planName: plan.name,

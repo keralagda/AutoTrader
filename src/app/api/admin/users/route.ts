@@ -428,22 +428,15 @@ export async function POST(request: Request) {
       },
     })
 
-    // Binary tree placement if referred
+    // Notify sponsor if referred (binary tree placement happens upon plan activation)
     if (referredById) {
-      try {
-        const { placeUserInBinaryTree } = await import('@/lib/binary-tree')
-        await placeUserInBinaryTree(user.id, referredById)
-      } catch (err) {
-        console.error('Failed to place user in binary tree during admin creation:', err)
-      }
-
       const referrer = await db.user.findUnique({ where: { id: referredById } })
       if (referrer) {
         await db.notification.create({
           data: {
             userId: referrer.id,
-            title: 'New Team Member! 🎉',
-            message: `${user.name} has been placed in your network.`,
+            title: 'New Referral! 🎉',
+            message: `${user.name} joined using your referral link. They will be placed in your binary network upon plan activation.`,
             type: 'referral',
             createdAt: userCreationDate,
           },

@@ -264,12 +264,6 @@ export async function POST(request: Request) {
 
     // Process referral earnings from deposit bonus (only for immediately active deposits, not pending)
     if (depositStatus !== 'pending') {
-      try {
-        const { updateBinaryTreeVolumes } = await import('@/lib/binary-tree')
-        await updateBinaryTreeVolumes(userId, amount)
-      } catch (err) {
-        console.error('Failed to update binary tree volumes for deposit:', err)
-      }
 
       const planNameLower = plan.name.toLowerCase()
       const isDailyFlashPlan = planNameLower.includes('silver') || planNameLower.includes('gold') || planNameLower.includes('platinum')

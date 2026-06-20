@@ -216,6 +216,26 @@ export async function POST(req: NextRequest) {
       create: { key: `activated_plans_${userId}`, value: JSON.stringify(activatedPlanIds) },
     })
 
+    // Binary MLM tree placement and volume updates if binary MLM features are enabled on the plan
+    if (plan.isBinaryMlmEnabled) {
+      if (user.referredById) {
+        try {
+          const { placeUserInBinaryTree } = await import('@/lib/binary-tree')
+          await placeUserInBinaryTree(userId, user.referredById)
+        } catch (err) {
+          console.error('Failed to place user in binary tree during plan activation:', err)
+        }
+      }
+      if (activationFee > 0) {
+        try {
+          const { updateBinaryTreeVolumes } = await import('@/lib/binary-tree')
+          await updateBinaryTreeVolumes(userId, activationFee, planId)
+        } catch (err) {
+          console.error('Failed to update binary tree volumes during plan activation:', err)
+        }
+      }
+    }
+
     // Transaction log
     await db.transactionLog.create({
       data: {

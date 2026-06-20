@@ -30,8 +30,11 @@ import {
 } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BinaryPlanEditor } from './binary-plans/BinaryPlanEditor'
-import { BinaryPlanSummary } from './binary-plans/BinaryPlanSummary'
+import { BinaryMlmSettings } from './binary-plans/BinaryMlmSettings'
+import { BinaryPairingSettings } from './binary-plans/BinaryPairingSettings'
+import { BinarySpilloverSettings } from './binary-plans/BinarySpilloverSettings'
+import { BinaryFlushSettings } from './binary-plans/BinaryFlushSettings'
+import { BinaryCycleSettings } from './binary-plans/BinaryCycleSettings'
 
 const getPlanLimitMultiplier = (planName: string): string => {
   const name = planName.toLowerCase()
@@ -144,7 +147,6 @@ const SUB_DIST_COLORS = {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export function PlansTab() {
   const [plans, setPlans] = useState<EditablePlan[]>([])
-  const [activeTab, setActiveTab] = useState('standard')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -573,31 +575,20 @@ export function PlansTab() {
         </div>
 
         {/* Full-page Plan Form */}
-        {newPlanData.isBinaryMlmEnabled ? (
-          <BinaryPlanEditor
-            plan={newPlanData}
-            saving={saving === newPlanData.id}
-            onCancel={() => { setShowCreateDialog(false); setNewPlanData(null) }}
-            onSave={handleSaveNewPlan}
-            onChange={handleNewPlanChange}
-            onRegenerateField={handleNewPlanRegenerateField}
-          />
-        ) : (
-          <PlanCard
-            plan={newPlanData}
-            saving={saving === newPlanData.id}
-            onDelete={() => {}}
-            onEdit={() => {}}
-            onCancel={() => { setShowCreateDialog(false); setNewPlanData(null) }}
-            onSave={handleSaveNewPlan}
-            onChange={handleNewPlanChange}
-            onToggleExpand={() => setNewPlanData(prev => prev ? { ...prev, isExpanded: !prev.isExpanded } : prev)}
-            onRegenerateField={handleNewPlanRegenerateField}
-            isDeleteTarget={false}
-            onDeleteConfirm={() => {}}
-            onDeleteCancel={() => {}}
-          />
-        )}
+        <PlanCard
+          plan={newPlanData}
+          saving={saving === newPlanData.id}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onCancel={() => { setShowCreateDialog(false); setNewPlanData(null) }}
+          onSave={handleSaveNewPlan}
+          onChange={handleNewPlanChange}
+          onToggleExpand={() => setNewPlanData(prev => prev ? { ...prev, isExpanded: !prev.isExpanded } : prev)}
+          onRegenerateField={handleNewPlanRegenerateField}
+          isDeleteTarget={false}
+          onDeleteConfirm={() => {}}
+          onDeleteCancel={() => {}}
+        />
       </div>
     )
   }
@@ -611,86 +602,39 @@ export function PlansTab() {
           <h2 className="text-2xl font-bold text-foreground">Investment Plans</h2>
           <p className="text-sm text-muted-foreground mt-1">Advanced plan builder with field-based configuration</p>
         </div>
-        <Button onClick={() => handleAddNew(activeTab === 'binary')} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+        <Button onClick={() => handleAddNew(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
           <Plus className="h-4 w-4" />
-          {activeTab === 'binary' ? 'Add Binary Plan' : 'Add New Plan'}
+          Add New Plan
         </Button>
       </div>
 
-      <Tabs defaultValue="standard" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-muted/20 border border-border/50 max-w-[400px]">
-          <TabsTrigger value="standard" className="text-xs data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-            Standard Investment Plans
-          </TabsTrigger>
-          <TabsTrigger value="binary" className="text-xs data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-            Binary MLM Plans
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="standard" className="space-y-4 mt-6">
-          {plans.filter(p => !p.isNew && !p.isBinaryMlmEnabled).map(plan => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              saving={saving === plan.id}
-              onDelete={() => setDeleteTarget(plan.id)}
-              onEdit={() => handleEdit(plan.id)}
-              onCancel={() => handleCancel(plan.id)}
-              onSave={() => handleSave(plan)}
-              onChange={handleChange}
-              onToggleExpand={() => handleToggleExpand(plan.id)}
-              onRegenerateField={handleRegenerateField}
-              isDeleteTarget={deleteTarget === plan.id}
-              onDeleteConfirm={() => handleDelete(plan.id)}
-              onDeleteCancel={() => setDeleteTarget(null)}
-            />
-          ))}
-          {plans.filter(p => !p.isNew && !p.isBinaryMlmEnabled).length === 0 && (
-            <Card className="bg-card/50 border-border/50 border-dashed">
-              <CardContent className="py-12 text-center">
-                <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">No standard plans yet. Click &ldquo;Add New Plan&rdquo; to create one.</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="binary" className="space-y-4 mt-6">
-          {plans.filter(p => !p.isNew && p.isBinaryMlmEnabled).map(plan => (
-            <div key={plan.id}>
-              {plan.isEditing ? (
-                <BinaryPlanEditor
-                  plan={plan}
-                  saving={saving === plan.id}
-                  onCancel={() => handleCancel(plan.id)}
-                  onSave={() => handleSave(plan)}
-                  onChange={handleChange}
-                  onRegenerateField={handleRegenerateField}
-                />
-              ) : (
-                <BinaryPlanSummary
-                  plan={plan}
-                  onEdit={() => handleEdit(plan.id)}
-                  onDelete={() => setDeleteTarget(plan.id)}
-                  isExpanded={!!plan.isExpanded}
-                  onToggleExpand={() => handleToggleExpand(plan.id)}
-                  isDeleteTarget={deleteTarget === plan.id}
-                  onDeleteConfirm={() => handleDelete(plan.id)}
-                  onDeleteCancel={() => setDeleteTarget(null)}
-                />
-              )}
-            </div>
-          ))}
-          {plans.filter(p => !p.isNew && p.isBinaryMlmEnabled).length === 0 && (
-            <Card className="bg-card/50 border-border/50 border-dashed">
-              <CardContent className="py-12 text-center">
-                <Network className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <p className="text-muted-foreground">No Binary MLM plans yet. Click &ldquo;Add Binary Plan&rdquo; to create one.</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-4 mt-6">
+        {plans.filter(p => !p.isNew).map(plan => (
+          <PlanCard
+            key={plan.id}
+            plan={plan}
+            saving={saving === plan.id}
+            onDelete={() => setDeleteTarget(plan.id)}
+            onEdit={() => handleEdit(plan.id)}
+            onCancel={() => handleCancel(plan.id)}
+            onSave={() => handleSave(plan)}
+            onChange={handleChange}
+            onToggleExpand={() => handleToggleExpand(plan.id)}
+            onRegenerateField={handleRegenerateField}
+            isDeleteTarget={deleteTarget === plan.id}
+            onDeleteConfirm={() => handleDelete(plan.id)}
+            onDeleteCancel={() => setDeleteTarget(null)}
+          />
+        ))}
+        {plans.filter(p => !p.isNew).length === 0 && (
+          <Card className="bg-card/50 border-border/50 border-dashed">
+            <CardContent className="py-12 text-center">
+              <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground">No plans yet. Click &ldquo;Add New Plan&rdquo; to create one.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Floating Yield Simulator Toggle */}
       <div className="fixed bottom-6 right-6 z-50">
@@ -1616,8 +1560,31 @@ function PlanEditor({
                 onCheckedChange={checked => ch('isActive', checked)}
               />
             </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+              <div>
+                <p className="text-sm font-medium text-foreground">Binary MLM Enabled</p>
+                <p className="text-xs text-muted-foreground">Activate Binary placements and volumes for this plan</p>
+              </div>
+              <Switch
+                checked={plan.isBinaryMlmEnabled || false}
+                onCheckedChange={checked => ch('isBinaryMlmEnabled', checked)}
+              />
+            </div>
           </div>
         </SectionCard>
+
+        {plan.isBinaryMlmEnabled && (
+          <div className="space-y-6 border border-dashed border-emerald-500/30 p-4 rounded-xl bg-emerald-500/5">
+            <h4 className="text-sm font-bold text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
+              <Network className="h-4 w-4" /> Binary MLM Configuration
+            </h4>
+            <BinaryMlmSettings plan={plan} onChange={ch} />
+            <BinaryPairingSettings plan={plan} onChange={ch} />
+            <BinarySpilloverSettings plan={plan} onChange={ch} />
+            <BinaryFlushSettings plan={plan} onChange={ch} />
+            <BinaryCycleSettings plan={plan} onChange={ch} />
+          </div>
+        )}
 
         {/* Section 2: Deposit & Earning Rules */}
         <SectionCard icon={<DollarSign className="h-4 w-4 text-emerald-400" />} title="Deposit & Earning Rules">
