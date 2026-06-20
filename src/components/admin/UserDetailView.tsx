@@ -31,6 +31,13 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
   const [customSubject, setCustomSubject] = useState('')
   const [customMessage, setCustomMessage] = useState('')
 
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [isEmailVerified, setIsEmailVerified] = useState(false)
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false)
+  const [updatingProfile, setUpdatingProfile] = useState(false)
+
   const handleSendEmail = async (type: string) => {
     setSendingEmail(type)
     try {
@@ -85,8 +92,56 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
         setRiskCategory(data.riskCategory || 'medium')
         setCustomWinMin(data.customWinMin?.toString() || '')
         setCustomWinMax(data.customWinMax?.toString() || '')
+        setEditName(data.name || '')
+        setEditEmail(data.email || '')
+        setEditPhone(data.phone || '')
+        setIsEmailVerified(data.isEmailVerified || false)
+        setIsPhoneVerified(data.isPhoneVerified || false)
       }
     } catch {} finally { setLoading(false) }
+  }
+
+  const handleUpdateProfile = async (fieldOverrides?: any) => {
+    setUpdatingProfile(true)
+    try {
+      const payload = {
+        userId,
+        editProfile: {
+          name: editName,
+          email: editEmail,
+          phone: editPhone,
+          isEmailVerified,
+          isPhoneVerified,
+          ...fieldOverrides
+        }
+      }
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        toast({ title: 'Success', description: 'Profile details updated successfully' })
+        loadUser()
+      } else {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to update profile')
+      }
+    } catch (err: any) {
+      toast({ title: 'Update failed', description: err.message, variant: 'destructive' })
+    } finally {
+      setUpdatingProfile(false)
+    }
+  }
+
+  const handleToggleEmailVerified = async (newVal: boolean) => {
+    setIsEmailVerified(newVal)
+    await handleUpdateProfile({ isEmailVerified: newVal })
+  }
+
+  const handleTogglePhoneVerified = async (newVal: boolean) => {
+    setIsPhoneVerified(newVal)
+    await handleUpdateProfile({ isPhoneVerified: newVal })
   }
 
   const handleSaveRisk = async () => {
@@ -260,6 +315,118 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Save Risk Settings
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Email & Phone Validation / Edit Profile */}
+        <Card className="bg-card/50 border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4 text-emerald-400" /> Email & Phone Validation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            
+            {/* Live edits */}
+            <div className="space-y-3 p-3 rounded-lg bg-background/25 border border-border/20">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase font-mono mb-1">Verify or Edit Details</p>
+              
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-[9px] text-muted-foreground">Full Name</Label>
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="h-8 text-xs font-medium"
+                    disabled={updatingProfile}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-[9px] text-muted-foreground">Email Address</Label>
+                  <Input
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="h-8 text-xs font-medium font-mono"
+                    disabled={updatingProfile}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-[9px] text-muted-foreground">Phone Number</Label>
+                  <Input
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="h-8 text-xs font-medium font-mono"
+                    placeholder="Not provided"
+                    disabled={updatingProfile}
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleUpdateProfile()}
+                  disabled={updatingProfile}
+                  className="w-full h-8 text-[11px] font-bold mt-1 bg-emerald-500 hover:bg-emerald-600 text-black"
+                >
+                  {updatingProfile && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                  Save Info Corrections
+                </Button>
+              </div>
+
+            </div>
+
+            <Separator className="bg-border/30" />
+
+            {/* Email Validation Toggle */}
+            <div className="flex items-center justify-between p-2 rounded-lg bg-background/40 border border-border/30">
+              <div>
+                <p className="text-xs font-semibold text-foreground">Email Verification</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">
+                  Status: {isEmailVerified ? (
+                    <span className="text-emerald-400 font-bold">Verified ✅</span>
+                  ) : (
+                    <span className="text-rose-400 font-bold">Unverified ❌</span>
+                  )}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant={isEmailVerified ? 'outline' : 'default'}
+                onClick={() => handleToggleEmailVerified(!isEmailVerified)}
+                disabled={updatingProfile}
+                className={`h-7 text-[10px] px-3 font-semibold ${isEmailVerified ? 'text-rose-400 border-rose-500/25 hover:bg-rose-500/10' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+              >
+                {isEmailVerified ? 'Mark Unverified' : 'Mark Verified'}
+              </Button>
+            </div>
+
+            {/* Phone Validation Toggle */}
+            <div className="flex items-center justify-between p-2 rounded-lg bg-background/40 border border-border/30">
+              <div>
+                <p className="text-xs font-semibold text-foreground">Phone Validation</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">
+                  Status: {isPhoneVerified ? (
+                    <span className="text-emerald-400 font-bold">Verified ✅</span>
+                  ) : (
+                    <span className="text-rose-400 font-bold">Unverified ❌</span>
+                  )}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant={isPhoneVerified ? 'outline' : 'default'}
+                onClick={() => handleTogglePhoneVerified(!isPhoneVerified)}
+                disabled={updatingProfile}
+                className={`h-7 text-[10px] px-3 font-semibold ${isPhoneVerified ? 'text-rose-400 border-rose-500/25 hover:bg-rose-500/10' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}`}
+              >
+                {isPhoneVerified ? 'Mark Unverified' : 'Mark Verified'}
+              </Button>
+            </div>
+
           </CardContent>
         </Card>
 

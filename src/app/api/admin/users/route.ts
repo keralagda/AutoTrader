@@ -24,7 +24,16 @@ export async function GET(request: Request) {
         },
       })
       if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-      return NextResponse.json(user)
+      
+      const phoneVerifiedSetting = await db.setting.findUnique({
+        where: { key: `phone_verified_${userId}` }
+      })
+      const isPhoneVerified = phoneVerifiedSetting?.value === 'true'
+
+      return NextResponse.json({
+        ...user,
+        isPhoneVerified,
+      })
     }
 
     // List all users (exclude fake profiles - they have their own management tab)
@@ -97,11 +106,20 @@ export async function PUT(request: Request) {
       if (editProfile.referralCode !== undefined) updateData.referralCode = editProfile.referralCode
       if (editProfile.isActive !== undefined) updateData.isActive = editProfile.isActive
       if (editProfile.kycStatus !== undefined) updateData.kycStatus = editProfile.kycStatus
+      if (editProfile.isEmailVerified !== undefined) updateData.isEmailVerified = editProfile.isEmailVerified
 
       const updated = await db.user.update({ where: { id: userId }, data: updateData })
 
+      if (editProfile.isPhoneVerified !== undefined) {
+        await db.setting.upsert({
+          where: { key: `phone_verified_${userId}` },
+          update: { value: editProfile.isPhoneVerified ? 'true' : 'false' },
+          create: { key: `phone_verified_${userId}`, value: editProfile.isPhoneVerified ? 'true' : 'false' }
+        })
+      }
+
       await db.activityLog.create({
-        data: { userId, action: 'admin_edit_profile', details: JSON.stringify({ fields: Object.keys(updateData) }) },
+        data: { userId, action: 'admin_edit_profile', details: JSON.stringify({ fields: Object.keys(updateData), isPhoneVerified: editProfile.isPhoneVerified }) },
       })
 
       return NextResponse.json({ success: true, user: updated })

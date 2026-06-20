@@ -373,22 +373,22 @@ export function TeamTab() {
           
           <div className="grid grid-cols-2 gap-1 text-[9px] text-muted-foreground bg-background/25 p-1 rounded border border-border/20">
             <div>
-              <span className="block font-semibold uppercase text-emerald-400">Left Leg</span>
+              <span className="block font-semibold uppercase text-emerald-400">Left volume</span>
               <span className="font-mono text-foreground">{node.binaryTreeLeftVolume.toLocaleString()} BV</span>
             </div>
             <div>
-              <span className="block font-semibold uppercase text-cyan-400">Right Leg</span>
+              <span className="block font-semibold uppercase text-cyan-400">Right Volume</span>
               <span className="font-mono text-foreground">{node.binaryTreeRightVolume.toLocaleString()} BV</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-1 text-[9px] text-muted-foreground mt-1 bg-background/25 p-1 rounded border border-border/20">
             <div>
-              <span className="block font-semibold uppercase text-purple-400">Left CF</span>
+              <span className="block font-semibold uppercase text-purple-400">Left Carry Forward</span>
               <span className="font-mono text-foreground">{node.binaryTreeLeftVolumeCarryForward.toLocaleString()} BV</span>
             </div>
             <div>
-              <span className="block font-semibold uppercase text-pink-400">Right CF</span>
+              <span className="block font-semibold uppercase text-pink-400">Right Carry Forward</span>
               <span className="font-mono text-foreground">{node.binaryTreeRightVolumeCarryForward.toLocaleString()} BV</span>
             </div>
           </div>
