@@ -132,6 +132,101 @@ export async function PUT(req: NextRequest) {
         },
       })
 
+      // Update binary tree volumes recursively for ancestors
+      if (plan.isBinaryMlmEnabled) {
+        const { updateBinaryTreeVolumes } = await import('@/lib/binary-tree')
+        await updateBinaryTreeVolumes(deposit.userId, deposit.amount, plan.id)
+      }
+
+      // Process referral earnings from deposit bonus
+      const referralRules = await db.planReferralRule.findMany({
+        where: { planId: plan.id, type: 'deposit', enabled: true }
+      })
+
+      const DEFAULT_DEP_PERCENTS = [5, 3, 2, 1, 1, 0.5, 0.5]
+      const maxLevels = plan.registrationReferralLevels || 7
+
+      let currentReferrerId = deposit.user.referredById
+      let level = 0
+
+      while (currentReferrerId && level < maxLevels) {
+        const referrer = await db.user.findUnique({ where: { id: currentReferrerId } })
+        if (!referrer) break
+
+        const directReferrals = await db.user.count({ where: { referredById: referrer.id } })
+
+        // Enforce direct referrals condition: Level L (1-indexed) requires >= L direct referrals
+        const requiredReferrals = level + 1
+        if (directReferrals < requiredReferrals) {
+          currentReferrerId = referrer.referredById
+          level++
+          continue
+        }
+
+        const activeDepositsList = await db.deposit.findMany({
+          where: { userId: referrer.id, status: 'active' },
+          select: { amount: true }
+        })
+        const activeDepositsTotal = activeDepositsList.reduce((sum, d) => sum + d.amount, 0)
+
+        // Process Deposit Bonus (based on deposit amount)
+        let depEarning = 0
+        const depRule = referralRules.find(r => r.level === (level + 1) && r.type === 'deposit')
+        if (depRule) {
+          if (activeDepositsTotal >= depRule.minSponsorDeposit && directReferrals >= depRule.minDirectReferrals) {
+            depEarning = depRule.amount > 0 ? depRule.amount : (deposit.amount * depRule.commission) / 100
+          }
+        } else {
+          const rate = DEFAULT_DEP_PERCENTS[level] !== undefined ? DEFAULT_DEP_PERCENTS[level] : 0
+          depEarning = (deposit.amount * rate) / 100
+        }
+
+        if (depEarning > 0) {
+          const depWallet = depRule?.targetWallet === 'withdrawal' ? 'withdrawal' : 'trading'
+
+          // Payout deposit bonus referral earnings
+          if (depWallet === 'withdrawal') {
+            await db.user.update({
+              where: { id: referrer.id },
+              data: {
+                withdrawalBalance: referrer.withdrawalBalance + depEarning,
+                totalEarnings: referrer.totalEarnings + depEarning
+              }
+            })
+          } else {
+            await db.user.update({
+              where: { id: referrer.id },
+              data: {
+                tradingBalance: referrer.tradingBalance + depEarning,
+                totalEarnings: referrer.totalEarnings + depEarning
+              }
+            })
+          }
+          await db.earning.create({
+            data: {
+              userId: referrer.id,
+              depositId: deposit.id,
+              amount: depEarning,
+              type: 'referral',
+              level: level + 1,
+              walletTarget: depWallet
+            }
+          })
+
+          await db.notification.create({
+            data: {
+              userId: referrer.id,
+              title: 'Referral Earnings!',
+              message: `You earned $${depEarning.toFixed(2)} from ${deposit.user.name}'s deposit (Level ${level + 1})`,
+              type: 'referral'
+            }
+          })
+        }
+
+        currentReferrerId = referrer.referredById
+        level++
+      }
+
       // Notify user
       await db.notification.create({
         data: {

@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
           if (activeDepositsTotal < rule.minSponsorDeposit || directReferrals < rule.minDirectReferrals) {
             qualified = false
           }
-          levelShare = rule.amount > 0 ? rule.amount : (teamPool * rule.commission) / 100
+          levelShare = rule.amount > 0 ? rule.amount : (activationFee * rule.commission) / 100
         } else {
           // Default checks (original level requirement)
           const requiredReferrals = level + 1
