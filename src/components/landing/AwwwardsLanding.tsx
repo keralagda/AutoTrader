@@ -6,6 +6,9 @@ import { useAppStore } from '@/lib/store'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, ArrowDown, Sparkles, Shield, Zap, Globe, Users, TrendingUp, ChevronRight } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
+import { useLandingContent } from './LandingPage'
+import StatsSection from './StatsSection'
+import DistributionSection from './DistributionSection'
 
 const getPlanLimitMultiplier = (plan: any): string => {
   if (plan && plan.dailyEarningCapPercent !== undefined) {
@@ -51,6 +54,13 @@ export function AwwwardsLanding() {
   const [time, setTime] = useState<string>('00:00:00')
   const heroRef = useRef<HTMLDivElement>(null)
   
+  const content = useLandingContent()
+  const navContent = content.navbar || {}
+  const heroContent = content.hero || {}
+  const statsContent = content.stats || {}
+  const footerContent = content.footer || {}
+  const testimonialsContent = content.testimonials || {}
+
   const { scrollYProgress } = useScroll()
   
   // Parallax translation, fade, and scale values directly tied to scroll timeline
@@ -110,6 +120,17 @@ export function AwwwardsLanding() {
     'Instant Withdrawals'
   ]
 
+  const heroStats = heroContent.stats || []
+  const marqueeItems = heroStats.length > 0
+    ? heroStats.map((s: any) => `${s.prefix || ''}${s.value}${s.suffix || ''} ${s.label}`)
+    : liveStatsMarquee
+
+  const heroTitle = heroContent.title || 'Wealth engineered.\nby sovereign intelligence.\nautomated. compounding.'
+  const lines = heroTitle.split('\n')
+  const line1 = lines[0] || 'Wealth engineered.'
+  const line2 = lines[1] || 'by sovereign intelligence.'
+  const line3 = lines[2] || 'automated. compounding.'
+
   return (
     <div className="bg-[#030303] text-[#f5f5f0] min-h-screen overflow-x-hidden selection:bg-amber-400/20 selection:text-amber-200">
       {/* ─── Premium Custom Cursor ─── */}
@@ -120,33 +141,43 @@ export function AwwwardsLanding() {
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 select-none">
             <img
-              src="/bnfx-logo.svg"
-              alt="BNFX"
+              src={navContent.logoImage || "/bnfx-logo.svg"}
+              alt="Logo"
               className="h-5 w-auto"
               onError={(e) => {
                 ;(e.target as HTMLImageElement).style.display = 'none'
               }}
             />
             <span className="font-mono text-sm tracking-wider uppercase font-bold text-white">
-              BNFX // CORE
+              {navContent.logoText || 'BNFX // CORE'}
             </span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-xs font-mono uppercase tracking-[0.2em] text-white/50">
-            <a href="#features" className="hover:text-white transition-colors">
-              [ Features ]
-            </a>
-            <a href="#plans" className="hover:text-white transition-colors">
-              [ Plans ]
-            </a>
-            <a href="#calculator" className="hover:text-white transition-colors">
-              [ Returns Engine ]
-            </a>
-            <a href="#referrals" className="hover:text-white transition-colors">
-              [ Referral Network ]
-            </a>
-            <a href="/leaderboard" className="hover:text-white transition-colors">
-              [ Leaderboard ]
-            </a>
+            {navContent.links && navContent.links.length > 0 ? (
+              navContent.links.map((link: any, idx: number) => (
+                <a key={idx} href={link.href} className="hover:text-white transition-colors">
+                  [ {link.label} ]
+                </a>
+              ))
+            ) : (
+              <>
+                <a href="#features" className="hover:text-white transition-colors">
+                  [ Features ]
+                </a>
+                <a href="#plans" className="hover:text-white transition-colors">
+                  [ Plans ]
+                </a>
+                <a href="#calculator" className="hover:text-white transition-colors">
+                  [ Returns Engine ]
+                </a>
+                <a href="#referrals" className="hover:text-white transition-colors">
+                  [ Referral Network ]
+                </a>
+                <a href="/leaderboard" className="hover:text-white transition-colors">
+                  [ Leaderboard ]
+                </a>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -192,7 +223,7 @@ export function AwwwardsLanding() {
           <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.25em] text-white/50 border-b border-white/[0.03] pb-6">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              ◉ EST. 2026 // WEALTH ENGINE COLLECTIVE
+              ◉ {heroContent.subtitle || 'EST. 2026 // WEALTH ENGINE COLLECTIVE'}
             </div>
             <div className="hidden md:flex items-center gap-6">
               <span>[ {time} GMT ]</span>
@@ -204,7 +235,7 @@ export function AwwwardsLanding() {
           {/* Giant Typography Header Structure */}
           <div className="leading-[0.85] font-black tracking-[-0.04em] text-[clamp(2.4rem,8vw,7.5rem)] select-none">
             <div className="flex items-baseline gap-4 flex-wrap">
-              <SplitTextReveal text="Wealth engineered." tag="h1" delay={0.1} />
+              <SplitTextReveal text={line1} tag="h1" delay={0.1} />
               <motion.span
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
@@ -216,7 +247,7 @@ export function AwwwardsLanding() {
             </div>
             <div className="text-right">
               <SplitTextReveal
-                text="by sovereign intelligence."
+                text={line2}
                 tag="h1"
                 delay={0.3}
                 className="italic font-light text-white/70"
@@ -224,7 +255,7 @@ export function AwwwardsLanding() {
             </div>
             <div>
               <span className="relative inline-block text-amber-400">
-                <SplitTextReveal text="automated. compounding." tag="h1" delay={0.5} />
+                <SplitTextReveal text={line3} tag="h1" delay={0.5} />
                 <motion.span
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
@@ -244,7 +275,7 @@ export function AwwwardsLanding() {
               className="md:col-span-5"
             >
               <p className="text-base md:text-lg leading-relaxed text-white/50 max-w-md">
-                Capital allocation executed with sub-millisecond mathematical precision. Elevate your portfolio with institutional-grade AI yields. Total control, zero complexity.
+                {heroContent.description || 'Capital allocation executed with sub-millisecond mathematical precision. Elevate your portfolio with institutional-grade AI yields. Total control, zero complexity.'}
               </p>
             </motion.div>
             <motion.div
@@ -261,7 +292,7 @@ export function AwwwardsLanding() {
                   /001 START_HERE
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xl font-bold">Start Earning Yield</span>
+                  <span className="text-xl font-bold">{heroContent.ctaPrimary || 'Start Earning Yield'}</span>
                   <div className="p-3 rounded-full bg-amber-400 text-black group-hover:rotate-45 transition-transform duration-500">
                     <ArrowRight className="w-5 h-5" strokeWidth={2.5} />
                   </div>
@@ -290,14 +321,16 @@ export function AwwwardsLanding() {
       </section>
 
       {/* ─── Infinite Live Stats Marquee ─── */}
-      <InfiniteMarquee items={liveStatsMarquee} speed={20} />
+      <InfiniteMarquee items={marqueeItems} speed={20} />
 
       {/* ─── Bento Features Grid ─── */}
       <section id="features" className="py-32 px-6 relative max-w-[1600px] mx-auto">
         <div className="mb-16">
-          <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/PILLARS · 05 CORE FEATURES</p>
+          <p className="text-xs text-amber-400 font-medium mb-3 font-mono">
+            {statsContent.subtitle || '/PILLARS · 05 CORE FEATURES'}
+          </p>
           <SplitTextReveal
-            text="Built for the modern investor."
+            text={statsContent.title || 'Built for the modern investor.'}
             tag="h2"
             className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight"
           />
@@ -362,63 +395,85 @@ export function AwwwardsLanding() {
         </div>
       </section>
 
-      {/* ─── Plans Section ─── */}
-      <section id="plans" className="py-32 px-6 bg-[#050506]/40 relative border-t border-white/[0.03]">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="mb-16">
-            <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/INDEX_002 · OPERATIONAL PLANS</p>
-            <SplitTextReveal
-              text="Choose your path."
-              tag="h2"
-              className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-4"
-            />
-            <p className="text-white/40 max-w-lg">
-              From conservative to aggressive — pick the strategy that matches your wealth goals.
-            </p>
+      {/* ─── Stats Section ─── */}
+      {content.stats?.isVisible !== false && (
+        <section id="stats" className="py-32 px-6 border-t border-white/[0.03] bg-black/10">
+          <div className="max-w-[1600px] mx-auto">
+            <div className="mb-16">
+              <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/METRICS · PERFORMANCE STATISTICS</p>
+              <SplitTextReveal
+                text={statsContent.title || "Real-time Platform Growth"}
+                tag="h2"
+                className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-4"
+              />
+              {statsContent.subtitle && (
+                <p className="text-white/40 max-w-lg mt-4">{statsContent.subtitle}</p>
+              )}
+            </div>
+            <StatsSection />
           </div>
+        </section>
+      )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {(plans || []).map((plan, i) => (
-              <FadeInView key={plan.id} delay={i * 0.1}>
-                <div className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 p-6 hover:border-amber-500/20 transition-all duration-500 group backdrop-blur-sm flex flex-col justify-between h-full">
-                  <div>
-                    <div className="text-3xl mb-4">{getPlanEmoji(plan.name, i)}</div>
-                    <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
-                    <p className="text-white/40 text-xs mb-4">From ${plan.minDeposit}</p>
-                    <div className="space-y-2 text-sm border-t border-white/[0.05] pt-4">
-                      <div className="flex justify-between text-white/60">
-                        <span>Daily Return</span>
-                        <span className="text-amber-400 font-medium font-mono" dir="ltr">
-                          {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-white/60">
-                        <span>Max Deposit</span>
-                        <span dir="ltr" className="font-mono">${plan.maxDeposit.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-white/60">
-                        <span>Daily Limit</span>
-                        <span dir="ltr" className="font-mono">
-                          {(() => {
-                            const mult = getPlanLimitMultiplier(plan)
-                            return mult.startsWith('$') ? mult : `${mult} of Investment`
-                          })()}
-                        </span>
+      {/* ─── Plans Section ─── */}
+      {content.plans?.isVisible !== false && (
+        <section id="plans" className="py-32 px-6 bg-[#050506]/40 relative border-t border-white/[0.03]">
+          <div className="max-w-[1600px] mx-auto">
+            <div className="mb-16">
+              <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/INDEX_002 · OPERATIONAL PLANS</p>
+              <SplitTextReveal
+                text={content.plans?.title || "Choose your path."}
+                tag="h2"
+                className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-4"
+              />
+              <p className="text-white/40 max-w-lg">
+                {content.plans?.subtitle || "From conservative to aggressive — pick the strategy that matches your wealth goals."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {(plans || []).map((plan, i) => (
+                <FadeInView key={plan.id} delay={i * 0.1}>
+                  <div className="rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent border border-white/10 p-6 hover:border-amber-500/20 transition-all duration-500 group backdrop-blur-sm flex flex-col justify-between h-full">
+                    <div>
+                      <div className="text-3xl mb-4">{getPlanEmoji(plan.name, i)}</div>
+                      <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
+                      <p className="text-white/40 text-xs mb-4">From ${plan.minDeposit}</p>
+                      <div className="space-y-2 text-sm border-t border-white/[0.05] pt-4">
+                        <div className="flex justify-between text-white/60">
+                          <span>Daily Return</span>
+                          <span className="text-amber-400 font-medium font-mono" dir="ltr">
+                            {(plan as any).lowRiskMin || 0.3}%-{(plan as any).highRiskMax || 8}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-white/60">
+                          <span>Max Deposit</span>
+                          <span dir="ltr" className="font-mono">${plan.maxDeposit.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-white/60">
+                          <span>Daily Limit</span>
+                          <span dir="ltr" className="font-mono">
+                            {(() => {
+                              const mult = getPlanLimitMultiplier(plan)
+                              return mult.startsWith('$') ? mult : `${mult} of Investment`
+                            })()}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <button
+                      onClick={handleRegister}
+                      className="w-full mt-6 py-3 rounded-xl border border-white/10 text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white transition-all duration-300 group-hover:border-amber-500/30"
+                    >
+                      Get Started <ChevronRight className="inline size-3.5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={handleRegister}
-                    className="w-full mt-6 py-3 rounded-xl border border-white/10 text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white transition-all duration-300 group-hover:border-amber-500/30"
-                  >
-                    Get Started <ChevronRight className="inline size-3.5" />
-                  </button>
-                </div>
-              </FadeInView>
-            ))}
+                </FadeInView>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ─── Integrated Dynamic Earnings Calculator ─── */}
       <section id="calculator" className="relative py-32 px-6 border-t border-white/[0.03]">
@@ -472,9 +527,83 @@ export function AwwwardsLanding() {
       </section>
 
       {/* ─── Integrated Dynamic Referral Calculator ─── */}
-      <section id="referrals" className="relative py-32 px-6 border-t border-white/[0.03] bg-[#050506]/40">
-        <ReferralCalculator />
-      </section>
+      {content.referral?.isVisible !== false && (
+        <section id="referrals" className="relative py-32 px-6 border-t border-white/[0.03] bg-[#050506]/40">
+          <div className="max-w-[1600px] mx-auto mb-16">
+            <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/PIPELINE · NETWORK COMMISSIONS</p>
+            <SplitTextReveal
+              text={content.referral?.title || "Referral Network Yields"}
+              tag="h2"
+              className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-4"
+            />
+            {content.referral?.subtitle && (
+              <p className="text-white/40 max-w-lg">{content.referral.subtitle}</p>
+            )}
+          </div>
+          <ReferralCalculator />
+        </section>
+      )}
+
+      {/* ─── Distribution Section ─── */}
+      {content.distribution?.isVisible !== false && (
+        <section id="distribution" className="py-32 px-6 border-t border-white/[0.03] bg-[#050506]/20">
+          <div className="max-w-[1600px] mx-auto">
+            <div className="mb-16">
+              <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/ALLOCATION · PROFIT & FEE SPLITS</p>
+              <SplitTextReveal
+                text={content.distribution?.title || "Profit Distribution Structure"}
+                tag="h2"
+                className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-4"
+              />
+              {content.distribution?.subtitle && (
+                <p className="text-white/40 max-w-lg">{content.distribution.subtitle}</p>
+              )}
+            </div>
+            <DistributionSection />
+          </div>
+        </section>
+      )}
+
+      {/* ─── Testimonials Section ─── */}
+      {testimonialsContent.isVisible !== false && (
+        <section id="testimonials" className="py-32 px-6 border-t border-white/[0.03] bg-black/20">
+          <div className="max-w-[1600px] mx-auto">
+            <div className="mb-16">
+              <p className="text-xs text-amber-400 font-medium mb-3 font-mono">/FEEDBACK · WHAT TRADERS SAY</p>
+              <SplitTextReveal
+                text={testimonialsContent.title || "Sovereign validation."}
+                tag="h2"
+                className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight"
+              />
+              {testimonialsContent.subtitle && (
+                <p className="text-white/40 mt-4 max-w-lg">{testimonialsContent.subtitle}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {(testimonialsContent.items || []).map((item: any, i: number) => (
+                <FadeInView key={i} delay={i * 0.1} className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 space-y-4 hover:border-amber-500/20 transition-all duration-300">
+                  <div className="flex items-center gap-1 text-amber-400 text-xs">
+                    {Array.from({ length: item.rating || 5 }).map((_, rIdx) => (
+                      <span key={rIdx}>★</span>
+                    ))}
+                  </div>
+                  <p className="text-white/70 italic text-sm leading-relaxed">&ldquo;{item.content}&rdquo;</p>
+                  <div className="flex justify-between items-end pt-4 border-t border-white/5">
+                    <div>
+                      <p className="font-bold text-slate-100">{item.name}</p>
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">{item.role}</p>
+                    </div>
+                    {item.earnings && (
+                      <span className="text-xs font-mono px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-semibold">{item.earnings}</span>
+                    )}
+                  </div>
+                </FadeInView>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ─── CTA Section ─── */}
       <section className="py-36 px-6 border-t border-white/[0.03] relative overflow-hidden text-center">
@@ -510,29 +639,39 @@ export function AwwwardsLanding() {
         <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 font-mono text-xs text-white/40">
           <div className="flex items-center gap-2">
             <img
-              src="/bnfx-logo.svg"
-              alt="BNFX"
+              src={navContent.logoImage || "/bnfx-logo.svg"}
+              alt="Logo"
               className="h-5 w-auto"
               onError={(e) => {
                 ;(e.target as HTMLImageElement).style.display = 'none'
               }}
             />
-            <span className="font-bold text-white">BNFX // CORE</span>
-            <span className="ml-2">© 2026</span>
+            <span className="font-bold text-white">{footerContent.companyName || 'BNFX // CORE'}</span>
+            <span className="ml-2">{footerContent.copyright || '© 2026'}</span>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-white transition-colors">
-              [ Terms ]
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
-              [ Privacy ]
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
-              [ Risk Disclaimer ]
-            </a>
-            <a href="#" className="hover:text-white transition-colors">
-              [ Support ]
-            </a>
+            {footerContent.links && footerContent.links.length > 0 ? (
+              footerContent.links.map((link: any, idx: number) => (
+                <a key={idx} href={link.url} className="hover:text-white transition-colors">
+                  [ {link.label} ]
+                </a>
+              ))
+            ) : (
+              <>
+                <a href="#" className="hover:text-white transition-colors">
+                  [ Terms ]
+                </a>
+                <a href="#" className="hover:text-white transition-colors">
+                  [ Privacy ]
+                </a>
+                <a href="#" className="hover:text-white transition-colors">
+                  [ Risk Disclaimer ]
+                </a>
+                <a href="#" className="hover:text-white transition-colors">
+                  [ Support ]
+                </a>
+              </>
+            )}
           </div>
         </div>
       </footer>
