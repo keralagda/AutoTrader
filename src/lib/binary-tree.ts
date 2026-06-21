@@ -324,7 +324,7 @@ export async function updateBinaryTreeVolumes(userId: string, amount: number, pl
   }
 }
 
-interface MlmRankConfig {
+export interface MlmRankConfig {
   level: number
   name: string
   reqPv: number
@@ -332,15 +332,24 @@ interface MlmRankConfig {
   reqTv: number
   bonus: number
   perks: string
+  reqMinPersonalInvestment?: number
+  reqRequiredPlanId?: string
+  reqLeftVolume?: number
+  reqRightVolume?: number
+  reqWeakerLegVolume?: number
+  reqDirectReferrals?: number
+  reqActiveDirects?: number
+  reqDirectsWithMinRankLevel?: number
+  reqDirectsWithMinRankCount?: number
 }
 
 export function getDefaultRanks(): MlmRankConfig[] {
   return [
     { level: 0, name: 'Member', reqPv: 0, reqBv: 0, reqTv: 0, bonus: 0, perks: 'Access to basic plan' },
-    { level: 1, name: 'Executive', reqPv: 100, reqBv: 500, reqTv: 1000, bonus: 50, perks: 'Executive Badge, 5% pairing limit increase' },
-    { level: 2, name: 'Manager', reqPv: 500, reqBv: 2500, reqTv: 5000, bonus: 250, perks: 'Manager Badge, 10% pairing limit increase' },
-    { level: 3, name: 'Director', reqPv: 2000, reqBv: 10000, reqTv: 20000, bonus: 1000, perks: 'Director Badge, Retreat invite, 15% pairing limit increase' },
-    { level: 4, name: 'President', reqPv: 10000, reqBv: 50000, reqTv: 100000, bonus: 5000, perks: 'President Ring, Luxury car program, 20% pairing limit increase' },
+    { level: 1, name: 'Executive', reqPv: 100, reqBv: 500, reqTv: 1000, bonus: 50, perks: 'Executive Badge, 5% pairing limit increase', reqMinPersonalInvestment: 100, reqLeftVolume: 500, reqRightVolume: 500 },
+    { level: 2, name: 'Manager', reqPv: 500, reqBv: 2500, reqTv: 5000, bonus: 250, perks: 'Manager Badge, 10% pairing limit increase', reqMinPersonalInvestment: 250, reqLeftVolume: 2000, reqRightVolume: 2000, reqActiveDirects: 2 },
+    { level: 3, name: 'Director', reqPv: 2000, reqBv: 10000, reqTv: 20000, bonus: 1000, perks: 'Director Badge, Retreat invite, 15% pairing limit increase', reqMinPersonalInvestment: 1000, reqLeftVolume: 10000, reqRightVolume: 10000, reqActiveDirects: 4, reqDirectsWithMinRankLevel: 1, reqDirectsWithMinRankCount: 2 },
+    { level: 4, name: 'President', reqPv: 10000, reqBv: 50000, reqTv: 100000, bonus: 5000, perks: 'President Ring, Luxury car program, 20% pairing limit increase', reqMinPersonalInvestment: 2500, reqLeftVolume: 50000, reqRightVolume: 50000, reqActiveDirects: 6, reqDirectsWithMinRankLevel: 2, reqDirectsWithMinRankCount: 2 },
   ]
 }
 
@@ -355,7 +364,9 @@ export async function checkMlmRankUpgrade(userId: string, plan?: any) {
       teamVolume: true,
       mlmRank: true,
       mlmLevel: true,
-      tradingBalance: true
+      tradingBalance: true,
+      binaryTreeLeftVolume: true,
+      binaryTreeRightVolume: true
     }
   })
   if (!user) return
@@ -387,14 +398,56 @@ export async function checkMlmRankUpgrade(userId: string, plan?: any) {
     }
   }
 
+  // Load all active deposits for the user
+  const deposits = await db.deposit.findMany({
+    where: { userId, status: { in: ['active', 'locked'] } },
+    select: { amount: true, planId: true }
+  })
+  const totalActiveInvestment = deposits.reduce((sum, d) => sum + d.amount, 0)
+  const activePlanIds = deposits.map(d => d.planId)
+
+  // Load direct referrals
+  const directReferrals = await db.user.findMany({
+    where: { referredById: userId },
+    select: { id: true, isActive: true, mlmLevel: true }
+  })
+  const directReferralsCount = directReferrals.length
+  const activeDirectReferralsCount = directReferrals.filter(d => d.isActive).length
+
+  const leftVolume = user.binaryTreeLeftVolume ?? 0
+  const rightVolume = user.binaryTreeRightVolume ?? 0
+  const weakerVolume = Math.min(leftVolume, rightVolume)
+
   // Sort ranks descending by level so we find the highest matching rank first
   const sortedRanks = [...ranks].sort((a, b) => b.level - a.level)
 
-  const qualifiedRank = sortedRanks.find(r => 
-    (user.personalVolume ?? 0) >= (r.reqPv ?? 0) &&
-    (user.businessVolume ?? 0) >= (r.reqBv ?? 0) &&
-    (user.teamVolume ?? 0) >= (r.reqTv ?? 0)
-  )
+  const qualifiedRank = sortedRanks.find(r => {
+    // Basic criteria
+    if ((user.personalVolume ?? 0) < (r.reqPv ?? 0)) return false
+    if ((user.businessVolume ?? 0) < (r.reqBv ?? 0)) return false
+    if ((user.teamVolume ?? 0) < (r.reqTv ?? 0)) return false
+
+    // Left/Right Leg volumes
+    if (r.reqLeftVolume !== undefined && r.reqLeftVolume > 0 && leftVolume < r.reqLeftVolume) return false
+    if (r.reqRightVolume !== undefined && r.reqRightVolume > 0 && rightVolume < r.reqRightVolume) return false
+    if (r.reqWeakerLegVolume !== undefined && r.reqWeakerLegVolume > 0 && weakerVolume < r.reqWeakerLegVolume) return false
+
+    // Personal Active Investment
+    if (r.reqMinPersonalInvestment !== undefined && r.reqMinPersonalInvestment > 0 && totalActiveInvestment < r.reqMinPersonalInvestment) return false
+    if (r.reqRequiredPlanId && !activePlanIds.includes(r.reqRequiredPlanId)) return false
+
+    // Referrals count
+    if (r.reqDirectReferrals !== undefined && r.reqDirectReferrals > 0 && directReferralsCount < r.reqDirectReferrals) return false
+    if (r.reqActiveDirects !== undefined && r.reqActiveDirects > 0 && activeDirectReferralsCount < r.reqActiveDirects) return false
+
+    // Direct referrals with min rank requirements
+    if (r.reqDirectsWithMinRankLevel !== undefined && r.reqDirectsWithMinRankLevel > 0 && r.reqDirectsWithMinRankCount !== undefined && r.reqDirectsWithMinRankCount > 0) {
+      const qualifyingDirects = directReferrals.filter(d => (d.mlmLevel ?? 0) >= r.reqDirectsWithMinRankLevel!).length
+      if (qualifyingDirects < r.reqDirectsWithMinRankCount) return false
+    }
+
+    return true
+  })
 
   if (qualifiedRank && qualifiedRank.level > (user.mlmLevel ?? 0)) {
     const oldRank = user.mlmRank || 'Member'

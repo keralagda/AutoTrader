@@ -61,14 +61,21 @@ export async function GET(request: Request) {
     }
 
     // Get active plan info
-    const activeDeposit = await db.deposit.findFirst({
+    const activeDeposits = await db.deposit.findMany({
       where: { userId, status: { in: ['active', 'locked'] } },
-      include: { plan: true },
-      orderBy: { createdAt: 'desc' },
+      select: { amount: true, planId: true }
     })
+    const totalActiveInvestment = activeDeposits.reduce((sum, d) => sum + d.amount, 0)
+    const activePlanIds = activeDeposits.map(d => d.planId)
+    const activeDeposit = activeDeposits.length > 0 ? activeDeposits[0] : null
 
-    // Get team counts
-    const directCount = await db.user.count({ where: { referredById: userId } })
+    // Get direct referrals
+    const directReferrals = await db.user.findMany({
+      where: { referredById: userId },
+      select: { id: true, isActive: true }
+    })
+    const directsCount = directReferrals.length
+    const activeDirectsCount = directReferrals.filter(d => d.isActive).length
 
     // Get total team (recursive - simplified to 7 levels)
     let totalTeam = 0
@@ -93,10 +100,14 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ...user,
       totalDeposited: calculatedTotalDeposited,
-      activePlan: activeDeposit?.plan?.name || null,
-      planCategory: activeDeposit?.plan?.name?.toLowerCase() || null,
-      investmentAmount: activeDeposit?.amount || 0,
-      directCount,
+      activePlan: activePlanIds.length > 0 ? 'Active MLM Plans' : null,
+      planCategory: 'mlm',
+      investmentAmount: totalActiveInvestment,
+      totalActiveInvestment,
+      activePlanIds,
+      directsCount,
+      activeDirectsCount,
+      directCount: directsCount,
       totalTeam,
     })
   } catch (error) {

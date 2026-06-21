@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore, type AdminTab } from '@/lib/store'
-import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette, Mic, ArrowRightLeft } from 'lucide-react'
+import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette, Mic, ArrowRightLeft, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -37,6 +37,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'tradingConfig', label: 'Trading Config', icon: Activity, group: 'trading' },
   { tab: 'logicBuilder', label: 'Logic Builder', icon: Zap, group: 'trading' },
   { tab: 'referralConfig', label: 'Referral System', icon: Users, group: 'trading' },
+  { tab: 'mlmRewards', label: 'MLM Ranks & Rewards', icon: Trophy, group: 'trading' },
   { tab: 'cron', label: 'Auto Profits (Cron)', icon: Clock, group: 'trading' },
 
   // 🎨 Site Builder
