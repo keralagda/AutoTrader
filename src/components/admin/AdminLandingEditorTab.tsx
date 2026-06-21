@@ -52,15 +52,50 @@ export function AdminLandingEditorTab() {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [templates, setTemplates] = useState<any[]>([])
+  const [activeTemplateId, setActiveTemplateId] = useState<string>('')
+  const [applyingTemplate, setApplyingTemplate] = useState<string | null>(null)
+
   useEffect(() => {
     Promise.all([
       fetch('/api/landing-content').then(r => r.json()),
       fetch('/api/admin/media').then(r => r.json()),
-    ]).then(([content, mediaData]) => {
+      fetch('/api/admin/templates').then(r => r.json()),
+    ]).then(([content, mediaData, templatesData]) => {
       setSections(content || {})
       setMedia(Array.isArray(mediaData) ? mediaData : [])
+      if (templatesData) {
+        const list = [...(templatesData.builtIn || []), ...(templatesData.custom || [])]
+        setTemplates(list)
+        setActiveTemplateId(templatesData.activeId || 'crypto-dark')
+      }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
+
+  const handleApplyTemplate = async (templateId: string) => {
+    setApplyingTemplate(templateId)
+    try {
+      const res = await fetch('/api/admin/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId, action: 'apply' }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setActiveTemplateId(templateId)
+        toast({ title: 'Template applied successfully!', description: 'Reload the landing page to see the new layout.' })
+        const contentRes = await fetch('/api/landing-content')
+        const contentData = await contentRes.json()
+        setSections(contentData || {})
+      } else {
+        toast({ title: 'Failed to apply template', description: data.error || '', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
+    } finally {
+      setApplyingTemplate(null)
+    }
+  }
 
   const handleSaveSection = async (sectionKey: string) => {
     setSaving(sectionKey)
@@ -129,11 +164,39 @@ export function AdminLandingEditorTab() {
     setMedia(prev => prev.filter(m => m.id !== id))
   }
 
+  const activeTemplate = templates.find(t => t.id === activeTemplateId)
+
   return (
     <div className="space-y-6">
+      {activeTemplate && (
+        <Card className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/20">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl p-2 rounded-lg bg-background/50 border border-border/30">
+                {activeTemplate.thumbnail || '✨'}
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-bold text-sm text-foreground">Active Layout Template: {activeTemplate.name}</h4>
+                  <Badge variant="secondary" className="text-[10px] uppercase font-mono bg-amber-500/20 text-amber-400 border-none">
+                    {activeTemplate.styles?.layout === 'awwwards' ? 'Awwwards Engine' : 'Default Engine'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{activeTemplate.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Applied Theme
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="sections">
         <TabsList>
           <TabsTrigger value="sections" className="gap-1.5"><Layout className="size-3.5" />Sections</TabsTrigger>
+          <TabsTrigger value="templates" className="gap-1.5"><Layout className="size-3.5" />Layout Templates</TabsTrigger>
           <TabsTrigger value="media" className="gap-1.5"><Image className="size-3.5" />Media Library</TabsTrigger>
         </TabsList>
 
@@ -343,6 +406,110 @@ export function AdminLandingEditorTab() {
               <Button variant="outline" size="sm" onClick={() => updateSection('footer', 'links', [...(sections.footer?.links || []), { label: '', url: '' }])}>+ Add Link</Button>
             </div>
           </SectionEditor>
+        </TabsContent>
+
+        {/* Templates Tab */}
+        <TabsContent value="templates" className="mt-4 space-y-4">
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Layout className="size-4 text-primary" /> Select & Apply Templates
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Choose a pre-designed layout template. Applying a template will update the active landing page layout, theme colors, and load its default section configurations.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {templates.map((template) => {
+                  const isActive = template.id === activeTemplateId
+                  return (
+                    <Card
+                      key={template.id}
+                      className={`relative overflow-hidden border-border/50 transition-all duration-300 ${
+                        isActive
+                          ? 'ring-2 ring-amber-500 border-transparent bg-amber-500/5'
+                          : 'hover:border-border/80 bg-muted/10'
+                      }`}
+                    >
+                      <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-3xl p-2 rounded-lg bg-background/50 border border-border/30">
+                              {template.thumbnail || '✨'}
+                            </span>
+                            <div className="flex flex-col items-end gap-1.5">
+                              <Badge className="text-[9px] uppercase font-mono tracking-wider">
+                                {template.category || 'general'}
+                              </Badge>
+                              {template.styles?.layout === 'awwwards' && (
+                                <Badge variant="outline" className="text-[9px] uppercase font-mono border-amber-500/30 text-amber-500">
+                                  Awwwards
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <h3 className="font-bold text-base mt-3 text-foreground">{template.name}</h3>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                            {template.description}
+                          </p>
+
+                          {/* Color Palette Preview */}
+                          {template.colors && (
+                            <div className="flex items-center gap-1.5 mt-4">
+                              <span className="text-[10px] font-mono text-muted-foreground mr-1.5">Colors:</span>
+                              <div
+                                className="size-3.5 rounded-full border border-border/20"
+                                style={{ backgroundColor: template.colors.background }}
+                                title={`Background: ${template.colors.background}`}
+                              />
+                              <div
+                                className="size-3.5 rounded-full border border-border/20"
+                                style={{ backgroundColor: template.colors.card }}
+                                title={`Card: ${template.colors.card}`}
+                              />
+                              <div
+                                className="size-3.5 rounded-full border border-border/20"
+                                style={{ backgroundColor: template.colors.primary }}
+                                title={`Primary: ${template.colors.primary}`}
+                              />
+                              <div
+                                className="size-3.5 rounded-full border border-border/20"
+                                style={{ backgroundColor: template.colors.accent }}
+                                title={`Accent: ${template.colors.accent}`}
+                              />
+                              <div
+                                className="size-3.5 rounded-full border border-border/20"
+                                style={{ backgroundColor: template.colors.text }}
+                                title={`Text: ${template.colors.text}`}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="pt-2">
+                          {isActive ? (
+                            <Button className="w-full bg-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-medium text-xs h-9 cursor-default gap-1.5">
+                              ✓ Currently Active
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => handleApplyTemplate(template.id)}
+                              disabled={applyingTemplate !== null}
+                              className="w-full text-xs h-9 bg-primary text-primary-foreground font-semibold hover:bg-primary/95 transition-all"
+                            >
+                              {applyingTemplate === template.id ? 'Applying...' : 'Apply Template'}
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Media Library Tab */}
