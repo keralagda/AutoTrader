@@ -41,6 +41,7 @@ export type BlockType =
   | 'team-member'
   | 'timeline'
   | 'comparison-table'
+  | 'gifts-perks'
 
 export interface BlockStyle {
   backgroundColor?: string
@@ -299,5 +300,21 @@ export const BLOCK_DEFINITIONS: Record<BlockType, { label: string; icon: string;
     category: 'Sections',
     description: 'Feature comparison table',
     defaultContent: { headers: ['Feature', 'Basic', 'Pro'], rows: [['Support', '✓', '✓'], ['API Access', '✗', '✓']] },
+  },
+  'gifts-perks': {
+    label: 'Gifts & Perks Builder',
+    icon: '🎁',
+    category: 'Content',
+    description: 'Display leadership ranks, rewards, gifts, and matching perks',
+    defaultContent: {
+      title: 'Leadership Ranks, Gifts & Perks',
+      description: 'Progress through our binary MLM milestones to unlock massive bonuses, luxury gifts, and special account privileges.',
+      items: [
+        { rank: 'Executive', reqVolume: '$1,000', gift: 'Nova Executive Writing Pen & Official Badge', perk: '5% binary pairing cap limit boost', badgeColor: 'emerald' },
+        { rank: 'Manager', reqVolume: '$5,000', gift: 'Montblanc Luxury Set & Plaque', perk: '10% binary pairing cap limit boost', badgeColor: 'cyan' },
+        { rank: 'Director', reqVolume: '$20,000', gift: 'VIP Leadership Retreat Invite', perk: '18k Gold Badge & Global Event Invites', badgeColor: 'purple' },
+        { rank: 'President', reqVolume: '$100,000', gift: '18k Gold President Ring & Luxury Car Program', perk: 'Full priority broker access & VIP channels', badgeColor: 'amber' }
+      ]
+    }
   },
 }

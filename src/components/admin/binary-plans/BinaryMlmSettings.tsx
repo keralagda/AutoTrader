@@ -53,7 +53,17 @@ export function BinaryMlmSettings({
   }
 
   return (
-    <SectionCard icon={<Award className="h-4 w-4 text-emerald-400" />} title="Advanced MLM Leadership & Volume Ratios">
+    <SectionCard 
+      icon={<Award className="h-4 w-4 text-emerald-400" />} 
+      title="Advanced MLM Leadership & Volume Ratios"
+      helpContent={
+        <div className="space-y-1">
+          <p>• <strong>PV, BV, TV Ratios</strong>: Point multiplier factors per dollar invested. PV (Personal Volume), BV (Business/Direct Sponsor Volume), and TV (Team downline Volume).</p>
+          <p>• <strong>Leadership Ranks</strong>: Set volume thresholds (PV, BV, TV) required to rank up, and define the rank bonus cash reward and custom perks.</p>
+          <p>• <strong>Bonus Pools</strong>: Configure company profit sharing pools that distribute global volume percentages to qualified rank tiers.</p>
+        </div>
+      }
+    >
       {/* Ratios */}
       <div className="grid grid-cols-3 gap-4 mb-4 p-3 rounded-lg bg-muted/20 border border-border/40">
         <NumberField label="PV Ratio (Personal)" value={plan.binaryPvRatio ?? 1.0} onChange={v => onChange('binaryPvRatio', v)} />

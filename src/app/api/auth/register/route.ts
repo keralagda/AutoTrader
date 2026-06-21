@@ -64,8 +64,16 @@ export async function POST(request: Request) {
     // Create session cookie
     const token = await setSessionCookie({ userId: user.id, email: user.email, role: user.role })
 
-    // Send verification email (non-blocking)
-    sendVerificationEmail(user.email, user.name, verificationToken).catch(() => {})
+    // Send verification email (await to prevent serverless function premature termination)
+    let emailSent = false
+    try {
+      emailSent = await sendVerificationEmail(user.email, user.name, verificationToken)
+      if (!emailSent) {
+        console.error('Failed to send verification email during registration to:', user.email)
+      }
+    } catch (e) {
+      console.error('Error sending verification email during registration:', e)
+    }
 
     // Signup referral bonus: notify referrer
     if (referredById) {
@@ -84,6 +92,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       token,
+      emailSent,
       user: {
         id: user.id,
         email: user.email,

@@ -672,6 +672,69 @@ export function BlockEditor({ block, onChange }: BlockEditorProps) {
             </div>
           </>
         )}
+
+        {/* GIFTS & PERKS BUILDER */}
+        {block.type === 'gifts-perks' && (
+          <>
+            <div className="space-y-1">
+              <Label className="text-xs">Section Title</Label>
+              <Input value={block.content.title || ''} onChange={e => updateContent('title', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Section Description</Label>
+              <Textarea value={block.content.description || ''} onChange={e => updateContent('description', e.target.value)} rows={2} />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Rewards & Perks Items</Label>
+              {(block.content.items || []).map((item: any, i: number) => (
+                <div key={i} className="space-y-2 p-3 rounded-lg border border-border/50 bg-muted/20">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Rank Name</Label>
+                      <Input className="h-8 text-xs font-semibold" value={item.rank} onChange={e => updateArrayItem('items', i, 'rank', e.target.value)} placeholder="Executive" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Required Volume</Label>
+                      <Input className="h-8 text-xs" value={item.reqVolume} onChange={e => updateArrayItem('items', i, 'reqVolume', e.target.value)} placeholder="$1,000" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">Gift Details</Label>
+                    <Input className="h-8 text-xs" value={item.gift} onChange={e => updateArrayItem('items', i, 'gift', e.target.value)} placeholder="Nova Executive Writing Pen" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">Perk Details</Label>
+                    <Input className="h-8 text-xs" value={item.perk} onChange={e => updateArrayItem('items', i, 'perk', e.target.value)} placeholder="5% binary pairing cap limit boost" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Badge Theme</Label>
+                      <Select value={item.badgeColor || 'emerald'} onValueChange={v => updateArrayItem('items', i, 'badgeColor', v)}>
+                        <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="emerald">Emerald</SelectItem>
+                          <SelectItem value="cyan">Cyan</SelectItem>
+                          <SelectItem value="purple">Purple</SelectItem>
+                          <SelectItem value="amber">Amber</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-8 self-end text-rose-400 gap-1 border border-rose-500/10 hover:bg-rose-500/10" onClick={() => removeArrayItem('items', i)}>
+                      <Trash2 className="h-3.5 w-3.5" /> Remove
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => addArrayItem('items', { rank: '', reqVolume: '', gift: '', perk: '', badgeColor: 'emerald' })} className="gap-1 w-full text-xs">
+                <Plus className="h-3.5 w-3.5" /> Add Leadership Rank Item
+              </Button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ─── Style Fields ─── */}

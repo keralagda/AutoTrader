@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore, type AdminTab } from '@/lib/store'
-import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette, Mic, ArrowRightLeft, Trophy } from 'lucide-react'
+import { Settings, TrendingUp, Users, Wallet, Wrench, ArrowLeft, LogOut, Shield, CreditCard, Target, MessageSquare, Newspaper, Bell, UserPlus, Activity, ShieldCheck, LifeBuoy, ScrollText, Star, Megaphone, Layout, Clock, Banknote, BarChart3, DollarSign, PieChart, Zap, FileText, AlertCircle, Palette, Mic, ArrowRightLeft, Trophy, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -68,6 +68,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'helpCenter', label: 'Help Center', icon: LifeBuoy, group: 'system' },
   { tab: 'geoBlocking', label: 'Geo-Blocking', icon: Shield, group: 'system' },
   { tab: 'notifTemplates', label: 'Notification Templates', icon: Bell, group: 'system' },
+  { tab: 'emailVerifier', label: 'Email Diagnostics', icon: Mail, group: 'system' },
 ]
 
 export function AdminSidebar() {

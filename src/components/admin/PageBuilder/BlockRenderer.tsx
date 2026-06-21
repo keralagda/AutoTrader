@@ -182,6 +182,59 @@ export function BlockRenderer({ block }: { block: PageBlock }) {
         </div>
       )
 
+    case 'gifts-perks':
+      return (
+        <div style={style} className="rounded-xl border border-border/50 bg-card/45 p-6 space-y-4 max-w-4xl mx-auto shadow-2xl backdrop-blur-md">
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
+              🏆 {block.content.title || 'Leadership Ranks, Gifts & Perks'}
+            </h2>
+            {block.content.description && <p className="text-xs text-muted-foreground max-w-2xl mx-auto">{block.content.description}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            {(block.content.items || []).map((item: any, i: number) => {
+              const borderColors: Record<string, string> = {
+                emerald: 'border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40',
+                cyan: 'border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-500/40',
+                purple: 'border-purple-500/20 bg-purple-500/5 hover:border-purple-500/40',
+                amber: 'border-amber-500/20 bg-amber-500/5 hover:border-amber-500/40'
+              }
+              const badgeColors: Record<string, string> = {
+                emerald: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+                cyan: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+                purple: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+                amber: 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+              }
+
+              const borderClass = borderColors[item.badgeColor || 'emerald'] || borderColors.emerald
+              const badgeClass = badgeColors[item.badgeColor || 'emerald'] || badgeColors.emerald
+
+              return (
+                <div key={i} className={`p-4 rounded-xl border transition-all duration-300 ${borderClass} flex flex-col justify-between space-y-3`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeClass}`}>
+                      {item.rank || 'Rank'}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-muted-foreground">Vol: {item.reqVolume || '0'}</span>
+                  </div>
+                  <div className="space-y-1.5 flex-1">
+                    <p className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <span>🎁</span> 
+                      <span className="text-slate-200">Gift: {item.gift || 'No gift'}</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                      <span>⚡</span> 
+                      <span>Perk: {item.perk || 'No perk'}</span>
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )
+
     case 'html':
       return <div style={style} dangerouslySetInnerHTML={{ __html: block.content.code || '' }} />
 

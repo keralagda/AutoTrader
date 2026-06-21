@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2, MonitorPlay, Pencil, KeyRound, UserPlus, Calendar } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2, MonitorPlay, Pencil, KeyRound, UserPlus, Calendar, Mail, Smartphone } from 'lucide-react'
 import { UserDetailView } from './UserDetailView'
 
 interface UserRecord {
@@ -32,6 +33,8 @@ interface UserRecord {
   teamVolume?: number
   mlmRank?: string
   mlmLevel?: number
+  isEmailVerified?: boolean
+  isPhoneVerified?: boolean
   _count: {
     deposits: number
     referrals: number
@@ -125,6 +128,46 @@ export function UsersTab() {
       fetchUsers()
     } catch {
       toast({ title: 'Error', description: 'Failed to update user', variant: 'destructive' })
+    }
+  }
+
+  const handleToggleEmailVerify = async (user: UserRecord) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          editProfile: {
+            isEmailVerified: !user.isEmailVerified
+          }
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Verification Updated', description: `${user.name}'s email verification toggled successfully.` })
+      fetchUsers()
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update email verification', variant: 'destructive' })
+    }
+  }
+
+  const handleTogglePhoneVerify = async (user: UserRecord) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          editProfile: {
+            isPhoneVerified: !user.isPhoneVerified
+          }
+        }),
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Verification Updated', description: `${user.name}'s phone verification toggled successfully.` })
+      fetchUsers()
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update phone verification', variant: 'destructive' })
     }
   }
 
@@ -411,6 +454,7 @@ export function UsersTab() {
                     <TableHead className="text-muted-foreground">Balance</TableHead>
                     <TableHead className="text-muted-foreground">Earnings</TableHead>
                     <TableHead className="text-muted-foreground">Deposits</TableHead>
+                    <TableHead className="text-muted-foreground">Verifications</TableHead>
                     <TableHead className="text-muted-foreground">Status</TableHead>
                     <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                   </TableRow>
@@ -433,6 +477,30 @@ export function UsersTab() {
                       <TableCell className="text-sm text-foreground font-medium">${(user.tradingBalance || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-sm text-emerald-400">${(user.totalEarnings || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-sm text-foreground">${(user.totalDeposited || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1 min-w-[110px]">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <Mail className="h-3 w-3 text-emerald-400" /> Email
+                            </span>
+                            <Switch
+                              checked={!!user.isEmailVerified}
+                              onCheckedChange={() => handleToggleEmailVerify(user)}
+                              className="scale-75"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <Smartphone className="h-3 w-3 text-emerald-400" /> Phone
+                            </span>
+                            <Switch
+                              checked={!!user.isPhoneVerified}
+                              onCheckedChange={() => handleTogglePhoneVerify(user)}
+                              className="scale-75"
+                            />
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"

@@ -48,6 +48,7 @@ export async function GET(request: Request) {
         id: true,
         name: true,
         email: true,
+        phone: true,
         referralCode: true,
         tradingBalance: true,
         withdrawalBalance: true,
@@ -55,6 +56,7 @@ export async function GET(request: Request) {
         totalDeposited: true,
         isActive: true,
         isFake: true,
+        isEmailVerified: true,
         createdAt: true,
         referredById: true,
         riskCategory: true,
@@ -74,7 +76,21 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json(users)
+    const phoneSettings = await db.setting.findMany({
+      where: { key: { startsWith: 'phone_verified_' } }
+    })
+    const phoneMap = new Map<string, boolean>()
+    phoneSettings.forEach(s => {
+      const uId = s.key.replace('phone_verified_', '')
+      phoneMap.set(uId, s.value === 'true')
+    })
+
+    const usersMapped = users.map(u => ({
+      ...u,
+      isPhoneVerified: phoneMap.get(u.id) || false
+    }))
+
+    return NextResponse.json(usersMapped)
   } catch (error) {
     console.error('Get users error:', error)
     return NextResponse.json({ error: 'Failed to get users' }, { status: 500 })

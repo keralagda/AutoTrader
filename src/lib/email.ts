@@ -151,6 +151,21 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   // 3. Try Resend (primary)
   if (RESEND_API_KEY) {
     try {
+      let finalResendFrom = FROM_EMAIL
+      const emailMatch = FROM_EMAIL.match(/<([^>]+)>/)
+      const senderEmail = emailMatch ? emailMatch[1] : FROM_EMAIL
+      const domain = senderEmail.split('@')[1] || ''
+      const isUnverifiedDomain = 
+        domain.toLowerCase().includes('gmail.com') ||
+        domain.toLowerCase().includes('yahoo.com') ||
+        domain.toLowerCase().includes('hotmail.com') ||
+        domain.toLowerCase().includes('outlook.com') ||
+        domain.toLowerCase().includes('aol.com')
+      
+      if (isUnverifiedDomain) {
+        finalResendFrom = 'BNFX <onboarding@resend.dev>'
+      }
+
       const res = await fetch(RESEND_API_URL, {
         method: 'POST',
         headers: {
@@ -158,7 +173,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: FROM_EMAIL,
+          from: finalResendFrom,
           to: [options.to],
           subject: options.subject,
           html: options.html,
@@ -170,7 +185,8 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
         console.log('Email sent successfully via Resend')
         return true
       }
-      console.warn('Resend failed, trying SMTP fallback...')
+      const errText = await res.text()
+      console.warn('Resend failed, error response:', errText, 'trying SMTP fallback...')
     } catch (error) {
       console.warn('Resend error, trying SMTP fallback...', error)
     }

@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils'
 import {
   Plus, Save, Edit2, X, Trash2, ChevronDown, ChevronUp,
   DollarSign, Percent, Lock, Layers, BarChart3, Eye,
-  RefreshCw, Info, AlertTriangle, Clock, Zap, Sparkles, Settings, Package, Network
+  RefreshCw, Info, AlertTriangle, Clock, Zap, Sparkles, Settings, Package, Network, HelpCircle
 } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -980,6 +980,9 @@ function PlanEditor({
 }) {
   const [aiPrompt, setAiPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [binaryPrompt, setBinaryPrompt] = useState('')
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestions, setSuggestions] = useState<any[] | null>(null)
 
   // AI Referral & Bonus prompt states
   const [aiReferralPrompt, setAiReferralPrompt] = useState('')
@@ -1043,6 +1046,42 @@ function PlanEditor({
     } finally {
       setGenerating(false)
     }
+  }
+
+  const handleGetSuggestions = async () => {
+    if (!binaryPrompt.trim()) return
+    setSuggesting(true)
+    try {
+      const res = await fetch('/api/admin/plans/ai-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: binaryPrompt })
+      })
+      if (!res.ok) throw new Error('Failed to get suggestions')
+      const data = await res.json()
+      setSuggestions(data.suggestions || [])
+      toast({ title: 'Suggestions Generated', description: '3 outcomes are ready for your review.' })
+    } catch (err: any) {
+      toast({ title: 'Generation Failed', description: err.message, variant: 'destructive' })
+    } finally {
+      setSuggesting(false)
+    }
+  }
+
+  const handleApplySuggestion = (details: any) => {
+    Object.entries(details).forEach(([key, val]) => {
+      onChange(plan.id, key as any, val)
+    })
+    
+    setTimeout(() => {
+      onRegenerateField(plan.id, 'earningMechanism')
+      onRegenerateField(plan.id, 'withdrawalRule')
+      onRegenerateField(plan.id, 'stackingRule')
+    }, 100)
+
+    toast({ title: 'Plan Populated', description: 'Plan builder inputs filled successfully.' })
+    setSuggestions(null)
+    setBinaryPrompt('')
   }
 
   const handleGenerateReferrals = async () => {
@@ -1437,31 +1476,100 @@ function PlanEditor({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* AI Plan Assistant */}
-        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-3">
+        {/* AI Binary Plan Suggestor Wizard */}
+        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-4">
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-emerald-400" />
+            <Sparkles className="h-4 w-4 text-emerald-400" />
             <div>
-              <h4 className="text-sm font-semibold text-foreground">AI Plan Assistant</h4>
-              <p className="text-[11px] text-muted-foreground">Describe your plan in plain text (e.g., "Create a VIP high yield plan with 1.2% daily profit, Mon-Fri schedule, minimum deposit $500, with 5 referral levels")</p>
+              <h4 className="text-sm font-semibold text-foreground">AI Binary Plan Suggestor Wizard</h4>
+              <p className="text-[11px] text-muted-foreground">Describe your binary network plan (e.g. payout and capping). AI will suggest 3 outcomes to choose from.</p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Textarea
-              value={aiPrompt}
-              onChange={e => setAiPrompt(e.target.value)}
-              placeholder="Describe the plan rules, splits, or schedules..."
-              className="bg-muted/50 border-border/50 resize-none h-16 text-xs flex-1"
-            />
-            <Button
-              type="button"
-              onClick={handleGenerateWithAI}
-              disabled={generating || !aiPrompt.trim()}
-              className="sm:self-end bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs h-9"
-            >
-              {generating ? 'Thinking...' : 'Generate with AI'}
-            </Button>
-          </div>
+          
+          {!suggestions ? (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Textarea
+                value={binaryPrompt}
+                onChange={e => setBinaryPrompt(e.target.value)}
+                placeholder="e.g. Create a high-yield binary plan with 12% pairing bonus, entry fee of $250, and capping of $1500 daily..."
+                className="bg-muted/50 border-border/50 resize-none h-16 text-xs flex-1"
+              />
+              <Button
+                type="button"
+                onClick={handleGetSuggestions}
+                disabled={suggesting || !binaryPrompt.trim()}
+                className="sm:self-end bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs h-9"
+              >
+                {suggesting ? 'Thinking...' : 'Generate Suggestions'}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">Select an outcome to fill plan builder details:</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGetSuggestions}
+                  disabled={suggesting}
+                  className="h-7 text-xs border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${suggesting ? 'animate-spin' : ''}`} /> Retry
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {suggestions.map((sug) => {
+                  const borderClasses: Record<string, string> = {
+                    emerald: 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50',
+                    cyan: 'border-cyan-500/30 bg-cyan-500/5 hover:border-cyan-500/50',
+                    purple: 'border-purple-500/30 bg-purple-500/5 hover:border-purple-500/50'
+                  }
+                  const textClasses: Record<string, string> = {
+                    emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+                    cyan: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+                    purple: 'text-purple-400 bg-purple-500/10 border-purple-500/20'
+                  }
+
+                  const borderClass = borderClasses[sug.color || 'emerald'] || borderClasses.emerald
+                  const textClass = textClasses[sug.color || 'emerald'] || textClasses.emerald
+                  const details = sug.planDetails
+
+                  return (
+                    <div key={sug.id} className={`p-4 rounded-xl border flex flex-col justify-between space-y-4 ${borderClass} transition-all duration-300`}>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${textClass}`}>
+                            {sug.outcomeType}
+                          </span>
+                        </div>
+                        <h5 className="text-xs font-bold text-slate-100">{details.name}</h5>
+                        <p className="text-[10px] text-muted-foreground leading-normal">{sug.description}</p>
+                        
+                        <div className="pt-2 border-t border-border/20 space-y-1 text-[10px] font-mono text-muted-foreground">
+                          <div className="flex justify-between"><span>Entry Fee:</span><span className="text-foreground">${details.entryFee}</span></div>
+                          <div className="flex justify-between"><span>Min Deposit:</span><span className="text-foreground">${details.minDeposit}</span></div>
+                          <div className="flex justify-between"><span>Daily Profit:</span><span className="text-emerald-400 font-semibold">{details.dailyEarningPercent}%</span></div>
+                          <div className="flex justify-between"><span>Pairing Bonus:</span><span className="text-cyan-400 font-semibold">{details.binaryPairingBonusPercent}%</span></div>
+                          <div className="flex justify-between"><span>Daily Capping:</span><span className="text-foreground">${details.binaryDailyPairingCap}</span></div>
+                          <div className="flex justify-between"><span>Duration:</span><span className="text-foreground">{details.durationDays} Days</span></div>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        onClick={() => handleApplySuggestion(details)}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
+                      >
+                        Apply this Plan
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Connected Global Logic Builder Variables */}
@@ -1520,7 +1628,18 @@ function PlanEditor({
         )}
 
         {/* Section 1: Basic Info */}
-        <SectionCard icon={<Info className="h-4 w-4 text-emerald-400" />} title="Basic Info">
+        <SectionCard 
+          icon={<Info className="h-4 w-4 text-emerald-400" />} 
+          title="Basic Info"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Plan Name</strong>: The public label shown to investors.</p>
+              <p>• <strong>Sort Order</strong>: Determines position in the list (ascending).</p>
+              <p>• <strong>Description</strong>: Details the purpose and characteristics of the investment asset.</p>
+              <p>• <strong>Binary MLM Enabled</strong>: Turn on binary tree matching for registrations, deposits, and volume carries under this plan.</p>
+            </div>
+          }
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">Plan Name</Label>
@@ -1587,7 +1706,19 @@ function PlanEditor({
         )}
 
         {/* Section 2: Deposit & Earning Rules */}
-        <SectionCard icon={<DollarSign className="h-4 w-4 text-emerald-400" />} title="Deposit & Earning Rules">
+        <SectionCard 
+          icon={<DollarSign className="h-4 w-4 text-emerald-400" />} 
+          title="Deposit & Earning Rules"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Entry Fee</strong>: charged upon activation of the plan from user trading balance.</p>
+              <p>• <strong>Min/Max Deposit</strong>: bounds for active investments.</p>
+              <p>• <strong>Base Daily %</strong>: public interest rate paid on active deposits.</p>
+              <p>• <strong>Daily Earning Cap</strong>: absolute limit on daily profits.</p>
+              <p>• <strong>Cap Multiplier</strong>: cumulative profit limit factor (e.g., 2x = 200% return including capital, after which deposit is marked completed).</p>
+            </div>
+          }
+        >
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <NumberField label="Entry Fee" prefix="$" value={plan.entryFee} onChange={v => ch('entryFee', v)} />
             <NumberField label="Min Deposit" prefix="$" value={plan.minDeposit} onChange={v => ch('minDeposit', v)} />
@@ -1693,7 +1824,20 @@ function PlanEditor({
           </div>
         </SectionCard>
 
-        <SectionCard icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} title="Advanced P&L Configuration" description="Configure volatility, negative returns, and consecutive loss ceilings">
+        <SectionCard 
+          icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} 
+          title="Advanced P&L Configuration" 
+          description="Configure volatility, negative returns, and consecutive loss ceilings"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Min/Max Loss %</strong>: boundaries for possible negative daily trading return percentages.</p>
+              <p>• <strong>Max Consecutive Loss Days</strong>: maximum number of contiguous daily losses before warning triggers or yields pause.</p>
+              <p>• <strong>Allow Negative Balance</strong>: if enabled, a loss can push user's active deposit balance below zero.</p>
+              <p>• <strong>Drawdown Limit</strong>: percentage threshhold of capital drop that pauses trading yields.</p>
+              <p>• <strong>Profit Target</strong>: target return percentage to complete or auto-compound the cycle.</p>
+            </div>
+          }
+        >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <NumberField label="Min Loss %" suffix="%" value={plan.minLossPercent || 0.1} onChange={v => ch('minLossPercent', v)} />
             <NumberField label="Max Loss %" suffix="%" value={plan.maxLossPercent || 5.0} onChange={v => ch('maxLossPercent', v)} />
@@ -1795,7 +1939,18 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section 2.5: Time-Based Configuration (HYIPLab Feature) */}
-        <SectionCard icon={<Clock className="h-4 w-4 text-emerald-400" />} title="Time-Based Configuration">
+        <SectionCard 
+          icon={<Clock className="h-4 w-4 text-emerald-400" />} 
+          title="Time-Based Configuration"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Return Type</strong>: frequency of profit distribution (Hourly, Daily, Weekly, Monthly, or After End).</p>
+              <p>• <strong>Return Period Hours</strong>: hours count between payouts (e.g. 24 for Daily, 168 for Weekly).</p>
+              <p>• <strong>Plan Duration</strong>: length of investment active lifecycle in days (0 means runs indefinitely until capped limit is reached).</p>
+              <p>• <strong>Capital Return</strong>: specifies if principal is returned at term end, included in daily profits, or not returned at all.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             {/* Return Type Selection */}
             <div className="space-y-2">
@@ -1909,7 +2064,17 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section 4: Stacking Options */}
-        <SectionCard icon={<Layers className="h-4 w-4 text-emerald-400" />} title="Stacking Options">
+        <SectionCard 
+          icon={<Layers className="h-4 w-4 text-emerald-400" />} 
+          title="Stacking Options"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Stacking Enabled</strong>: Allow users to have multiple active deposits running under this plan simultaneously.</p>
+              <p>• <strong>Max Stacks</strong>: Limits the maximum number of simultaneous active deposits (max 10).</p>
+              <p>• <strong>Stacking Bonus</strong>: Extra yield percentage added to the daily return rate for each additional active deposit stack.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
               <div>
@@ -1964,7 +2129,17 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section 5: Lock & Exit Rules */}
-        <SectionCard icon={<Lock className="h-4 w-4 text-emerald-400" />} title="Lock & Exit Rules">
+        <SectionCard 
+          icon={<Lock className="h-4 w-4 text-emerald-400" />} 
+          title="Lock & Exit Rules"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Lock Period Days</strong>: The number of days the principal capital is locked. Principal cannot be withdrawn penalty-free during this time.</p>
+              <p>• <strong>Early Exit Penalty</strong>: Percentage fee deducted from the principal if the user exits/withdraws before the lock period expires.</p>
+              <p>• <strong>Auto Compound</strong>: Enable automatic compounding of yields to grow the active principal balance over time.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <NumberField
@@ -2016,7 +2191,19 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section 5.5: Advanced Options */}
-        <SectionCard icon={<Zap className="h-4 w-4 text-emerald-400" />} title="Advanced Options">
+        <SectionCard 
+          icon={<Zap className="h-4 w-4 text-emerald-400" />} 
+          title="Advanced Options"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Profit Days</strong>: Select the days of the week (e.g. weekdays or full week) on which daily yields are distributed.</p>
+              <p>• <strong>Grace Period</strong>: Additional days given at the end of the duration before the investment state changes.</p>
+              <p>• <strong>Spots Limit</strong>: Limit the total number of deposits allowed platform-wide (0 = unlimited).</p>
+              <p>• <strong>Chance variables</strong>: Probabilities for triggering negative returns (Loss Days) or bonus yield days.</p>
+              <p>• <strong>VIP Tier & KYC</strong>: Restricts plan availability to specific minimum user ranks or requires full KYC approval.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             {/* Profit Schedule */}
             <div className="space-y-2">
@@ -2103,7 +2290,19 @@ function PlanEditor({
 
 
         {/* Dedicated Re-Investment Configuration Section */}
-        <SectionCard icon={<RefreshCw className="h-4 w-4 text-emerald-400" />} title="Re-Investment Configuration" description="Configure settings for automatic or manual profit reinvestments and compounds">
+        <SectionCard 
+          icon={<RefreshCw className="h-4 w-4 text-emerald-400" />} 
+          title="Re-Investment Configuration" 
+          description="Configure settings for automatic or manual profit reinvestments and compounds"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Auto-Reinvest Profits</strong>: Automatically rolls over user earnings into new active deposits of this plan upon payout.</p>
+              <p>• <strong>Auto-Compound Yields</strong>: Re-adds earnings back to the active principal balance to increase future yields.</p>
+              <p>• <strong>Re-Investment Bonus</strong>: Bonus percentage yield credited to the user for choosing to reinvest instead of withdraw.</p>
+              <p>• <strong>Min Re-Investment Amount</strong>: The minimum profit balance required to trigger a reinvestment.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5">
@@ -2132,7 +2331,17 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section: Level-by-Level Sponsor & Deposit Overrides */}
-        <SectionCard icon={<Zap className="h-4 w-4 text-emerald-400" />} title="Level-by-Level Sponsor & Deposit Overrides">
+        <SectionCard 
+          icon={<Zap className="h-4 w-4 text-emerald-400" />} 
+          title="Level-by-Level Sponsor & Deposit Overrides"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Registration Fee Overrides</strong>: Commission percentages paid to sponsor uplines when a downline user activates this plan.</p>
+              <p>• <strong>Trade Profit Share Overrides</strong>: Percentages of downline trading yields paid up the sponsor tree.</p>
+              <p>• <strong>Deposit Bonus Overrides</strong>: Direct one-time bonus paid to sponsor levels based on downline deposit amounts.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             {/* AI Referral & Bonus Rules Assistant */}
             <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-3">
@@ -2170,7 +2379,17 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section: Plan Conditional Logics */}
-        <SectionCard icon={<Settings className="h-4 w-4 text-emerald-400" />} title="Plan Conditional Logics">
+        <SectionCard 
+          icon={<Settings className="h-4 w-4 text-emerald-400" />} 
+          title="Plan Conditional Logics"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Rules Matrix</strong>: Define dynamic conditional rules that run automatically when conditions are met.</p>
+              <p>• <strong>Condition Types</strong>: Trigger on daily yield, consecutive loss days, active deposits balance, weekday, or spots filled.</p>
+              <p>• <strong>Action Types</strong>: Adjust daily yields, adjust the capping multiplier, pause referral payouts, adjust distribution splits, or disable the plan.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             {/* AI Conditional Logics Assistant */}
             <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-3">
@@ -2343,7 +2562,17 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section 5: Distribution Percentages */}
-        <SectionCard icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} title="Distribution Percentages">
+        <SectionCard 
+          icon={<BarChart3 className="h-4 w-4 text-emerald-400" />} 
+          title="Distribution Percentages"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Account Holder</strong>: Percentage of daily profit allocated directly to the investor.</p>
+              <p>• <strong>Shared Pool & Platform Fee</strong>: Portions allocated for company-wide matching pools and admin operating expenses.</p>
+              <p>• <strong>Other Pools</strong>: Portions allocated to Charity, Insurance reserves, Developer funds, and Liquidity pools. Must total 100%.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <NumberField
@@ -2430,7 +2659,17 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section 6: Subscription Fee Distribution */}
-        <SectionCard icon={<Percent className="h-4 w-4 text-emerald-400" />} title="Subscription Fee Distribution">
+        <SectionCard 
+          icon={<Percent className="h-4 w-4 text-emerald-400" />} 
+          title="Subscription Fee Distribution"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Referral/Profit Share</strong>: Percentage of subscription/entry fee allocated to referral tree bonuses.</p>
+              <p>• <strong>Rewards & Offers</strong>: Portion reserved for promotional rewards.</p>
+              <p>• <strong>Platform Fee</strong>: Portion kept by the platform as a service charge. Must total 100%.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <NumberField
@@ -2477,7 +2716,16 @@ function PlanEditor({
         </SectionCard>
 
         {/* Section 7: Plan Logic Preview */}
-        <SectionCard icon={<Eye className="h-4 w-4 text-emerald-400" />} title="Plan Logic Preview" description="Auto-generated from your field values">
+        <SectionCard 
+          icon={<Eye className="h-4 w-4 text-emerald-400" />} 
+          title="Plan Logic Preview" 
+          description="Auto-generated from your field values"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Auto-Generated Rules</strong>: Preview the simplified English descriptions of earnings, withdrawals, and stacking behavior generated from your settings. Users will see these on their dashboard.</p>
+            </div>
+          }
+        >
           <div className="space-y-4">
             <div className="space-y-1.5">
               <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Earning Mechanism</p>
@@ -2718,23 +2966,69 @@ export function SectionCard({
   icon,
   title,
   description,
+  helpContent,
   children,
 }: {
   icon: React.ReactNode
   title: string
   description?: string
+  helpContent?: React.ReactNode
   children: React.ReactNode
 }) {
+  const [collapsed, setCollapsed] = useState(true)
+  const [showHelp, setShowHelp] = useState(false)
+
   return (
-    <div className="rounded-xl border border-border/50 bg-background/30 p-4 space-y-4">
-      <div className="flex items-center gap-2">
-        {icon}
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          {description && <p className="text-xs text-muted-foreground">{description}</p>}
+    <div className="rounded-xl border border-border/50 bg-background/30 p-4 space-y-3">
+      <div 
+        className="flex items-center justify-between cursor-pointer hover:bg-muted/10 p-1.5 rounded-lg transition-all duration-200 select-none"
+        onClick={() => setCollapsed(!collapsed)}
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="shrink-0">{icon}</div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 flex-wrap">
+              {title}
+              {helpContent && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowHelp(!showHelp)
+                  }}
+                  className="p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-emerald-400 transition-colors"
+                  title="View Field Help & Logic Guide"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </h3>
+            {description && <p className="text-[11px] text-muted-foreground truncate">{description}</p>}
+          </div>
+        </div>
+        <div className="shrink-0 ml-2">
+          {collapsed ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          )}
         </div>
       </div>
-      {children}
+
+      {showHelp && helpContent && (
+        <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-lg text-[11px] text-muted-foreground space-y-1.5">
+          <p className="font-semibold text-emerald-400 flex items-center gap-1">
+            <Info className="h-3.5 w-3.5 text-emerald-400" /> Section Guide & Logic:
+          </p>
+          {helpContent}
+        </div>
+      )}
+
+      {!collapsed && (
+        <div className="space-y-4 pt-3 border-t border-border/10">
+          {children}
+        </div>
+      )}
     </div>
   )
 }

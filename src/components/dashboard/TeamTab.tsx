@@ -91,6 +91,14 @@ export function TeamTab() {
     steps: string[]
     rankUpgrade: string | null
     rewardsUnlocked: string[]
+    potentialBonus?: number
+    estimatedDailyRoi?: number
+    estimatedLifetimeRoi?: number
+    directBonus?: number
+    indirectBonus?: number
+    balancedPairingPayout?: number
+    avgExpectedEarning?: number
+    dailyMatchingYield?: number
   } | null>(null)
 
   // Load team list stats
@@ -257,6 +265,25 @@ export function TeamTab() {
       }
     })
 
+    // Calculate potential & passive earnings on simulated volumes
+    const matchedVolume = Math.min(left, right) - Math.min(originalLeft, originalRight)
+    const unmatchedVolume = Math.max(0, simAmount - matchedVolume)
+    const potentialBonus = unmatchedVolume * 0.10
+    const estimatedDailyRoi = simAmount * 0.015 // 1.5% avg daily yield
+    const estimatedLifetimeRoi = simAmount * 0.015 * 400 // 400 days including capital
+
+    const directBonus = simAmount * 0.10
+    const indirectBonus = simAmount * 0.05
+    const balancedPairingPayout = simAmount * 0.10
+    const avgExpectedEarning = directBonus + indirectBonus + Math.max(pairingEarning, balancedPairingPayout)
+    const dailyMatchingYield = simAmount * 0.015 * 0.10
+
+    steps.push(`--- Average Expected downline network commissions:`)
+    steps.push(`• Direct Sponsor bonus (10%): +$${directBonus.toFixed(2)} USD.`)
+    steps.push(`• Indirect Level bonus (5%): +$${indirectBonus.toFixed(2)} USD.`)
+    steps.push(`• Balanced Pairing matching projection (10% on balanced leg): +$${balancedPairingPayout.toFixed(2)} USD.`)
+    steps.push(`• Expected Average Earnings: +$${avgExpectedEarning.toFixed(2)} USD.`)
+
     setSimResults({
       leftCF: left,
       rightCF: right,
@@ -266,6 +293,14 @@ export function TeamTab() {
       steps,
       rankUpgrade: newRank,
       rewardsUnlocked,
+      potentialBonus,
+      estimatedDailyRoi,
+      estimatedLifetimeRoi,
+      directBonus,
+      indirectBonus,
+      balancedPairingPayout,
+      avgExpectedEarning,
+      dailyMatchingYield,
     })
   }, [treeData, simAmount, simLeg, rootFirstPairMatched])
 
@@ -828,10 +863,71 @@ export function TeamTab() {
 
                 {/* Simulation Output */}
                 {simResults && (
-                  <div className="rounded-xl bg-background/55 border border-border/30 p-3.5 space-y-2">
+                  <div className="rounded-xl bg-background/55 border border-border/30 p-3.5 space-y-2 flex-1">
+                    <div className="bg-emerald-500/10 border border-emerald-500/25 p-2 rounded-lg mb-2 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-emerald-400 block">Average Expected Earnings:</span>
+                        <span className="text-[9px] text-muted-foreground">Direct + Indirect + Projected Matching</span>
+                      </div>
+                      <span className="font-mono text-emerald-400 font-bold text-base">
+                        +${(simResults.avgExpectedEarning || 0).toFixed(2)} USD
+                      </span>
+                    </div>
+
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-semibold text-muted-foreground">Matching Payout Earning:</span>
-                      <span className="font-mono text-emerald-400 font-bold text-sm">+${simResults.matchedPayout.toFixed(2)} USD</span>
+                      <span className="font-semibold text-muted-foreground">Immediate Pairing Payout:</span>
+                      <span className="font-mono text-emerald-400 font-bold">
+                        {simResults.matchedPayout > 0 ? `+$${simResults.matchedPayout.toFixed(2)} USD` : '$0.00 USD'}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs pt-1 border-t border-border/10">
+                      <span className="font-semibold text-muted-foreground">Direct Sponsor Bonus (10%):</span>
+                      <span className="font-mono text-cyan-400 font-bold">
+                        +${(simResults.directBonus || 0).toFixed(2)} USD
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs pt-1 border-t border-border/10">
+                      <span className="font-semibold text-muted-foreground">Indirect Level Commissions (5%):</span>
+                      <span className="font-mono text-violet-400 font-bold">
+                        +${(simResults.indirectBonus || 0).toFixed(2)} USD
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs pt-1 border-t border-border/10">
+                      <span className="font-semibold text-muted-foreground">Balanced Pairing Projection:</span>
+                      <span className="font-mono text-amber-400 font-bold">
+                        +${(simResults.balancedPairingPayout || 0).toFixed(2)} USD
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs pt-1 border-t border-border/10">
+                      <span className="font-semibold text-muted-foreground">Carry-Forward Potential:</span>
+                      <span className="font-mono text-cyan-400 font-bold">
+                        +${(simResults.potentialBonus || 0).toFixed(2)} USD
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs pt-1 border-t border-border/10">
+                      <span className="font-semibold text-muted-foreground">Downline Daily Yield Matching:</span>
+                      <span className="font-mono text-emerald-500 font-bold">
+                        +${(simResults.dailyMatchingYield || 0).toFixed(4)} / day
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs pt-1 border-t border-border/10">
+                      <span className="font-semibold text-muted-foreground">Avg. Daily ROI Yield (1.5%):</span>
+                      <span className="font-mono text-emerald-400 font-bold">
+                        +${(simResults.estimatedDailyRoi || 0).toFixed(2)} / day
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs pt-1 border-t border-border/10">
+                      <span className="font-semibold text-muted-foreground">Est. 400-day Yield (Capital + ROI):</span>
+                      <span className="font-mono text-purple-400 font-bold">
+                        +${(simResults.estimatedLifetimeRoi || 0).toFixed(2)} USD
+                      </span>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/20 text-[10px]">
