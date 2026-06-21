@@ -81,8 +81,7 @@ const TAB_META: Record<
 }
 
 export function UserDashboard() {
-  const { dashboardTab, user, updateUserWallets, setDashboardTab } = useAppStore()
-  const [transferModalOpen, setTransferModalOpen] = useState(false)
+  const { dashboardTab, user, updateUserWallets, setDashboardTab, transferModalOpen, setTransferModalOpen, dashboardTheme, setDashboardTheme } = useAppStore()
   const [transferAmount, setTransferAmount] = useState('')
   const [transferring, setTransferring] = useState(false)
   const [transferDirection, setTransferDirection] = useState<'trading_to_withdrawal' | 'withdrawal_to_trading' | 'p2p'>('trading_to_withdrawal')
@@ -267,7 +266,7 @@ export function UserDashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-background cyber-mesh overflow-hidden">
+    <div className={`flex h-screen bg-background cyber-mesh overflow-hidden theme-${dashboardTheme}`}>
       <UserSidebar />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -282,36 +281,15 @@ export function UserDashboard() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-2">
-              {/* Mobile: Compact balance display */}
-              <div className="flex md:hidden items-center gap-1.5">
-                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-mono text-[10px] px-1.5 py-0.5">
-                  ${tradingBalance.toFixed(0)}
-                </Badge>
-              </div>
-
-              {/* Desktop: Full balance display */}
-              <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Trading:</span>
-                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-mono">
-                  ${tradingBalance.toFixed(2)}
-                </Badge>
-              </div>
-              <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Withdraw:</span>
-                <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-mono">
-                  ${withdrawalBalance.toFixed(2)}
-                </Badge>
-              </div>
-
-              <Button
-                onClick={() => setTransferModalOpen(true)}
-                variant="outline"
-                size="sm"
-                className="gap-1.5 h-8 px-2 md:px-3"
+              <select
+                className="bg-background border border-border/50 text-[11px] rounded px-2 py-1 text-foreground cursor-pointer focus:outline-none h-8"
+                value={dashboardTheme}
+                onChange={(e) => setDashboardTheme(e.target.value as any)}
               >
-                <ArrowRightLeft className="size-3.5 md:size-4" />
-                <span className="hidden md:inline">Transfer</span>
-              </Button>
+                <option value="dark">🌑 Dark Mode</option>
+                <option value="light-skeuo">☀️ Light Tactile</option>
+                <option value="liquid-glass">🧪 Liquid Glass</option>
+              </select>
               <NotificationCenter />
             </div>
           </div>

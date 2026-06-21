@@ -85,7 +85,9 @@ export function EarningsCalculator() {
   const risk = RISK_LEVELS[selectedRisk]
 
   const dailyCapPercent = plan.dailyEarningCapPercent ?? 200.0
-  const dailyCapUSD = investment * (dailyCapPercent / 100)
+  const dailyCapUSD = dailyCapPercent >= 0
+    ? investment * (dailyCapPercent / 100)
+    : Math.abs(dailyCapPercent)
 
   const avgDailyPercent = (risk.min + risk.max) / 2
   const minDailyEarning = Math.min((investment * risk.min) / 100, dailyCapUSD)

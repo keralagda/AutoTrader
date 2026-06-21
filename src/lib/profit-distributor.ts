@@ -47,7 +47,8 @@ export async function runProfitDistribution() {
     const vars = globalConfig.variables
     const findVal = (id: string, def: number) => {
       const v = vars.find((x: any) => x.id === id)
-      return v ? (v.value !== undefined ? v.value : (v.min + v.max) / 2) : def
+      if (!v || v.enabled === false) return def
+      return v.value !== undefined ? v.value : (v.min + v.max) / 2
     }
     globalBaseSkew = findVal('var_base_skew', 3)
     globalMinFloor = findVal('var_min_floor', 0.1)
@@ -292,15 +293,27 @@ export async function runProfitDistribution() {
       }
     }
 
-    // Clamp daily cap
-    const maxDayCap = plan.dailyEarningCapPercent > 0
-      ? plan.dailyEarningCapPercent
-      : globalDailyCap
-    if (dailyPercent > maxDayCap) {
-      dailyPercent = maxDayCap
+    // Clamp daily cap percent (only if dailyEarningCapPercent is positive, representing a multiplier cap)
+    if (plan.dailyEarningCapPercent > 0) {
+      if (dailyPercent > plan.dailyEarningCapPercent) {
+        dailyPercent = plan.dailyEarningCapPercent
+      }
+    } else if (plan.dailyEarningCapPercent === 0) {
+      if (dailyPercent > globalDailyCap) {
+        dailyPercent = globalDailyCap
+      }
     }
+    // If dailyEarningCapPercent is negative, we do NOT clamp dailyPercent here; we will clamp the profitAmount later.
 
     let profitAmount = (deposit.amount * dailyPercent) / 100
+
+    // Clamp by fixed dollar cap if dailyEarningCapPercent is negative
+    if (plan.dailyEarningCapPercent < 0) {
+      const fixedDollarCap = Math.abs(plan.dailyEarningCapPercent)
+      if (profitAmount > fixedDollarCap) {
+        profitAmount = fixedDollarCap
+      }
+    }
 
     // Stacking bonus
     if (deposit.stackIndex > 1 && plan.stackingEnabled && plan.stackingBonusPercent > 0) {

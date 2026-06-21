@@ -67,7 +67,7 @@ const navItems: NavItem[] = [
 ]
 
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
-  const { user, dashboardTab, setDashboardTab, logout } = useAppStore()
+  const { user, dashboardTab, setDashboardTab, logout, setTransferModalOpen } = useAppStore()
   const [copied, setCopied] = useState(false)
 
   const handleCopyCode = async () => {
@@ -112,33 +112,34 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           <NotificationCenter />
         </div>
 
-        {/* Dual Wallet Display */}
-        <div className="space-y-2">
-          <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <TrendingUp className="size-3.5 text-emerald-400" />
-              <p className="text-xs text-emerald-400 font-medium">Trading Wallet</p>
+        {/* Dual Wallet Display (My Wallet) */}
+        <div className="rounded-xl border border-border/50 bg-card/30 p-3 space-y-3">
+          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">💳 My Wallet</p>
+          <div className="space-y-2">
+            <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 p-2.5">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[10px] text-emerald-400 font-medium">Trading Wallet</span>
+                <TrendingUp className="size-3 text-emerald-400/70" />
+              </div>
+              <p className="text-base font-bold text-emerald-400">${tradingBalance.toFixed(2)}</p>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-xl font-bold text-emerald-400">
-                {tradingBalance.toFixed(2)}
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">USDC</span>
-            </div>
-          </div>
 
-          <div className="rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 p-3">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Wallet className="size-3.5 text-cyan-400" />
-              <p className="text-xs text-cyan-400 font-medium">Withdrawal Wallet</p>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-xl font-bold text-cyan-400">
-                {withdrawalBalance.toFixed(2)}
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">USDC</span>
+            <div className="rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 p-2.5">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[10px] text-cyan-400 font-medium">Withdrawal Wallet</span>
+                <Wallet className="size-3 text-cyan-400/70" />
+              </div>
+              <p className="text-base font-bold text-cyan-400">${withdrawalBalance.toFixed(2)}</p>
             </div>
           </div>
+          <Button
+            size="sm"
+            onClick={() => setTransferModalOpen(true)}
+            className="w-full h-8 gap-1.5 text-xs bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
+          >
+            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></svg>
+            Transfer Funds
+          </Button>
         </div>
       </div>
 
@@ -203,17 +204,24 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
         </div>
       </div>
 
-      {/* Admin Panel Link (only for staff roles) */}
-      {user?.role && ['admin', 'super_admin', 'moderator', 'support'].includes(user.role) && (
+      {/* Dashboard View Switcher (for admin, super_admin, leader, moderator, support) */}
+      {user?.role && ['admin', 'super_admin', 'moderator', 'support', 'leader'].includes(user.role) && (
         <div className="px-4 pb-2">
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-2 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-            onClick={() => { window.location.href = '/control-hub' }}
+          <label className="text-[9px] text-muted-foreground uppercase font-bold block mb-1">Active View</label>
+          <select 
+            className="w-full bg-muted border border-border/50 text-[11px] rounded px-2 py-1.5 text-foreground cursor-pointer focus:outline-none"
+            value={typeof window !== 'undefined' && window.location.pathname.startsWith('/leader') ? 'leader' : (typeof window !== 'undefined' && window.location.pathname.startsWith('/control-hub') ? 'admin' : 'user')}
+            onChange={(e) => {
+              const val = e.target.value
+              if (val === 'user') window.location.href = '/dashboard'
+              if (val === 'admin') window.location.href = '/control-hub'
+              if (val === 'leader') window.location.href = '/leader'
+            }}
           >
-            <Shield className="size-4" />
-            Admin Panel
-          </Button>
+            <option value="admin">🔧 Admin Console</option>
+            <option value="user">👤 User Dashboard</option>
+            <option value="leader">👑 Leader Dashboard</option>
+          </select>
         </div>
       )}
 

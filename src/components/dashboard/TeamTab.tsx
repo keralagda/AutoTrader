@@ -59,6 +59,7 @@ export function TeamTab() {
   const [totalDirect, setTotalDirect] = useState(0)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [registrationRates, setRegistrationRates] = useState<{ level: number; commission: number }[]>([])
 
   // Binary Tree states
   const [activeTreeRootId, setActiveTreeRootId] = useState<string>('')
@@ -111,6 +112,7 @@ export function TeamTab() {
         setTeamByLevel(data.teamByLevel || [])
         setTotalTeam(data.totalTeam || 0)
         setTotalDirect(data.totalDirect || 0)
+        setRegistrationRates(data.registrationRates || [])
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -564,9 +566,13 @@ export function TeamTab() {
                     <Badge className="bg-primary/20 text-primary border-primary/30">
                       Level {level.level}
                     </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      {[25, 20, 15, 10, 10, 10, 10][level.level - 1]}% commission
-                    </span>
+                     <span className="text-sm text-muted-foreground">
+                      {(() => {
+                        const rule = registrationRates.find(r => r.level === level.level)
+                        const rate = rule ? rule.commission : ([25, 20, 15, 10, 10, 10, 10][level.level - 1] || 10)
+                        return `${rate}% commission`
+                      })()}
+                     </span>
                   </div>
                   <span className="text-sm font-bold">{level.count} members</span>
                 </div>

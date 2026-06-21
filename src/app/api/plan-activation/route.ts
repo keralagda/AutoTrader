@@ -80,7 +80,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email verification is required to activate plans.' }, { status: 403 })
     }
 
-    const plan = await db.plan.findUnique({ where: { id: planId } })
+    const plan = await db.plan.findUnique({
+      where: { id: planId },
+      include: { referralRules: { where: { type: 'registration', enabled: true }, orderBy: { level: 'asc' } } }
+    })
     if (!plan || !plan.isActive) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
 
     // Check if already activated
@@ -109,11 +112,16 @@ export async function POST(req: NextRequest) {
 
     // Distribute Activation Fee
     if (activationFee > 0) {
-      const teamPool = (activationFee * 80) / 100
-      const rewardPool = (activationFee * 15) / 100
-      const platformPool = (activationFee * 5) / 100
+      const referralPercent = plan.subscriptionReferralPercent ?? 80
+      const rewardsPercent = plan.subscriptionRewardsPercent ?? 15
+      const platformPercent = plan.subscriptionPlatformPercent ?? 5
 
-      const teamRates = [25, 20, 15, 10, 10, 10, 10] // Level 1 to 7 percentages of teamPool
+      const teamPool = (activationFee * referralPercent) / 100
+      const rewardPool = (activationFee * rewardsPercent) / 100
+      const platformPool = (activationFee * platformPercent) / 100
+
+      const dbRates = plan.referralRules || []
+      const defaultRates = [25, 20, 15, 10, 10, 10, 10]
       const maxLevels = plan.registrationReferralLevels || 7
 
       let currentReferrerId = user.referredById
@@ -125,40 +133,66 @@ export async function POST(req: NextRequest) {
 
         const directReferrals = await db.user.count({ where: { referredById: referrer.id } })
 
-        // Level income condition: Level L (1-indexed) requires >= L direct referrals
-        const requiredReferrals = level + 1
-        if (directReferrals >= requiredReferrals) {
-          const rate = teamRates[level] || 0
-          const levelShare = (teamPool * rate) / 100
+        // Get custom qualification / sponsor deposit checks
+        const activeDepositsList = await db.deposit.findMany({
+          where: { userId: referrer.id, status: 'active' },
+          select: { amount: true }
+        })
+        const activeDepositsTotal = activeDepositsList.reduce((sum, d) => sum + d.amount, 0)
 
-          if (levelShare > 0) {
-            await db.user.update({
-              where: { id: referrer.id },
-              data: {
-                tradingBalance: referrer.tradingBalance + levelShare,
-                totalEarnings: referrer.totalEarnings + levelShare,
-              },
-            })
+        const rule = dbRates.find(r => r.level === (level + 1))
+        let levelShare = 0
+        let qualified = true
 
-            await db.earning.create({
-              data: {
-                userId: referrer.id,
-                amount: levelShare,
-                type: 'referral',
-                level: level + 1,
-                walletTarget: 'trading',
-              },
-            })
-
-            await db.notification.create({
-              data: {
-                userId: referrer.id,
-                title: 'Activation Team Commission! 🚀',
-                message: `You earned $${levelShare.toFixed(2)} from ${user.name}'s plan activation (Level ${level + 1})`,
-                type: 'referral',
-              },
-            })
+        if (rule) {
+          if (activeDepositsTotal < rule.minSponsorDeposit || directReferrals < rule.minDirectReferrals) {
+            qualified = false
           }
+          levelShare = rule.amount > 0 ? rule.amount : (teamPool * rule.commission) / 100
+        } else {
+          // Default checks (original level requirement)
+          const requiredReferrals = level + 1
+          if (directReferrals < requiredReferrals) {
+            qualified = false
+          }
+          const rate = defaultRates[level] !== undefined ? defaultRates[level] : 10
+          levelShare = (teamPool * rate) / 100
+        }
+
+        if (qualified && levelShare > 0) {
+          const targetWallet = rule?.targetWallet || 'trading'
+          const updateData: any = {
+            totalEarnings: referrer.totalEarnings + levelShare,
+          }
+          if (targetWallet === 'withdrawal') {
+            updateData.withdrawalBalance = referrer.withdrawalBalance + levelShare
+          } else {
+            updateData.tradingBalance = referrer.tradingBalance + levelShare
+          }
+
+          await db.user.update({
+            where: { id: referrer.id },
+            data: updateData,
+          })
+
+          await db.earning.create({
+            data: {
+              userId: referrer.id,
+              amount: levelShare,
+              type: 'referral',
+              level: level + 1,
+              walletTarget: targetWallet,
+            },
+          })
+
+          await db.notification.create({
+            data: {
+              userId: referrer.id,
+              title: 'Activation Team Commission! 🚀',
+              message: `You earned $${levelShare.toFixed(2)} from ${user.name}'s plan activation (Level ${level + 1})`,
+              type: 'referral',
+            },
+          })
         }
 
         currentReferrerId = referrer.referredById

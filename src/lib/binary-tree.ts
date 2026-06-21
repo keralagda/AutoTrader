@@ -359,6 +359,7 @@ export async function checkMlmRankUpgrade(userId: string, plan?: any) {
     select: {
       id: true,
       name: true,
+      role: true,
       personalVolume: true,
       businessVolume: true,
       teamVolume: true,
@@ -456,12 +457,15 @@ export async function checkMlmRankUpgrade(userId: string, plan?: any) {
     const bonus = qualifiedRank.bonus ?? 0
 
     await db.$transaction(async (tx) => {
-      // 1. Update User Rank, Level and tradingBalance
+      // 1. Update User Rank, Level, role and tradingBalance
+      const newRole = user.role === 'user' && newLevel >= 1 ? 'leader' : undefined
+
       await tx.user.update({
         where: { id: userId },
         data: {
           mlmRank: newRank,
           mlmLevel: newLevel,
+          role: newRole || undefined,
           tradingBalance: bonus > 0 ? { increment: bonus } : undefined
         }
       })

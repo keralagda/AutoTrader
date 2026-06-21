@@ -61,9 +61,13 @@ const getPlanKey = (planName: string): string => {
 }
 
 const getPlanLimitMultiplier = (plan: any): string => {
-  if (plan && typeof plan === 'object' && plan.dailyEarningCapPercent && plan.dailyEarningCapPercent > 0) {
-    const val = plan.dailyEarningCapPercent / 100
-    return `${val}X`
+  if (plan && typeof plan === 'object' && plan.dailyEarningCapPercent !== undefined) {
+    if (plan.dailyEarningCapPercent > 0) {
+      const val = plan.dailyEarningCapPercent / 100
+      return `${val}X`
+    } else if (plan.dailyEarningCapPercent < 0) {
+      return `$${Math.abs(plan.dailyEarningCapPercent)}`
+    }
   }
   const name = ((plan && typeof plan === 'object' ? plan.name : plan) || '').toLowerCase()
   if (name.includes('starter')) return '1X'
@@ -266,7 +270,12 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Daily Limit</p>
-                    <p className="font-medium">{getPlanLimitMultiplier(selectedPlan)} of Investment</p>
+                    <p className="font-medium">
+                      {(() => {
+                        const mult = getPlanLimitMultiplier(selectedPlan)
+                        return mult.startsWith('$') ? mult : `${mult} of Investment`
+                      })()}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Deposit Range</p>

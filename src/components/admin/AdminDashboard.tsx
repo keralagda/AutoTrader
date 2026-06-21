@@ -62,7 +62,7 @@ interface DashboardStats {
 }
 
 export function AdminDashboard() {
-  const { adminTab } = useAppStore()
+  const { adminTab, dashboardTheme, setDashboardTheme } = useAppStore()
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalDeposits: 0,
@@ -218,7 +218,7 @@ export function AdminDashboard() {
   ]
 
   return (
-    <div className="min-h-screen flex bg-background cyber-mesh">
+    <div className={`min-h-screen flex bg-background cyber-mesh theme-${dashboardTheme}`}>
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -254,6 +254,15 @@ export function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <select
+              className="bg-background border border-border/50 text-[11px] rounded px-2 py-1 text-foreground cursor-pointer focus:outline-none h-8"
+              value={dashboardTheme}
+              onChange={(e) => setDashboardTheme(e.target.value as any)}
+            >
+              <option value="dark">🌑 Dark Mode</option>
+              <option value="light-skeuo">☀️ Light Tactile</option>
+              <option value="liquid-glass">🧪 Liquid Glass</option>
+            </select>
             <Button
               size="sm"
               variant="outline"

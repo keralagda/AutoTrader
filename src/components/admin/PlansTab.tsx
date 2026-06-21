@@ -36,8 +36,16 @@ import { BinarySpilloverSettings } from './binary-plans/BinarySpilloverSettings'
 import { BinaryFlushSettings } from './binary-plans/BinaryFlushSettings'
 import { BinaryCycleSettings } from './binary-plans/BinaryCycleSettings'
 
-const getPlanLimitMultiplier = (planName: string): string => {
-  const name = planName.toLowerCase()
+const getPlanLimitMultiplier = (plan: any): string => {
+  if (plan && typeof plan === 'object' && plan.dailyEarningCapPercent !== undefined) {
+    if (plan.dailyEarningCapPercent > 0) {
+      const val = plan.dailyEarningCapPercent / 100
+      return `${val}X`
+    } else if (plan.dailyEarningCapPercent < 0) {
+      return `$${Math.abs(plan.dailyEarningCapPercent)}`
+    }
+  }
+  const name = ((plan && typeof plan === 'object' ? plan.name : plan) || '').toLowerCase()
   if (name.includes('starter')) return '1X'
   if (name.includes('flash') || name.includes('hourly')) return '1.5X'
   if (name.includes('silver')) return '2X'
@@ -1606,31 +1614,60 @@ function PlanEditor({
                 Apply Baseline Settings
               </Button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px] text-muted-foreground bg-background/20 p-2.5 rounded-lg border border-border/30">
-              <div>
-                <span className="block font-medium text-foreground">Skew Exponent</span>
-                <span>{logicConfig.variables?.find((v: any) => v.id === 'var_base_skew')?.value ?? 3} (var_base_skew)</span>
-              </div>
-              <div>
-                <span className="block font-medium text-foreground">Volatility noise</span>
-                <span>{logicConfig.variables?.find((v: any) => v.id === 'var_volatility')?.value ?? 0.5} (var_volatility)</span>
-              </div>
-              <div>
-                <span className="block font-medium text-foreground">Min floor</span>
-                <span>{logicConfig.variables?.find((v: any) => v.id === 'var_min_floor')?.value ?? 0.1}% (var_min_floor)</span>
-              </div>
-              <div>
-                <span className="block font-medium text-foreground">Daily return cap</span>
-                <span>{logicConfig.variables?.find((v: any) => v.id === 'var_daily_cap')?.value ?? 15}% (var_daily_cap)</span>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-[10px] text-muted-foreground bg-background/20 p-2.5 rounded-lg border border-border/30">
+              {(logicConfig.variables || []).map((v: any) => (
+                <div key={v.id} className={`flex flex-col justify-between p-2 rounded-md border ${v.enabled !== false ? 'border-emerald-500/10 bg-emerald-500/5' : 'border-border/30 opacity-60'} transition-all`}>
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="font-semibold text-foreground truncate max-w-[120px]" title={v.name}>{v.name}</span>
+                    <Switch
+                      checked={v.enabled !== false}
+                      onCheckedChange={async (checked) => {
+                        try {
+                          const updatedVars = logicConfig.variables.map((item: any) =>
+                            item.id === v.id ? { ...item, enabled: checked } : item
+                          )
+                          const updatedConfig = { ...logicConfig, variables: updatedVars }
+                          setLogicConfig(updatedConfig)
+                          const res = await fetch('/api/admin/logic-builder', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updatedConfig),
+                          })
+                          if (res.ok) {
+                            toast({ title: 'Variable status updated', description: `${v.name} is now ${checked ? 'enabled' : 'disabled'}.` })
+                          } else {
+                            throw new Error()
+                          }
+                        } catch {
+                          toast({ title: 'Failed to update variable', variant: 'destructive' })
+                          setLogicConfig(logicConfig)
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+                    <span>{v.id}</span>
+                    <span className="font-bold text-foreground">
+                      {v.value}{v.id.includes('cap') || v.id.includes('floor') || v.id.includes('threshold') ? '%' : ''}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Section 1: Basic Info */}
-        <SectionCard 
-          icon={<Info className="h-4 w-4 text-emerald-400" />} 
-          title="Basic Info"
+        <Tabs defaultValue="investment_settings" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 bg-muted/20 border border-border/50 p-1 rounded-xl">
+            <TabsTrigger value="investment_settings" className="text-xs py-2 rounded-lg">Standard Investment Settings</TabsTrigger>
+            <TabsTrigger value="binary_config" className="text-xs py-2 rounded-lg">Binary MLM Configuration</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="investment_settings" className="space-y-6">
+            {/* Section 1: Basic Info */}
+            <SectionCard 
+              icon={<Info className="h-4 w-4 text-emerald-400" />} 
+              title="Basic Info"
           helpContent={
             <div className="space-y-1">
               <p>• <strong>Plan Name</strong>: The public label shown to investors.</p>
@@ -1679,31 +1716,8 @@ function PlanEditor({
                 onCheckedChange={checked => ch('isActive', checked)}
               />
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
-              <div>
-                <p className="text-sm font-medium text-foreground">Binary MLM Enabled</p>
-                <p className="text-xs text-muted-foreground">Activate Binary placements and volumes for this plan</p>
-              </div>
-              <Switch
-                checked={plan.isBinaryMlmEnabled || false}
-                onCheckedChange={checked => ch('isBinaryMlmEnabled', checked)}
-              />
-            </div>
           </div>
         </SectionCard>
-
-        {plan.isBinaryMlmEnabled && (
-          <div className="space-y-6 border border-dashed border-emerald-500/30 p-4 rounded-xl bg-emerald-500/5">
-            <h4 className="text-sm font-bold text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
-              <Network className="h-4 w-4" /> Binary MLM Configuration
-            </h4>
-            <BinaryMlmSettings plan={plan} onChange={ch} />
-            <BinaryPairingSettings plan={plan} onChange={ch} />
-            <BinarySpilloverSettings plan={plan} onChange={ch} />
-            <BinaryFlushSettings plan={plan} onChange={ch} />
-            <BinaryCycleSettings plan={plan} onChange={ch} />
-          </div>
-        )}
 
         {/* Section 2: Deposit & Earning Rules */}
         <SectionCard 
@@ -1746,7 +1760,42 @@ function PlanEditor({
               </div>
               <Switch checked={plan.strictMultiples !== false} onCheckedChange={v => ch('strictMultiples', v)} />
             </div>
-            <NumberField label="Daily Earning Cap %" suffix="%" value={plan.dailyEarningCapPercent || 0} onChange={v => ch('dailyEarningCapPercent', v)} hint="0 = no cap" />
+            <div className="space-y-4 p-3 rounded-lg border border-border/50 bg-background/10 col-span-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs font-semibold text-foreground">Multiplier Capping</Label>
+                  <p className="text-[9px] text-muted-foreground leading-normal">Limit daily return as a multiplier (e.g. 1.5X, 2X) rather than a fixed dollar amount</p>
+                </div>
+                <Switch
+                  checked={plan.dailyEarningCapPercent >= 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      ch('dailyEarningCapPercent', Math.abs(plan.dailyEarningCapPercent || 200))
+                    } else {
+                      ch('dailyEarningCapPercent', -Math.abs(plan.dailyEarningCapPercent || 50))
+                    }
+                  }}
+                />
+              </div>
+              
+              {plan.dailyEarningCapPercent >= 0 ? (
+                <NumberField 
+                  label="Daily Earning Cap % (Multiplier)" 
+                  suffix="%" 
+                  value={plan.dailyEarningCapPercent || 0} 
+                  onChange={v => ch('dailyEarningCapPercent', Math.max(0, v))} 
+                  hint="e.g. 150 = 1.5X, 200 = 2X. 0 = no cap" 
+                />
+              ) : (
+                <NumberField 
+                  label="Daily Earning Cap $ (Fixed Amount)" 
+                  prefix="$" 
+                  value={Math.abs(plan.dailyEarningCapPercent) || 0} 
+                  onChange={v => ch('dailyEarningCapPercent', -Math.max(0, v))} 
+                  hint="e.g. 20 = $20 limit, 50 = $50 limit" 
+                />
+              )}
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Capping Applies To</Label>
               <div className="flex gap-1.5">
@@ -2747,8 +2796,41 @@ function PlanEditor({
             </div>
           </div>
         </SectionCard>
-      </CardContent>
-    </Card>
+      </TabsContent>
+
+      <TabsContent value="binary_config" className="space-y-6">
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-background/20">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Binary MLM Feature Activation</h3>
+            <p className="text-xs text-muted-foreground">Enable binary tree matching, spillover, and commissions for this plan</p>
+          </div>
+          <Switch
+            checked={!!plan.isBinaryMlmEnabled}
+            onCheckedChange={checked => ch('isBinaryMlmEnabled', checked)}
+          />
+        </div>
+
+        {plan.isBinaryMlmEnabled ? (
+          <div className="space-y-6 p-4 rounded-xl border border-dashed border-emerald-500/20 bg-emerald-500/5 animate-in fade-in duration-200">
+            <BinaryMlmSettings plan={plan} onChange={ch} />
+            <BinaryPairingSettings plan={plan} onChange={ch} />
+            <BinarySpilloverSettings plan={plan} onChange={ch} />
+            <BinaryFlushSettings plan={plan} onChange={ch} />
+            <BinaryCycleSettings plan={plan} onChange={ch} />
+          </div>
+        ) : (
+          <div className="p-6 rounded-xl border border-border/50 bg-muted/15 text-center space-y-2">
+            <Network className="h-8 w-8 text-muted-foreground mx-auto" />
+            <h4 className="text-sm font-semibold text-foreground">Binary MLM Disabled</h4>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              This plan currently operates as a standard investment plan. Enable the toggle above to configure binary matching, pairing cycles, flush limits, and team spillover controls.
+            </p>
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
+  </CardContent>
+</Card>
   )
 }
 
@@ -2861,7 +2943,13 @@ function PlanSummary({
           <StatBadge label="Entry Fee" value={`$${plan.entryFee.toLocaleString()}`} icon={<DollarSign className="h-3 w-3" />} />
           <StatBadge label="Daily Rate" value={`${(plan as any).lowRiskMin || 0.5}-${(plan as any).highRiskMax || 15}%`} icon={<Percent className="h-3 w-3" />} />
           <StatBadge label="Deposit Range" value={`$${plan.minDeposit.toLocaleString()} - $${plan.maxDeposit.toLocaleString()}`} />
-          <StatBadge label="Daily Limit" value={`${getPlanLimitMultiplier(plan.name)} of Investment`} />
+          <StatBadge 
+            label="Daily Limit" 
+            value={(() => {
+              const mult = getPlanLimitMultiplier(plan)
+              return mult.startsWith('$') ? mult : `${mult} of Investment`
+            })()} 
+          />
           <StatBadge label="Lock Period" value={plan.lockPeriodDays > 0 ? `${plan.lockPeriodDays} days` : 'None'} />
         </div>
 

@@ -589,3 +589,126 @@ body {
   direction: ltr;
   unicode-bidi: isolate;
 }
+
+/* ===================================================================
+   LIGHT SKEUOMORPHIC & LIQUID GLASS THEMES
+   =================================================================== */
+
+/* ─── Light Skeuomorphism Style ─── */
+.theme-light-skeuo {
+  --background: #f0f2f5;
+  --foreground: #1f2937;
+  --card: #f0f2f5;
+  --card-foreground: #1f2937;
+  --border: rgba(0, 0, 0, 0.08);
+  --muted: #e5e7eb;
+  --muted-foreground: #4b5563;
+  --primary: #10b981;
+  background-color: #f0f2f5 !important;
+  color: #1f2937 !important;
+}
+
+.theme-light-skeuo .cyber-mesh {
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
+  background-color: #f0f2f5 !important;
+}
+
+.theme-light-skeuo .cyber-card,
+.theme-light-skeuo .bg-card,
+.theme-light-skeuo .bg-card\/30,
+.theme-light-skeuo .bg-card\/50,
+.theme-light-skeuo .border-emerald-500\/30 {
+  background: #f0f2f5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 6px 6px 12px #d1d5db, -6px -6px 12px #ffffff !important;
+  border-radius: 16px;
+  color: #1f2937 !important;
+}
+
+.theme-light-skeuo input,
+.theme-light-skeuo select,
+.theme-light-skeuo textarea {
+  background: #f0f2f5 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: inset 2px 2px 5px #d1d5db, inset -2px -2px 5px #ffffff !important;
+  color: #1f2937 !important;
+}
+
+.theme-light-skeuo button:not(.bg-primary):not(.bg-emerald-600) {
+  box-shadow: 3px 3px 6px #d1d5db, -3px -3px 6px #ffffff !important;
+  background: #f0f2f5 !important;
+  color: #4b5563 !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.2s ease;
+}
+
+.theme-light-skeuo button:hover:not(.bg-primary):not(.bg-emerald-600) {
+  box-shadow: inset 2px 2px 5px #d1d5db, inset -2px -2px 5px #ffffff !important;
+}
+
+.theme-light-skeuo .text-muted-foreground {
+  color: #6b7280 !important;
+}
+
+.theme-light-skeuo .text-foreground {
+  color: #111827 !important;
+}
+
+/* ─── Liquid Glass Style ─── */
+.theme-liquid-glass {
+  --background: #06060c;
+  --foreground: #f9fafb;
+  --card: rgba(255, 255, 255, 0.02);
+  --card-foreground: #f9fafb;
+  --border: rgba(255, 255, 255, 0.12);
+  --primary: #3b82f6;
+  background-color: #06060c !important;
+}
+
+.theme-liquid-glass .cyber-mesh {
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(147, 51, 234, 0.08) 0%, transparent 40%);
+  background-color: #06060c !important;
+}
+
+.theme-liquid-glass .cyber-card,
+.theme-liquid-glass .bg-card,
+.theme-liquid-glass .bg-card\/30,
+.theme-liquid-glass .bg-card\/50,
+.theme-liquid-glass .border-emerald-500\/30 {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)) !important;
+  backdrop-filter: blur(25px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37), 
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    0 0 15px rgba(59, 130, 246, 0.05) !important;
+  border-radius: 16px;
+  color: #f9fafb !important;
+}
+
+.theme-liquid-glass .cyber-sidebar {
+  background: rgba(6, 6, 12, 0.8) !important;
+  backdrop-filter: blur(40px) saturate(200%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.theme-liquid-glass .cyber-header {
+  background: rgba(6, 6, 12, 0.6) !important;
+  backdrop-filter: blur(30px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.theme-liquid-glass .text-emerald-400 {
+  color: #60a5fa !important; /* Glow Blue */
+}
+.theme-liquid-glass .bg-emerald-500\/20 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
+

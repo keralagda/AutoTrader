@@ -354,10 +354,20 @@ export function AdminLogicBuilderTab() {
           <p className="text-xs text-muted-foreground">Global variables that can be referenced by rules. Change a variable here and all linked rules update.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {(config.variables || []).map((v: any, idx: number) => (
-              <Card key={v.id} className="border-violet-500/20 bg-violet-500/5">
+              <Card key={v.id} className={`transition-all duration-200 ${v.enabled !== false ? 'border-violet-500/20 bg-violet-500/5' : 'border-border/30 opacity-60'}`}>
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-semibold">{v.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={v.enabled !== false}
+                        onCheckedChange={checked => {
+                          const vars = [...(config.variables || [])]
+                          vars[idx] = { ...vars[idx], enabled: checked }
+                          setConfig({ ...config, variables: vars })
+                        }}
+                      />
+                      <h4 className="text-sm font-semibold">{v.name}</h4>
+                    </div>
                     <Badge className="text-[9px] bg-violet-500/20 text-violet-400 border-violet-500/30">{v.type}</Badge>
                   </div>
                   <p className="text-[10px] text-muted-foreground">{v.description}</p>
@@ -372,12 +382,13 @@ export function AdminLogicBuilderTab() {
                       max={v.max}
                       step={v.step || 0.1}
                       value={v.value}
+                      disabled={v.enabled === false}
                       onChange={e => {
                         const vars = [...(config.variables || [])]
                         vars[idx] = { ...vars[idx], value: parseFloat(e.target.value) }
                         setConfig({ ...config, variables: vars })
                       }}
-                      className="w-full h-2 rounded-full appearance-none bg-violet-500/20 cursor-pointer accent-violet-500"
+                      className="w-full h-2 rounded-full appearance-none bg-violet-500/20 cursor-pointer accent-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
                 </CardContent>

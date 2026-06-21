@@ -11,9 +11,13 @@ import type { PlanType } from '@/lib/types'
 import { DEFAULT_PLANS } from '@/lib/types'
 
 const getPlanLimitMultiplier = (plan: any): string => {
-  if (plan.dailyEarningCapPercent && plan.dailyEarningCapPercent > 0) {
-    const val = plan.dailyEarningCapPercent / 100
-    return `${val}X`
+  if (plan && plan.dailyEarningCapPercent !== undefined) {
+    if (plan.dailyEarningCapPercent > 0) {
+      const val = plan.dailyEarningCapPercent / 100
+      return `${val}X`
+    } else if (plan.dailyEarningCapPercent < 0) {
+      return `$${Math.abs(plan.dailyEarningCapPercent)}`
+    }
   }
   const name = (plan.name || '').toLowerCase()
   if (name.includes('starter')) return '1X'
@@ -327,7 +331,10 @@ export default function PlansSection() {
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Daily Limit</span>
                           <span className="font-semibold" dir="ltr">
-                            {getPlanLimitMultiplier(plan)} of Investment
+                            {(() => {
+                              const mult = getPlanLimitMultiplier(plan)
+                              return mult.startsWith('$') ? mult : `${mult} of Investment`
+                            })()}
                           </span>
                         </div>
 

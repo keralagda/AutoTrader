@@ -1,7 +1,7 @@
 // ─── Roles & Permissions Matrix ────────────────────────────────────
 // Defines what each role can do across the platform
 
-export type Role = 'super_admin' | 'admin' | 'moderator' | 'support' | 'user'
+export type Role = 'super_admin' | 'admin' | 'moderator' | 'support' | 'user' | 'leader'
 
 export type PermissionModule =
   | 'users'
@@ -179,6 +179,18 @@ export const DEFAULT_ROLES: RoleDefinition[] = [
     color: '#6b7280',
     level: 0,
     permissions: [], // Users don't access admin panel
+  },
+  {
+    id: 'leader',
+    label: 'Leader',
+    description: 'Team leader with elevated downline statistics, placement strategies, and team recommendations',
+    color: '#a855f7',
+    level: 5,
+    permissions: [
+      { module: 'users', actions: ['read'] },
+      { module: 'analytics', actions: ['read'] },
+      { module: 'messages', actions: ['create', 'read'] },
+    ],
   },
 ]
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type AppView = 'landing' | 'dashboard' | 'admin'
+export type AppView = 'landing' | 'dashboard' | 'admin' | 'leader'
 export type DashboardTab = 'overview' | 'profile' | 'earnings' | 'investment' | 'deposit' | 'withdraw' | 'team' | 'challenges' | 'leaderboard' | 'messages' | 'news' | 'transactions' | 'security' | 'rewards' | 'resources' | 'help' | 'mlm_rewards'
 export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder' | 'templates' | 'duplicates' | 'riskCategories' | 'referralConfig' | 'roles' | 'chatbot' | 'novaPoints' | 'logicBuilder' | 'featureFlags' | 'ecommerce' | 'helpCenter' | 'earnings' | 'financialLogs' | 'voiceNavigation' | 'pdfBuilder' | 'transferFunds' | 'mlmRewards' | 'emailVerifier'
 
@@ -15,9 +15,11 @@ interface AppState {
   isAuthenticated: boolean
   user: UserData | null
 
-  // Modals
+  // Modals / Themes
   showAuthModal: boolean
   authMode: 'login' | 'register'
+  transferModalOpen: boolean
+  dashboardTheme: 'dark' | 'light-skeuo' | 'liquid-glass'
 
   // Actions
   setView: (view: AppView) => void
@@ -27,6 +29,8 @@ interface AppState {
   logout: () => void
   setShowAuthModal: (show: boolean) => void
   setAuthMode: (mode: 'login' | 'register') => void
+  setTransferModalOpen: (open: boolean) => void
+  setDashboardTheme: (theme: 'dark' | 'light-skeuo' | 'liquid-glass') => void
   updateUserWallets: (tradingBalance: number, withdrawalBalance: number) => void
   updateUserProfile: (data: Partial<UserData>) => void
 }
@@ -74,6 +78,8 @@ export const useAppStore = create<AppState>((set) => ({
   user: null,
   showAuthModal: false,
   authMode: 'login',
+  transferModalOpen: false,
+  dashboardTheme: (typeof window !== 'undefined' ? localStorage.getItem('dashboard_theme') as any : 'dark') || 'dark',
 
   setView: (view) => set({ currentView: view }),
   setDashboardTab: (tab) => set({ dashboardTab: tab }),
@@ -81,7 +87,9 @@ export const useAppStore = create<AppState>((set) => ({
   login: (user) => set({
     isAuthenticated: true,
     user,
-    currentView: ['admin', 'super_admin', 'moderator', 'support'].includes(user.role) ? 'admin' : 'dashboard',
+    currentView: ['admin', 'super_admin', 'moderator', 'support'].includes(user.role)
+      ? 'admin'
+      : (user.role === 'leader' ? 'leader' : 'dashboard'),
     showAuthModal: false,
   }),
   logout: () => {
@@ -97,6 +105,13 @@ export const useAppStore = create<AppState>((set) => ({
   },
   setShowAuthModal: (show) => set({ showAuthModal: show }),
   setAuthMode: (mode) => set({ authMode: mode }),
+  setTransferModalOpen: (open) => set({ transferModalOpen: open }),
+  setDashboardTheme: (theme) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dashboard_theme', theme)
+    }
+    set({ dashboardTheme: theme })
+  },
   updateUserWallets: (tradingBalance, withdrawalBalance) => set((state) => ({
     user: state.user ? { ...state.user, tradingBalance, withdrawalBalance } : null,
   })),

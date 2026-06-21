@@ -90,11 +90,27 @@ export async function GET(request: Request) {
     const totalTeam = teamByLevel.reduce((sum, l) => sum + l.count, 0)
     const totalDirect = directReferralsFormatted.length
 
+    // Retrieve registration level commissions from active binary plans
+    const activeBinaryPlan = await db.plan.findFirst({
+      where: { isActive: true, isBinaryMlmEnabled: true },
+      include: { referralRules: { where: { type: 'registration', enabled: true }, orderBy: { level: 'asc' } } }
+    })
+    const activePlan = activeBinaryPlan || await db.plan.findFirst({
+      where: { isActive: true },
+      include: { referralRules: { where: { type: 'registration', enabled: true }, orderBy: { level: 'asc' } } }
+    })
+    
+    const registrationRates = (activePlan?.referralRules || []).map(r => ({
+      level: r.level,
+      commission: r.commission,
+    }))
+
     return NextResponse.json({
       directReferrals: directReferralsFormatted,
       teamByLevel,
       totalTeam,
       totalDirect,
+      registrationRates,
     })
   } catch (error) {
     console.error('Get team error:', error)

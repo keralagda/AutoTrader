@@ -77,8 +77,8 @@ export function AdminSidebar() {
   return (
     <aside className="w-64 min-h-screen cyber-sidebar flex flex-col h-screen sticky top-0 overflow-hidden">
       {/* Admin Header */}
-      <div className="p-6">
-        <div className="flex items-center gap-3">
+      <div className="p-6 pb-2">
+        <div className="flex items-center gap-3 mb-3">
           <img src="/bnfx-logo-dark.png" alt="BNFX" className="h-10 w-10 rounded-lg object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
           <div>
             <p className="text-sm font-semibold text-foreground">{user?.name || 'Admin'}</p>
@@ -87,6 +87,22 @@ export function AdminSidebar() {
               Admin
             </span>
           </div>
+        </div>
+        <div className="mt-2">
+          <label className="text-[9px] text-muted-foreground uppercase font-bold block mb-1">Active View</label>
+          <select 
+            className="w-full bg-background border border-border/50 text-[11px] rounded px-2 py-1 text-foreground cursor-pointer focus:outline-none"
+            value="admin"
+            onChange={(e) => {
+              const val = e.target.value
+              if (val === 'user') window.location.href = '/dashboard'
+              if (val === 'leader') window.location.href = '/leader'
+            }}
+          >
+            <option value="admin">🔧 Admin Console</option>
+            <option value="user">👤 User Dashboard</option>
+            <option value="leader">👑 Leader Dashboard</option>
+          </select>
         </div>
       </div>
 
