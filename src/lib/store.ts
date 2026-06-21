@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export type AppView = 'landing' | 'dashboard' | 'admin' | 'leader'
 export type DashboardTab = 'overview' | 'profile' | 'earnings' | 'investment' | 'deposit' | 'withdraw' | 'team' | 'challenges' | 'leaderboard' | 'messages' | 'news' | 'transactions' | 'security' | 'rewards' | 'resources' | 'help' | 'mlm_rewards'
-export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder' | 'templates' | 'duplicates' | 'riskCategories' | 'referralConfig' | 'roles' | 'chatbot' | 'novaPoints' | 'logicBuilder' | 'featureFlags' | 'ecommerce' | 'helpCenter' | 'earnings' | 'financialLogs' | 'voiceNavigation' | 'pdfBuilder' | 'transferFunds' | 'mlmRewards' | 'emailVerifier'
+export type AdminTab = 'plans' | 'profits' | 'users' | 'settings' | 'withdrawals' | 'payments' | 'challenges' | 'messages' | 'news' | 'notifications' | 'fakeProfiles' | 'tradingConfig' | 'kyc' | 'tickets' | 'activityLog' | 'testimonials' | 'promotions' | 'landingEditor' | 'cron' | 'deposits' | 'analytics' | 'withdrawalLimits' | 'systemHealth' | 'bulkOps' | 'geoBlocking' | 'notifTemplates' | 'pageBuilder' | 'templates' | 'duplicates' | 'riskCategories' | 'referralConfig' | 'roles' | 'chatbot' | 'novaPoints' | 'logicBuilder' | 'featureFlags' | 'ecommerce' | 'helpCenter' | 'earnings' | 'financialLogs' | 'voiceNavigation' | 'pdfBuilder' | 'transferFunds' | 'mlmRewards' | 'emailVerifier' | 'autoUpgrade'
 
 
 interface AppState {
@@ -68,6 +68,11 @@ export interface UserData {
   teamVolume?: number
   mlmRank?: string
   mlmLevel?: number
+  autoUpgradeEnabled?: boolean
+  autoUpgradePercent?: number
+  autoUpgradeAccumulated?: number
+  autoUpgradeTargetPlanId?: string | null
+  autoInvestmentEnabled?: boolean
 }
 
 export const useAppStore = create<AppState>((set) => ({

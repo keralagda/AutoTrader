@@ -53,6 +53,11 @@ export async function GET(request: Request) {
         binaryTreeRightVolume: true,
         binaryTreeLeftVolumeCarryForward: true,
         binaryTreeRightVolumeCarryForward: true,
+        autoUpgradeEnabled: true,
+        autoUpgradePercent: true,
+        autoUpgradeAccumulated: true,
+        autoUpgradeTargetPlanId: true,
+        autoInvestmentEnabled: true,
       },
     })
 
@@ -136,7 +141,10 @@ export async function PUT(request: Request) {
       }, { status: 503 })
     }
 
-    const { userId, name, email, phone, walletAddress, depositWallets, withdrawWallets } = await request.json()
+    const { 
+      userId, name, email, phone, walletAddress, depositWallets, withdrawWallets,
+      autoUpgradeEnabled, autoUpgradePercent, autoUpgradeTargetPlanId, autoInvestmentEnabled
+    } = await request.json()
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
@@ -149,6 +157,10 @@ export async function PUT(request: Request) {
     if (walletAddress !== undefined) updateData.walletAddress = walletAddress
     if (depositWallets !== undefined) updateData.depositWallets = depositWallets
     if (withdrawWallets !== undefined) updateData.withdrawWallets = withdrawWallets
+    if (autoUpgradeEnabled !== undefined) updateData.autoUpgradeEnabled = autoUpgradeEnabled
+    if (autoUpgradePercent !== undefined) updateData.autoUpgradePercent = autoUpgradePercent
+    if (autoUpgradeTargetPlanId !== undefined) updateData.autoUpgradeTargetPlanId = autoUpgradeTargetPlanId
+    if (autoInvestmentEnabled !== undefined) updateData.autoInvestmentEnabled = autoInvestmentEnabled
 
     const user = await db.user.update({
       where: { id: userId },
@@ -167,6 +179,11 @@ export async function PUT(request: Request) {
         totalEarnings: true,
         totalDeposited: true,
         isEmailVerified: true,
+        autoUpgradeEnabled: true,
+        autoUpgradePercent: true,
+        autoUpgradeAccumulated: true,
+        autoUpgradeTargetPlanId: true,
+        autoInvestmentEnabled: true,
       },
     })
 

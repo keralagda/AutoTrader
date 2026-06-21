@@ -14,6 +14,9 @@ import { KYCVerification } from './KYCVerification'
 import { RewardsTier } from './RewardsTier'
 import { MetaMaskConnect } from './MetaMaskConnect'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Progress } from '@/components/ui/progress'
+import { Cog } from 'lucide-react'
 
 interface SavedWallet {
   id: string
@@ -34,6 +37,75 @@ export function ProfileTab() {
     phone: (user as any)?.phone || '',
     walletAddress: user?.walletAddress || '',
   })
+
+  const [autoUpgradeEnabled, setAutoUpgradeEnabled] = useState(false)
+  const [autoUpgradePercent, setAutoUpgradePercent] = useState(5)
+  const [autoUpgradeTargetPlanId, setAutoUpgradeTargetPlanId] = useState('')
+  const [autoInvestmentEnabled, setAutoInvestmentEnabled] = useState(false)
+  const [savingAutomation, setSavingAutomation] = useState(false)
+  const [plans, setPlans] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch('/api/plans')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Filter plans with entry fee between 100 and 1000
+          const upgradePlans = data.filter(p => p.entryFee >= 100 && p.entryFee <= 1000 && p.isActive)
+          setPlans(upgradePlans)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (user) {
+      setAutoUpgradeEnabled(user.autoUpgradeEnabled || false)
+      setAutoUpgradePercent(user.autoUpgradePercent || 5)
+      setAutoUpgradeTargetPlanId(user.autoUpgradeTargetPlanId || '')
+      setAutoInvestmentEnabled(user.autoInvestmentEnabled || false)
+    }
+  }, [user])
+
+  const handleSaveAutomation = async () => {
+    if (!user?.id) return
+    if (autoUpgradeEnabled && !autoUpgradeTargetPlanId) {
+      toast({ title: 'Target plan is required when auto-upgrade is enabled', variant: 'destructive' })
+      return
+    }
+    if (autoUpgradeEnabled && autoUpgradePercent < 5) {
+      toast({ title: 'Upgrade deduction percentage must be at least 5%', variant: 'destructive' })
+      return
+    }
+
+    setSavingAutomation(true)
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          autoUpgradeEnabled,
+          autoUpgradePercent: parseFloat(autoUpgradePercent as any),
+          autoUpgradeTargetPlanId: autoUpgradeTargetPlanId || null,
+          autoInvestmentEnabled,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        updateUserProfile(data)
+        toast({ title: 'Automation settings updated successfully' })
+      } else {
+        const data = await res.json()
+        toast({ title: 'Update failed', description: data.error, variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Network error', variant: 'destructive' })
+    } finally {
+      setSavingAutomation(false)
+    }
+  }
 
   const [depositAddresses, setDepositAddresses] = useState<SavedWallet[]>([])
   const [withdrawAddresses, setWithdrawAddresses] = useState<SavedWallet[]>([])
@@ -327,6 +399,150 @@ export function ProfileTab() {
               <p className="text-xs text-muted-foreground">Total Earnings</p>
               <p className="text-sm font-bold text-amber-400 mt-1">${(user?.totalEarnings || 0).toFixed(2)}</p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Automation & Reinvestment Card */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Cog className="size-4 text-primary animate-spin-[spin_3s_linear_infinite]" />
+            Automation & Reinvestment
+          </CardTitle>
+          <Button 
+            size="sm" 
+            onClick={handleSaveAutomation} 
+            disabled={savingAutomation}
+            className="h-8 text-xs font-semibold"
+          >
+            {savingAutomation ? 'Saving...' : 'Save Automation'}
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Auto Investment Toggle */}
+            <div className="flex flex-col justify-between p-4 rounded-lg bg-muted/20 border border-border/30 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold flex items-center gap-1.5 cursor-pointer" htmlFor="auto-invest-switch">
+                    🔄 Auto Investment (Reinvest)
+                  </Label>
+                  <Switch 
+                    id="auto-invest-switch"
+                    checked={autoInvestmentEnabled} 
+                    onCheckedChange={setAutoInvestmentEnabled} 
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Automatically compound your daily profit share directly back into the active plan's principal balance.
+                </p>
+              </div>
+              <div className="text-[10px] text-muted-foreground flex items-center gap-1 bg-primary/5 px-2.5 py-1.5 rounded border border-primary/10">
+                <span>💡 Reinvestment scales your active deposit amount directly, compounding daily yield.</span>
+              </div>
+            </div>
+
+            {/* Auto Plan Upgrade Toggle */}
+            <div className="space-y-4 p-4 rounded-lg bg-muted/20 border border-border/30">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold flex items-center gap-1.5 cursor-pointer" htmlFor="auto-upgrade-switch">
+                  🚀 Auto Plan Upgrade
+                </Label>
+                <Switch 
+                  id="auto-upgrade-switch"
+                  checked={autoUpgradeEnabled} 
+                  onCheckedChange={setAutoUpgradeEnabled} 
+                />
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Deduct a portion of your daily profits (5% or above) to automatically purchase your next plan level tier (ranging from $100 to $1,000).
+              </p>
+              
+              {autoUpgradeEnabled && (
+                <div className="space-y-4 pt-4 border-t border-border/30">
+                  {/* Target Plan Dropdown */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase font-semibold text-muted-foreground">Target Plan</Label>
+                    <Select 
+                      value={autoUpgradeTargetPlanId || undefined} 
+                      onValueChange={setAutoUpgradeTargetPlanId}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="Select target plan ($100 - $1,000)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {plans.length === 0 ? (
+                          <SelectItem value="_" disabled>No eligible plans found</SelectItem>
+                        ) : (
+                          plans.map(p => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} (${p.entryFee} Entry Fee)
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Percentage Cut Slider/Input */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-[10px] uppercase font-semibold text-muted-foreground font-medium">Daily Income Deduction</Label>
+                      <span className="text-xs font-bold text-primary">{autoUpgradePercent}%</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="range" 
+                        min="5" 
+                        max="100" 
+                        value={autoUpgradePercent} 
+                        onChange={e => setAutoUpgradePercent(parseInt(e.target.value))}
+                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary" 
+                      />
+                      <Input 
+                        type="number" 
+                        min="5" 
+                        max="100" 
+                        value={autoUpgradePercent} 
+                        onChange={e => setAutoUpgradePercent(Math.max(5, Math.min(100, parseInt(e.target.value) || 5)))}
+                        className="w-16 h-8 text-center text-xs px-1"
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      * Deductions apply to daily yield income. Minimum 5%.
+                    </p>
+                  </div>
+
+                  {/* Accumulated Progress */}
+                  {autoUpgradeTargetPlanId && (
+                    <div className="space-y-1.5 pt-2 border-t border-border/20">
+                      {(() => {
+                        const targetPlan = plans.find(p => p.id === autoUpgradeTargetPlanId)
+                        if (!targetPlan) return null
+                        const accumulated = user?.autoUpgradeAccumulated || 0
+                        const target = targetPlan.entryFee
+                        const progress = Math.min((accumulated / target) * 100, 100)
+                        return (
+                          <>
+                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                              <span>Accumulated Progress</span>
+                              <span className="font-semibold text-foreground">
+                                ${accumulated.toFixed(2)} / ${target.toFixed(2)}
+                              </span>
+                            </div>
+                            <Progress value={progress} className="h-1.5" />
+                          </>
+                        )
+                      })()}
+                    </div>
+                  )}
+
+                </div>
+              )}
+            </div>
+
           </div>
         </CardContent>
       </Card>

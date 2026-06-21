@@ -90,6 +90,13 @@ model User {
   mlmRank        String @default("Member")
   mlmLevel       Int    @default(0)
 
+  autoUpgradeEnabled      Boolean   @default(false)
+  autoUpgradePercent      Float     @default(5.0)
+  autoUpgradeAccumulated  Float     @default(0.0)
+  autoUpgradeTargetPlanId String?
+  autoUpgradeTargetPlan   Plan?     @relation("AutoUpgradeTargetPlan", fields: [autoUpgradeTargetPlanId], references: [id])
+  autoInvestmentEnabled   Boolean   @default(false)
+
   affiliateApplications AffiliateApplication[]
 }
 
@@ -221,6 +228,7 @@ model Plan {
   teamRequirement     Int      @default(0)
   countdownEnd        DateTime?
 
+  autoUpgradeTargetUsers User[]  @relation("AutoUpgradeTargetPlan")
   deposits Deposit[]
   referralRules       PlanReferralRule[]
   conditionalLogics   PlanConditionalLogic[]

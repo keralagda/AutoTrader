@@ -1051,4 +1051,9 @@ export interface UserType {
   binaryTreeRightVolume?: number
   binaryTreeLeftVolumeCarryForward?: number
   binaryTreeRightVolumeCarryForward?: number
+  autoUpgradeEnabled?: boolean
+  autoUpgradePercent?: number
+  autoUpgradeAccumulated?: number
+  autoUpgradeTargetPlanId?: string | null
+  autoInvestmentEnabled?: boolean
 }

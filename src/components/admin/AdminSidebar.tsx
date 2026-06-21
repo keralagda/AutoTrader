@@ -38,6 +38,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'logicBuilder', label: 'Logic Builder', icon: Zap, group: 'trading' },
   { tab: 'referralConfig', label: 'Referral System', icon: Users, group: 'trading' },
   { tab: 'mlmRewards', label: 'MLM Ranks & Rewards', icon: Trophy, group: 'trading' },
+  { tab: 'autoUpgrade', label: 'Auto Upgrades', icon: TrendingUp, group: 'trading' },
   { tab: 'cron', label: 'Auto Profits (Cron)', icon: Clock, group: 'trading' },
 
   // 🎨 Site Builder
