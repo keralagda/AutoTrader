@@ -41,9 +41,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   { tab: 'cron', label: 'Auto Profits (Cron)', icon: Clock, group: 'trading' },
 
   // 🎨 Site Builder
-  { tab: 'templates', label: 'Templates', icon: Palette, group: 'site' },
-  { tab: 'pageBuilder', label: 'Page Builder', icon: Layout, group: 'site' },
-  { tab: 'landingEditor', label: 'Landing Sections', icon: Layout, group: 'site' },
+  { tab: 'pageBuilder', label: 'Page Workspace', icon: Layout, group: 'site' },
   { tab: 'pdfBuilder', label: 'PDF Flyer Builder', icon: FileText, group: 'site' },
 
   // 📝 Content

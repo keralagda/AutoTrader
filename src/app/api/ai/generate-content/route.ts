@@ -9,9 +9,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'type and prompt required' }, { status: 400 })
     }
 
-    const validTypes = ['news', 'announcement', 'promotion', 'email']
+    const validTypes = ['news', 'announcement', 'promotion', 'email', 'page']
     if (!validTypes.includes(type)) {
-      return NextResponse.json({ error: 'Invalid type. Use: news, announcement, promotion, email' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid type. Use: news, announcement, promotion, email, page' }, { status: 400 })
     }
 
     const content = await generateContent(type, prompt)

@@ -92,12 +92,13 @@ export async function generateSupportResponse(ticketSubject: string, ticketMessa
   return response
 }
 
-export async function generateContent(type: 'news' | 'announcement' | 'promotion' | 'email', prompt: string): Promise<{ title: string; content: string }> {
+export async function generateContent(type: 'news' | 'announcement' | 'promotion' | 'email' | 'page', prompt: string): Promise<{ title: string; content: string }> {
   const systemPrompts: Record<string, string> = {
     news: 'You are a content writer for a crypto investment platform. Write a news article. Respond in JSON: {"title": "...", "content": "..."}. Keep content under 150 words.',
     announcement: 'You are writing a platform announcement. Be professional and concise. Respond in JSON: {"title": "...", "content": "..."}. Keep under 100 words.',
     promotion: 'You are writing a promotional message for a crypto platform. Be exciting but not scammy. Respond in JSON: {"title": "...", "content": "..."}. Keep under 80 words.',
     email: 'You are writing a professional email for a crypto investment platform. Respond in JSON: {"title": "subject line", "content": "email body"}. Keep under 150 words.',
+    page: 'You are a content writer for a professional financial and crypto investment platform. Write a high-quality page content (e.g. Terms of Service, Privacy Policy, Risk Disclaimer, or about/support pages). Use clear headings and structured sections. Do not use Markdown styling in the title, but you can use Markdown or HTML paragraphs in the content to structure it beautifully. Respond in JSON: {"title": "page title", "content": "full page content"}. Keep under 600 words.'
   }
 
   const response = await aiChat([

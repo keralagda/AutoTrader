@@ -10,10 +10,17 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
+import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { AdminLandingEditorTab } from '../AdminLandingEditorTab'
+import { AdminTemplatesTab } from '../AdminTemplatesTab'
+import { HeaderBuilder } from './HeaderBuilder'
+import { FooterBuilder } from './FooterBuilder'
 import {
   Layout, Plus, Save, Eye, Trash2, GripVertical, ChevronLeft,
   Settings2, Layers, PanelLeft, Monitor, Smartphone, Loader2,
-  Copy, ArrowUp, ArrowDown, FileText, Globe,
+  Copy, ArrowUp, ArrowDown, FileText, Globe, Sparkles, Palette
 } from 'lucide-react'
 import { type PageBlock, type BlockType, type PageData, BLOCK_DEFINITIONS } from './types'
 import { BlockRenderer } from './BlockRenderer'
@@ -33,6 +40,122 @@ export function PageBuilderTab() {
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
   const [showBlockPicker, setShowBlockPicker] = useState(false)
   const [view, setView] = useState<'list' | 'editor'>('list')
+
+  // AI Prompt Page Builder states
+  const [showAiModal, setShowAiModal] = useState(false)
+  const [aiPageName, setAiPageName] = useState('')
+  const [aiPageSlug, setAiPageSlug] = useState('')
+  const [selectedPromptIdx, setSelectedPromptIdx] = useState<number | 'custom'>('custom')
+  const [aiPromptText, setAiPromptText] = useState('')
+  const [generatingWithAi, setGeneratingWithAi] = useState(false)
+
+  const PREDEFINED_PROMPTS = [
+    {
+      name: 'Terms of Service',
+      slug: '/terms',
+      prompt: 'Write a comprehensive Terms of Service for BNFX, an advanced crypto investment and automated yield allocation platform. Define terms of service, user requirements, payment rules, security policies, and liabilities. Format with clear headings and paragraphs.',
+    },
+    {
+      name: 'Privacy Policy',
+      slug: '/privacy',
+      prompt: 'Write a detailed Privacy Policy for BNFX, a crypto yield generation platform. Specify how user data (emails, transaction histories, wallet addresses) is collected, stored, and protected. Mention cookie policies and compliance with international regulations.',
+    },
+    {
+      name: 'Risk Disclosure & Disclaimer',
+      slug: '/risk-disclosure',
+      prompt: 'Write a professional Risk Disclosure statement for BNFX. Explain the inherent risks of crypto assets, volatility, smart contract failures, automated trading systems, and the possibility of capital loss. Emphasize that past performance is not indicative of future results.',
+    },
+    {
+      name: 'About Us',
+      slug: '/about',
+      prompt: 'Write an inspiring About Us page for BNFX. Explain our mission to bridge quantitative trading algorithms with retail investors. Detail our core pillars: algorithmic transparency, institutional-grade security, and dynamic yields.',
+    },
+    {
+      name: 'Frequently Asked Questions (FAQ)',
+      slug: '/faq',
+      prompt: 'Write a structured FAQ for BNFX. Include answers to common questions: How do I deposit/withdraw? What are the returns based on? How does the binary MLM referral system work? Is my capital secure?',
+    }
+  ]
+
+  const handlePromptSelect = (idx: string) => {
+    if (idx === 'custom') {
+      setSelectedPromptIdx('custom')
+      setAiPromptText('')
+    } else {
+      const parsedIdx = parseInt(idx)
+      const selected = PREDEFINED_PROMPTS[parsedIdx]
+      if (selected) {
+        setSelectedPromptIdx(parsedIdx)
+        setAiPageName(selected.name)
+        setAiPageSlug(selected.slug)
+        setAiPromptText(selected.prompt)
+      }
+    }
+  }
+
+  const handleAiGenerate = async () => {
+    if (!aiPageName) {
+      toast({ title: 'Please enter a page name', variant: 'destructive' })
+      return
+    }
+    setGeneratingWithAi(true)
+    try {
+      const res = await fetch('/api/ai/generate-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'page',
+          prompt: aiPromptText || `Write a content page for ${aiPageName}. Include relevant sections.`,
+        }),
+      })
+      if (!res.ok) throw new Error('AI generation failed')
+      const data = await res.json()
+      
+      // Build block structure from AI content
+      const pageBlocks = [
+        {
+          id: `blk_${Date.now()}_h`,
+          type: 'heading' as const,
+          content: { text: data.title || aiPageName, level: 'h1' },
+          style: { padding: '24px 0px', textAlign: 'center' as const }
+        },
+        {
+          id: `blk_${Date.now()}_t`,
+          type: 'text' as const,
+          content: { text: data.content || 'Content generation failed' },
+          style: { padding: '16px 0px', textAlign: 'left' as const }
+        }
+      ]
+
+      // Post this to page builder route
+      const createRes = await fetch('/api/admin/page-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: aiPageName,
+          slug: aiPageSlug || `/${aiPageName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+          blocks: pageBlocks,
+          published: true,
+        }),
+      })
+      
+      if (createRes.ok) {
+        toast({ title: 'Page generated and created successfully!' })
+        setShowAiModal(false)
+        setAiPageName('')
+        setAiPageSlug('')
+        setAiPromptText('')
+        setSelectedPromptIdx('custom')
+        loadPages()
+      } else {
+        toast({ title: 'Failed to save generated page', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'AI generation failed', variant: 'destructive' })
+    } finally {
+      setGeneratingWithAi(false)
+    }
+  }
 
   useEffect(() => { loadPages() }, [])
 
@@ -162,60 +285,87 @@ export function PageBuilderTab() {
   if (view === 'list') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2"><Layout className="h-5 w-5 text-primary" /> Page Builder</h2>
-            <p className="text-sm text-muted-foreground">Create and manage pages with visual drag-and-drop editor</p>
+        <Tabs defaultValue="pages" className="w-full">
+          <div className="flex items-center justify-between border-b border-border/40 pb-4">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2"><Layout className="h-5 w-5 text-primary" /> Page Workspace</h2>
+              <p className="text-sm text-muted-foreground">Manage layout templates, landing page sections, custom pages, and global header/footer</p>
+            </div>
+            <TabsList className="bg-muted p-1 rounded-lg">
+              <TabsTrigger value="pages" className="gap-1.5"><FileText className="size-3.5" />Custom Pages</TabsTrigger>
+              <TabsTrigger value="landing" className="gap-1.5"><Layers className="size-3.5" />Landing Sections</TabsTrigger>
+              <TabsTrigger value="templates" className="gap-1.5"><Palette className="size-3.5" />Layout Templates</TabsTrigger>
+              <TabsTrigger value="header-footer" className="gap-1.5"><PanelLeft className="size-3.5" />Header & Footer</TabsTrigger>
+            </TabsList>
           </div>
-          <Button onClick={() => {
-            const name = prompt('Page name:')
-            if (name) createPage(name)
-          }} className="gap-2"><Plus className="h-4 w-4" /> New Page</Button>
-        </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Default pages */}
-            {[
-              { id: 'landing', name: 'Landing Page', slug: '/', icon: '🏠' },
-            ].map(page => (
-              <Card key={page.id} className="bg-card/50 border-border/50 hover:border-primary/30 transition-colors cursor-pointer" onClick={() => loadPage(page.id)}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{page.icon}</span>
-                    <div>
-                      <p className="font-medium">{page.name}</p>
-                      <p className="text-xs text-muted-foreground">{page.slug}</p>
-                    </div>
-                  </div>
-                  <Badge className="mt-2 bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">Default</Badge>
-                </CardContent>
-              </Card>
-            ))}
+          <TabsContent value="pages" className="mt-4 space-y-4">
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowAiModal(true)} className="gap-1.5 text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"><Sparkles className="size-3.5" /> Generate Page with AI</Button>
+              <Button onClick={() => {
+                const name = prompt('Page name:')
+                if (name) createPage(name)
+              }} className="gap-2 text-xs h-9"><Plus className="h-4 w-4" /> New Page</Button>
+            </div>
 
-            {/* Custom pages */}
-            {pages.map(page => (
-              <Card key={page.id} className="bg-card/50 border-border/50 hover:border-primary/30 transition-colors cursor-pointer" onClick={() => loadPage(page.id)}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{page.name}</p>
-                      <p className="text-xs text-muted-foreground">{page.slug}</p>
-                    </div>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-400" onClick={(e) => { e.stopPropagation(); deletePage(page.id) }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <Badge className={`mt-2 text-[10px] ${page.published ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
-                    {page.published ? 'Published' : 'Draft'}
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+            {loading ? (
+              <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Default pages */}
+                {[
+                  { id: 'landing', name: 'Landing Page', slug: '/', icon: '🏠' },
+                ].map(page => (
+                  <Card key={page.id} className="bg-card/50 border-border/50 hover:border-primary/30 transition-colors cursor-pointer" onClick={() => loadPage(page.id)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{page.icon}</span>
+                        <div>
+                          <p className="font-medium">{page.name}</p>
+                          <p className="text-xs text-muted-foreground">{page.slug}</p>
+                        </div>
+                      </div>
+                      <Badge className="mt-2 bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">Default</Badge>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {/* Custom pages */}
+                {pages.map(page => (
+                  <Card key={page.id} className="bg-card/50 border-border/50 hover:border-primary/30 transition-colors cursor-pointer" onClick={() => loadPage(page.id)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{page.name}</p>
+                          <p className="text-xs text-muted-foreground">{page.slug}</p>
+                        </div>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-400" onClick={(e) => { e.stopPropagation(); deletePage(page.id) }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <Badge className={`mt-2 text-[10px] ${page.published ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
+                        {page.published ? 'Published' : 'Draft'}
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="landing" className="mt-4">
+            <AdminLandingEditorTab />
+          </TabsContent>
+
+          <TabsContent value="templates" className="mt-4">
+            <AdminTemplatesTab />
+          </TabsContent>
+
+          <TabsContent value="header-footer" className="mt-4 space-y-6">
+            <HeaderBuilder />
+            <FooterBuilder />
+          </TabsContent>
+        </Tabs>
       </div>
     )
   }
@@ -342,6 +492,62 @@ export function PageBuilderTab() {
           </ScrollArea>
         </div>
       </div>
+
+      {/* AI Page Generation Modal */}
+      {showAiModal && (
+        <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
+          <DialogContent className="max-w-lg bg-card border border-border/80 rounded-2xl shadow-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-1.5"><Sparkles className="size-5 text-primary" /> Generate Page with AI</DialogTitle>
+              <DialogDescription>Use AI to generate professional content (like policies, disclosures, FAQs) and build pages instantly.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Select Template (Predefined Prompt)</Label>
+                <select
+                  value={selectedPromptIdx}
+                  onChange={e => handlePromptSelect(e.target.value)}
+                  className="w-full text-xs bg-background border border-border/50 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="custom">Custom Page (Blank / Custom Prompt)</option>
+                  {PREDEFINED_PROMPTS.map((p, i) => (
+                    <option key={i} value={i}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Page Name</Label>
+                  <Input value={aiPageName} onChange={e => setAiPageName(e.target.value)} placeholder="e.g. Terms of Service" className="h-9 text-xs" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Page Slug</Label>
+                  <Input value={aiPageSlug} onChange={e => setAiPageSlug(e.target.value)} placeholder="e.g. /terms" className="h-9 text-xs" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">AI Prompt Instructions</Label>
+                <Textarea
+                  value={aiPromptText}
+                  onChange={e => setAiPromptText(e.target.value)}
+                  placeholder="Describe the content of the page, layout requirements, or key sections you want to generate."
+                  rows={4}
+                  className="text-xs bg-background"
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowAiModal(false)} disabled={generatingWithAi}>Cancel</Button>
+              <Button size="sm" onClick={handleAiGenerate} disabled={generatingWithAi} className="gap-1.5">
+                {generatingWithAi ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                {generatingWithAi ? 'Generating...' : 'Generate & Create Page'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Block Picker Modal - WPBakery Style with categories, search, pagination */}
       {showBlockPicker && (
