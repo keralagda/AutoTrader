@@ -62,6 +62,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
 
   // ⚙️ Settings
   { tab: 'settings', label: 'General Settings', icon: Wrench, group: 'system' },
+  { tab: 'performance', label: 'Performance & Reset', icon: Zap, group: 'system' },
   { tab: 'voiceNavigation', label: 'Voice Commands', icon: Mic, group: 'system' },
   { tab: 'featureFlags', label: 'Feature Flags', icon: Shield, group: 'system' },
   { tab: 'helpCenter', label: 'Help Center', icon: LifeBuoy, group: 'system' },

@@ -1,0 +1,24 @@
+import { db } from '../src/lib/db'
+
+async function main() {
+  const users = await db.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      referredById: true,
+      binaryTreeParentId: true,
+      binaryTreeLeftChildId: true,
+      binaryTreeRightChildId: true,
+      binaryTreePosition: true,
+      tradingBalance: true,
+      totalEarnings: true,
+      isActive: true,
+    }
+  })
+
+  console.log('=== USERS ===')
+  console.log(JSON.stringify(users, null, 2))
+}
+
+main().catch(console.error).finally(() => process.exit(0))

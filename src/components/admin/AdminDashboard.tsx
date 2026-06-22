@@ -49,6 +49,7 @@ import { AdminTransferFundsTab } from './AdminTransferFundsTab'
 import { AdminMlmRewardsTab } from './AdminMlmRewardsTab'
 import { AdminEmailVerifier } from './AdminEmailVerifier'
 import { AdminAutoUpgradeTab } from './AdminAutoUpgradeTab'
+import { AdminPerformanceTab } from './AdminPerformanceTab'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X, RefreshCw } from 'lucide-react'
@@ -183,6 +184,8 @@ export function AdminDashboard() {
       case 'mlmRewards': return <AdminMlmRewardsTab />
       case 'emailVerifier': return <AdminEmailVerifier />
       case 'autoUpgrade': return <AdminAutoUpgradeTab />
+      case 'performance': return <AdminPerformanceTab />
+
       default: return <PlansTab />
 
     }
