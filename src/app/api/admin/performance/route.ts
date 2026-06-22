@@ -36,13 +36,18 @@ export async function GET(req: NextRequest) {
       dbStatus = 'down'
     }
 
+    // Check database-based SMTP settings
+    const dbSmtpUser = await db.setting.findUnique({ where: { key: 'smtp_gmail_user' } })
+
     // Env Contract Check
     const envStatus = {
       DATABASE_URL: process.env.DATABASE_URL ? 'Configured' : 'Not Configured',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'Configured' : 'Not Configured',
       GROQ_API_KEY: process.env.GROQ_API_KEY ? 'Configured' : 'Not Configured',
       RESEND_API_KEY: process.env.RESEND_API_KEY ? 'Configured' : 'Not Configured',
+      SMTP_SERVERS: process.env.SMTP_SERVERS ? 'Configured' : 'Not Configured',
       SMTP_GMAIL_USER: process.env.SMTP_GMAIL_USER ? 'Configured' : 'Not Configured',
+      DB_SMTP_SETTING: (dbSmtpUser && dbSmtpUser.value.trim() !== '') ? 'Configured' : 'Not Configured',
     }
 
     // AI Connection Check
