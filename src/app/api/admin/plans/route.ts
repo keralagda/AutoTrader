@@ -23,7 +23,7 @@ export async function GET() {
 
     const plans = await db.plan.findMany({
       orderBy: { sortOrder: 'asc' },
-      include: { referralRules: true, conditionalLogics: true }
+      include: { referralRules: true, conditionalLogics: true, pairingRules: true }
     })
     return NextResponse.json(plans)
   } catch (error) {
@@ -52,7 +52,7 @@ export async function PUT(request: Request) {
       }, { status: 503 })
     }
 
-    const { id, referralRules, conditionalLogics, ...data } = await request.json()
+    const { id, referralRules, conditionalLogics, pairingRules, ...data } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 })
@@ -132,10 +132,29 @@ export async function PUT(request: Request) {
         })
       }
     }
+    if (pairingRules && Array.isArray(pairingRules)) {
+      await db.planPairingRule.deleteMany({ where: { planId: id } })
+      if (pairingRules.length > 0) {
+        await db.planPairingRule.createMany({
+          data: pairingRules.map((r: any) => ({
+            planId: id,
+            levelRange: r.levelRange,
+            ratio: r.ratio || '100:100',
+            bonusType: r.bonusType || 'percent',
+            bonusValue: Number(r.bonusValue ?? 10.0),
+            minDirectLeft: Number(r.minDirectLeft ?? 0),
+            minDirectRight: Number(r.minDirectRight ?? 0),
+            minPersonalIv: Number(r.minPersonalIv ?? 0),
+            minTeamTv: Number(r.minTeamTv ?? 0),
+            perks: r.perks || '',
+          }))
+        })
+      }
+    }
 
     const updatedPlan = await db.plan.findUnique({
       where: { id },
-      include: { referralRules: true, conditionalLogics: true }
+      include: { referralRules: true, conditionalLogics: true, pairingRules: true }
     })
 
     return NextResponse.json(updatedPlan)
@@ -168,7 +187,7 @@ export async function POST(request: Request) {
     const data = await request.json()
 
     // Remove fields that shouldn't be in create
-    const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, referralRules, conditionalLogics, ...createData } = data as any
+    const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, referralRules, conditionalLogics, pairingRules, ...createData } = data as any
 
     createData.minReinvestAmount = Number(createData.minReinvestAmount || 0)
     createData.reinvestLockPeriod = Math.round(Number(createData.reinvestLockPeriod || 0))
@@ -229,10 +248,26 @@ export async function POST(request: Request) {
         }))
       })
     }
+    if (pairingRules && Array.isArray(pairingRules) && pairingRules.length > 0) {
+      await db.planPairingRule.createMany({
+        data: pairingRules.map((r: any) => ({
+          planId: plan.id,
+          levelRange: r.levelRange,
+          ratio: r.ratio || '100:100',
+          bonusType: r.bonusType || 'percent',
+          bonusValue: Number(r.bonusValue ?? 10.0),
+          minDirectLeft: Number(r.minDirectLeft ?? 0),
+          minDirectRight: Number(r.minDirectRight ?? 0),
+          minPersonalIv: Number(r.minPersonalIv ?? 0),
+          minTeamTv: Number(r.minTeamTv ?? 0),
+          perks: r.perks || '',
+        }))
+      })
+    }
 
     const createdPlan = await db.plan.findUnique({
       where: { id: plan.id },
-      include: { referralRules: true, conditionalLogics: true }
+      include: { referralRules: true, conditionalLogics: true, pairingRules: true }
     })
 
     return NextResponse.json(createdPlan, { status: 201 })

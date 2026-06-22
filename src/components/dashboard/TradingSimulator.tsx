@@ -98,6 +98,11 @@ export function TradingSimulator({ deposit }: { deposit: Deposit }) {
   const [planRate, setPlanRate] = useState<PlanRate | null>(null)
   const [creditedEarnings, setCreditedEarnings] = useState(0)
 
+  const [logicConfig, setLogicConfig] = useState<any>(null)
+  const [liveWinRate, setLiveWinRate] = useState(70.0)
+  const [liveVolatility, setLiveVolatility] = useState(0.5)
+  const [liveProfitMultiplier, setLiveProfitMultiplier] = useState(1.0)
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const phaseRef = useRef<Phase>('win')
   const phaseCountRef = useRef(0)
@@ -111,11 +116,53 @@ export function TradingSimulator({ deposit }: { deposit: Deposit }) {
 
   // Load config
   useEffect(() => {
-    fetch('/api/trading-config')
+    fetch(`/api/trading-config?t=${Date.now()}`)
       .then(r => r.json())
       .then(setConfig)
       .catch(() => {})
   }, [])
+
+  // Load logic variables
+  useEffect(() => {
+    fetch(`/api/logic-builder?t=${Date.now()}`)
+      .then(r => r.json())
+      .then(setLogicConfig)
+      .catch(() => {})
+  }, [])
+
+  // Rotate variables
+  useEffect(() => {
+    const baseWinRate = config.maxWinRate || 72
+    const baseVolatility = logicConfig?.variables?.find((v: any) => v.id === 'var_volatility')?.value || 0.5
+    const baseMultiplier = config.profitMultiplier || 1.0
+
+    setLiveWinRate(baseWinRate)
+    setLiveVolatility(baseVolatility)
+    setLiveProfitMultiplier(baseMultiplier)
+
+    const timer = setInterval(() => {
+      setLiveWinRate(prev => {
+        const delta = (Math.random() - 0.5) * 1.5
+        const min = Math.max(50, baseWinRate - 10)
+        const max = Math.min(95, baseWinRate + 5)
+        return Math.min(max, Math.max(min, prev + delta))
+      })
+      setLiveVolatility(prev => {
+        const delta = (Math.random() - 0.5) * 0.05
+        const min = Math.max(0.1, baseVolatility - 0.2)
+        const max = Math.min(1.0, baseVolatility + 0.2)
+        return Math.min(max, Math.max(min, prev + delta))
+      })
+      setLiveProfitMultiplier(prev => {
+        const delta = (Math.random() - 0.5) * 0.08
+        const min = Math.max(0.5, baseMultiplier - 0.3)
+        const max = Math.min(2.5, baseMultiplier + 0.3)
+        return Math.min(max, Math.max(min, prev + delta))
+      })
+    }, 3000)
+
+    return () => clearInterval(timer)
+  }, [config, logicConfig])
 
   // Load saved session + plan rate info
   useEffect(() => {
@@ -446,6 +493,20 @@ export function TradingSimulator({ deposit }: { deposit: Deposit }) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Live Core Metrics Ticker */}
+            <div className="bg-muted/30 border border-border/30 rounded-lg p-2.5 flex items-center justify-between text-[11px] font-mono text-muted-foreground overflow-hidden">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+                <span className="font-bold text-foreground">LIVE CORE METRICS:</span>
+              </div>
+              <div className="flex gap-4 overflow-x-auto scrollbar-none pl-4">
+                <span className="whitespace-nowrap">Win Rate: <strong className="text-emerald-400">{liveWinRate.toFixed(1)}%</strong></span>
+                <span className="whitespace-nowrap">Volatility: <strong className="text-cyan-400">{liveVolatility.toFixed(2)}</strong></span>
+                <span className="whitespace-nowrap">Profit Mult: <strong className="text-amber-400">{liveProfitMultiplier.toFixed(2)}x</strong></span>
+                <span className="whitespace-nowrap">Daily Cap: <strong className="text-pink-400">{logicConfig?.variables?.find((v: any) => v.id === 'var_daily_cap')?.value || 15}%</strong></span>
+                <span className="whitespace-nowrap">Floor Limit: <strong className="text-emerald-400">{logicConfig?.variables?.find((v: any) => v.id === 'var_min_floor')?.value || 0.1}%</strong></span>
+              </div>
+            </div>
             {/* Credited Earnings Banner */}
             <div className="rounded-lg bg-gradient-to-r from-emerald-500/10 via-cyan-500/10 to-emerald-500/10 border border-emerald-500/20 p-3">
               <div className="flex items-center justify-between">

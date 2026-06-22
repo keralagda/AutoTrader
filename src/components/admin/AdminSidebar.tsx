@@ -44,6 +44,7 @@ const navItems: { tab: AdminTab; label: string; icon: React.ElementType; group: 
   // 🎨 Site Builder
   { tab: 'pageBuilder', label: 'Page Workspace', icon: Layout, group: 'site' },
   { tab: 'pdfBuilder', label: 'PDF Flyer Builder', icon: FileText, group: 'site' },
+  { tab: 'customFields', label: 'Custom Fields & Posts', icon: FileText, group: 'site' },
 
   // 📝 Content
   { tab: 'news', label: 'News', icon: Newspaper, group: 'content' },

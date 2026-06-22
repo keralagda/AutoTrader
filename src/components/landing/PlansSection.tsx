@@ -163,7 +163,7 @@ export default function PlansSection() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const res = await fetch('/api/plans')
+        const res = await fetch(`/api/plans?t=${Date.now()}`)
         if (res.ok) {
           const data = await res.json()
           if (Array.isArray(data) && data.length > 0) {
@@ -365,6 +365,36 @@ export default function PlansSection() {
                             <span className="font-semibold flex items-center gap-1">
                               <Lock className="size-3 text-amber-400" />{plan.lockPeriodDays} days
                             </span>
+                          </div>
+                        )}
+
+                        {/* Staking Info */}
+                        {plan.stakingEnabled && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Staking Yield</span>
+                            <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                              <Sparkles className="size-3" />+{plan.stakingBonusPercent || 0}%/day ({plan.stakingMinDays || 30}d lock)
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Pairing Rules Grid */}
+                        {plan.showPairingRulesInPlanDetails && (plan as any).pairingRules && (plan as any).pairingRules.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/30 space-y-1.5 text-[11px]">
+                            <p className="text-emerald-400 font-semibold uppercase tracking-wider text-[9px]">Dual-Team Pair Bonuses</p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {(plan as any).pairingRules.map((rule: any, ri: number) => (
+                                <div key={ri} className="p-1 rounded bg-muted/40 border border-border/30 text-[10px] flex flex-col">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground font-medium">Lvl {rule.levelRange}:</span>
+                                    <span className="text-foreground font-semibold">
+                                      {rule.bonusType === 'percent' ? `${rule.bonusValue}%` : `$${rule.bonusValue}`}
+                                    </span>
+                                  </div>
+                                  <span className="text-[9px] text-muted-foreground text-right italic">{rule.ratio} Ratio</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>

@@ -235,6 +235,14 @@ model Plan {
   conditionalLogics   PlanConditionalLogic[]
   pnlLogs             PlanPnLLog[]
   insuranceVault      PlanInsuranceVault?
+  pairingRules        PlanPairingRule[]
+
+  // Staking Configurations
+  stakingEnabled               Boolean  @default(false)
+  stakingMinDays              Int      @default(30)
+  stakingBonusPercent          Float    @default(0.0)
+  stakingEarlyWithdrawalPenalty Float    @default(10.0)
+  showPairingRulesInPlanDetails Boolean  @default(false)
 }
 
 // Custom Level-by-Level Referral Payouts per Plan
@@ -320,6 +328,11 @@ model Deposit {
   plan              Plan                @relation(fields: [planId], references: [id])
   earnings          Earning[]
   profitDistributions ProfitDistribution[]
+
+  // Staking Properties
+  isStaked          Boolean   @default(false)
+  stakedUntil       DateTime?
+  stakingBonusRate  Float     @default(0.0)
 }
 
 // ─── Transaction Log (Complete Ledger) ─────────────────────────────
@@ -781,3 +794,133 @@ model TestModel2 {
   key   String   @unique
   value String
 }
+
+model CustomPostType {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  posts       CustomPost[]
+  taxonomies  CustomTaxonomy[]
+}
+
+model CustomTaxonomy {
+  id         String   @id @default(cuid())
+  postTypeId String
+  slug       String   
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  postType   CustomPostType @relation(fields: [postTypeId], references: [id], onDelete: Cascade)
+  terms      CustomTaxonomyTerm[]
+  
+  @@unique([postTypeId, slug])
+}
+
+model CustomTaxonomyTerm {
+  id         String   @id @default(cuid())
+  taxonomyId String
+  name       String
+  slug       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  taxonomy   CustomTaxonomy @relation(fields: [taxonomyId], references: [id], onDelete: Cascade)
+  posts      CustomPostTaxonomyTerm[]
+  
+  @@unique([taxonomyId, slug])
+}
+
+model CustomFieldGroup {
+  id               String   @id @default(cuid())
+  name             String
+  rules            String   // JSON string representing target rules (e.g. postType === "signals", or user === "any")
+  conditionalLogic String?  // JSON string for conditional group visibility
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  fields           CustomFieldDefinition[]
+}
+
+model CustomFieldDefinition {
+  id               String   @id @default(cuid())
+  groupId          String
+  key              String
+  label            String
+  type             String   // "text", "number", "select", "date", "image", "boolean", "relation"
+  options          String?  // JSON or comma-separated values for select type
+  placeholder      String?
+  required         Boolean  @default(false)
+  conditionalLogic String?  // JSON string representing conditional display logic
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  group            CustomFieldGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  @@unique([groupId, key])
+}
+
+model CustomPost {
+  id         String   @id @default(cuid())
+  postTypeId String
+  title      String
+  slug       String
+  content    String?  @db.Text
+  status     String   @default("draft") // "draft", "published"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  postType   CustomPostType @relation(fields: [postTypeId], references: [id], onDelete: Cascade)
+  taxonomies CustomPostTaxonomyTerm[]
+  
+  @@unique([postTypeId, slug])
+}
+
+model CustomFieldValue {
+  id         String   @id @default(cuid())
+  fieldKey   String
+  value      String   @db.Text // stores JSON or plain string representation
+  entityType String   // "post", "user", "plan", "deposit", etc.
+  entityId   String   // ID of target entity
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([entityType, entityId, fieldKey])
+}
+
+model CustomPostTaxonomyTerm {
+  id        String   @id @default(cuid())
+  postId    String
+  termId    String
+  createdAt DateTime @default(now())
+
+  post      CustomPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  term      CustomTaxonomyTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, termId])
+}
+
+model PlanPairingRule {
+  id                 String   @id @default(cuid())
+  planId             String
+  levelRange         String   // "1", "2", "3-5", "6+" etc.
+  ratio              String   @default("100:100") // "100:100", "100:200", "200:100" etc.
+  bonusType          String   @default("percent") // "percent" or "fixed"
+  bonusValue         Float    @default(10.0)
+  minDirectLeft      Int      @default(0)
+  minDirectRight     Int      @default(0)
+  minPersonalIv      Float    @default(0.0)
+  minTeamTv          Float    @default(0.0)
+  perks              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  plan               Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+

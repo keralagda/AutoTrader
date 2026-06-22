@@ -107,6 +107,13 @@ export interface PlanType {
   binaryTvRatio?: number
   mlmRewardsConfig?: string | null
   mlmPoolsConfig?: string | null
+
+  // Staking Configurations
+  stakingEnabled?: boolean
+  stakingMinDays?: number
+  stakingBonusPercent?: number
+  stakingEarlyWithdrawalPenalty?: number
+  showPairingRulesInPlanDetails?: boolean
 }
 
 export interface DepositType {
@@ -120,6 +127,11 @@ export interface DepositType {
   lockedUntil?: string | null
   createdAt: string
   plan?: PlanType
+
+  // Staking Properties
+  isStaked?: boolean
+  stakedUntil?: string | null
+  stakingBonusRate?: number
 }
 
 export interface EarningType {

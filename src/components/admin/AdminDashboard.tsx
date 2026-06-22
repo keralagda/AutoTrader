@@ -50,6 +50,7 @@ import { AdminMlmRewardsTab } from './AdminMlmRewardsTab'
 import { AdminEmailVerifier } from './AdminEmailVerifier'
 import { AdminAutoUpgradeTab } from './AdminAutoUpgradeTab'
 import { AdminPerformanceTab } from './AdminPerformanceTab'
+import { AdminCustomFieldsTab } from './AdminCustomFieldsTab'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, DollarSign, Clock, TrendingUp, Menu, X, RefreshCw } from 'lucide-react'
@@ -185,6 +186,7 @@ export function AdminDashboard() {
       case 'emailVerifier': return <AdminEmailVerifier />
       case 'autoUpgrade': return <AdminAutoUpgradeTab />
       case 'performance': return <AdminPerformanceTab />
+      case 'customFields': return <AdminCustomFieldsTab />
 
       default: return <PlansTab />
 

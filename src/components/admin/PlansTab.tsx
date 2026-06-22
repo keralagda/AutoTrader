@@ -388,6 +388,11 @@ export function PlansTab() {
       stackingEnabled: false,
       maxStacks: 1,
       stackingBonusPercent: 0,
+      stakingEnabled: false,
+      stakingMinDays: 30,
+      stakingBonusPercent: 0,
+      stakingEarlyWithdrawalPenalty: 10,
+      showPairingRulesInPlanDetails: false,
       lockPeriodDays: 0,
       autoCompound: false,
       earlyExitPenalty: 0,
@@ -1861,7 +1866,7 @@ function PlanEditor({
         <Tabs defaultValue="investment_settings" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 bg-muted/20 border border-border/50 p-1 rounded-xl">
             <TabsTrigger value="investment_settings" className="text-xs py-2 rounded-lg">Standard Investment Settings</TabsTrigger>
-            <TabsTrigger value="binary_config" className="text-xs py-2 rounded-lg">Binary MLM Configuration</TabsTrigger>
+            <TabsTrigger value="binary_config" className="text-xs py-2 rounded-lg">Dual-Team Synergy Configuration</TabsTrigger>
           </TabsList>
 
           <TabsContent value="investment_settings" className="space-y-6">
@@ -2445,6 +2450,59 @@ function PlanEditor({
                 className="bg-muted/50 border-border/50 min-h-16 resize-y text-sm"
               />
             </div>
+          </div>
+        </SectionCard>
+
+        {/* Section 4b: Staking Options */}
+        <SectionCard 
+          icon={<Sparkles className="h-4 w-4 text-emerald-400" />} 
+          title="Staking Options"
+          helpContent={
+            <div className="space-y-1">
+              <p>• <strong>Staking Enabled</strong>: Enable crypto-style staking for user investments under this plan.</p>
+              <p>• <strong>Staking Min Days</strong>: Minimum duration required for staked deposits (e.g. 30 days).</p>
+              <p>• <strong>Staking Bonus Yield</strong>: Additional daily interest rate boost (%) added to staked deposits.</p>
+              <p>• <strong>Staking Early Exit Penalty</strong>: Penalty fee (%) deducted from principal if user unstakes early.</p>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
+              <div>
+                <p className="text-sm font-medium text-foreground">Staking Enabled</p>
+                <p className="text-xs text-muted-foreground">Allow users to lock investments as staked funds</p>
+              </div>
+              <Switch
+                checked={!!plan.stakingEnabled}
+                onCheckedChange={checked => ch('stakingEnabled', checked)}
+              />
+            </div>
+
+            {plan.stakingEnabled && (
+              <div className="grid grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <NumberField
+                  label="Staking Min Days"
+                  value={plan.stakingMinDays || 30}
+                  onChange={v => ch('stakingMinDays', Math.max(1, Math.round(v)))}
+                  min={1}
+                  hint="e.g. 30 days"
+                />
+                <NumberField
+                  label="Staking Bonus Yield"
+                  suffix="%"
+                  value={plan.stakingBonusPercent || 0}
+                  onChange={v => ch('stakingBonusPercent', v)}
+                  hint="Extra daily rate"
+                />
+                <NumberField
+                  label="Staking Early Exit Penalty"
+                  suffix="%"
+                  value={plan.stakingEarlyWithdrawalPenalty || 10}
+                  onChange={v => ch('stakingEarlyWithdrawalPenalty', v)}
+                  hint="Early unstake fee"
+                />
+              </div>
+            )}
           </div>
         </SectionCard>
 
@@ -3072,7 +3130,7 @@ function PlanEditor({
       <TabsContent value="binary_config" className="space-y-6">
         <div className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-background/20">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Binary MLM Feature Activation</h3>
+            <h3 className="text-sm font-semibold text-foreground">Dual-Team Synergy Feature Activation</h3>
             <p className="text-xs text-muted-foreground">Enable binary tree matching, spillover, and commissions for this plan</p>
           </div>
           <Switch
@@ -3092,7 +3150,7 @@ function PlanEditor({
         ) : (
           <div className="p-6 rounded-xl border border-border/50 bg-muted/15 text-center space-y-2">
             <Network className="h-8 w-8 text-muted-foreground mx-auto" />
-            <h4 className="text-sm font-semibold text-foreground">Binary MLM Disabled</h4>
+            <h4 className="text-sm font-semibold text-foreground">Dual-Team Synergy Disabled</h4>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
               This plan currently operates as a standard investment plan. Enable the toggle above to configure binary matching, pairing cycles, flush limits, and team spillover controls.
             </p>
@@ -3142,7 +3200,7 @@ function PlanSummary({
             </Badge>
             {plan.isBinaryMlmEnabled && (
               <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30">
-                <Network className="h-3 w-3 mr-1" /> Binary MLM
+                <Network className="h-3 w-3 mr-1" /> Dual-Team Synergy
               </Badge>
             )}
             {plan.stackingEnabled && (
@@ -3254,7 +3312,7 @@ function PlanSummary({
             {plan.isBinaryMlmEnabled && (
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
                 <p className="text-xs font-medium text-emerald-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Network className="h-3.5 w-3.5" /> Binary MLM Settings
+                  <Network className="h-3.5 w-3.5" /> Dual-Team Synergy Settings
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 bg-background/25 p-2.5 rounded border border-border/50">
                   <div>

@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       }, { status: 503 })
     }
 
-    const { userId, planId, amount, paymentMethod, riskLevel } = await request.json()
+    const { userId, planId, amount, paymentMethod, riskLevel, isStaked } = await request.json()
 
     if (!userId || !planId || !amount) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
@@ -226,6 +226,11 @@ export async function POST(request: Request) {
         lockedUntil,
         endsAt,
         nextProfitAt: depositStatus === 'pending' ? null : nextProfitAt, // Don't schedule profit until approved
+        isStaked: plan.stakingEnabled && !!isStaked,
+        stakedUntil: plan.stakingEnabled && !!isStaked
+          ? new Date(Date.now() + (plan.stakingMinDays || 30) * 24 * 60 * 60 * 1000)
+          : null,
+        stakingBonusRate: plan.stakingEnabled && !!isStaked ? (plan.stakingBonusPercent || 0.0) : 0.0,
       },
     })
 

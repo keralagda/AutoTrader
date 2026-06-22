@@ -319,6 +319,12 @@ export async function runProfitDistribution() {
 
     let profitAmount = (deposit.amount * dailyPercent) / 100
 
+    // Apply staking bonus yield if deposit is staked
+    if (deposit.isStaked && deposit.stakingBonusRate > 0) {
+      const stakingYield = (deposit.amount * deposit.stakingBonusRate) / 100
+      profitAmount += stakingYield
+    }
+
     // Clamp profit amount by multiplier cap (Joining Fee * X)
     if (cappingType === "multiplier" && cappingValue > 0) {
       // Base for multiplier capping is the Joining Fee (plan.entryFee). 

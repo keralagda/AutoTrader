@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Award, ShieldAlert, Sparkles, Flame, Zap, Percent } from 'lucide-react'
+import { Plus, Trash2, Award, Sparkles, Flame, Zap } from 'lucide-react'
 import { NumberField, SectionCard } from '../PlansTab'
 import type { EditablePlan } from '../PlansTab'
 
@@ -28,6 +28,7 @@ export function BinaryMlmSettings({
 }) {
   const [ranks, setRanks] = useState<any[]>([])
   const [pools, setPools] = useState<any[]>([])
+  const [pairingRules, setPairingRules] = useState<any[]>([])
 
   useEffect(() => {
     try {
@@ -40,7 +41,8 @@ export function BinaryMlmSettings({
     } catch {
       setPools(getDefaultLocalPools())
     }
-  }, [plan.mlmRewardsConfig, plan.mlmPoolsConfig])
+    setPairingRules(plan.pairingRules || [])
+  }, [plan.mlmRewardsConfig, plan.mlmPoolsConfig, plan.pairingRules])
 
   const updateRanks = (newRanks: any[]) => {
     setRanks(newRanks)
@@ -52,27 +54,127 @@ export function BinaryMlmSettings({
     onChange('mlmPoolsConfig', JSON.stringify(newPools))
   }
 
+  const updatePairingRules = (newRules: any[]) => {
+    setPairingRules(newRules)
+    onChange('pairingRules', newRules)
+  }
+
   return (
     <SectionCard 
       icon={<Award className="h-4 w-4 text-emerald-400" />} 
-      title="Advanced MLM Leadership & Volume Ratios"
+      title="Advanced Dual-Team Synergy Leadership & Volume Ratios"
       helpContent={
         <div className="space-y-1">
           <p>• <strong>PV, BV, TV Ratios</strong>: Point multiplier factors per dollar invested. PV (Personal Volume), BV (Business/Direct Sponsor Volume), and TV (Team downline Volume).</p>
           <p>• <strong>Leadership Ranks</strong>: Set volume thresholds (PV, BV, TV) required to rank up, and define the rank bonus cash reward and custom perks.</p>
           <p>• <strong>Bonus Pools</strong>: Configure company profit sharing pools that distribute global volume percentages to qualified rank tiers.</p>
+          <p>• <strong>Pairing Rules</strong>: Setup level-by-level pair bonuses, requirements, and ratios.</p>
         </div>
       }
     >
       {/* Ratios */}
       <div className="grid grid-cols-3 gap-4 mb-4 p-3 rounded-lg bg-muted/20 border border-border/40">
-        <NumberField label="PV Ratio (Personal)" value={plan.binaryPvRatio ?? 1.0} onChange={v => onChange('binaryPvRatio', v)} />
-        <NumberField label="BV Ratio (Business/Sponsor)" value={plan.binaryBvRatio ?? 1.0} onChange={v => onChange('binaryBvRatio', v)} />
-        <NumberField label="TV Ratio (Team/Ancestors)" value={plan.binaryTvRatio ?? 1.0} onChange={v => onChange('binaryTvRatio', v)} />
+        <NumberField label="PV Ratio (Personal Volume)" value={plan.binaryPvRatio ?? 1.0} onChange={v => onChange('binaryPvRatio', v)} />
+        <NumberField label="BV Ratio (Business Volume)" value={plan.binaryBvRatio ?? 1.0} onChange={v => onChange('binaryBvRatio', v)} />
+        <NumberField label="TV Ratio (Team Volume)" value={plan.binaryTvRatio ?? 1.0} onChange={v => onChange('binaryTvRatio', v)} />
+      </div>
+
+      {/* Level Pairing Rules */}
+      <div className="space-y-2 mb-6">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5 text-yellow-400" /> LEVEL-BY-LEVEL PAIR BONUSES
+          </Label>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-muted-foreground select-none">
+              <input 
+                type="checkbox" 
+                checked={!!plan.showPairingRulesInPlanDetails} 
+                onChange={e => onChange('showPairingRulesInPlanDetails', e.target.checked)} 
+                className="rounded border-border/40 text-emerald-500 bg-background/50 h-3.5 w-3.5"
+              />
+              Show in public plan cards
+            </label>
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => updatePairingRules([...pairingRules, { levelRange: `${pairingRules.length + 1}`, ratio: '100:100', bonusType: 'percent', bonusValue: 10.0, minDirectLeft: 0, minDirectRight: 0, minPersonalIv: 0.0, minTeamTv: 0.0, perks: '' }])}>
+              <Plus className="h-3 w-3 mr-1" /> Add Rule
+            </Button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto border border-border/40 rounded-lg">
+          <table className="w-full text-[11px] text-left">
+            <thead className="bg-muted/40 text-muted-foreground uppercase text-[9px] tracking-wider border-b border-border/40">
+              <tr>
+                <th className="p-2">Lvl Range</th>
+                <th className="p-2">Ratio</th>
+                <th className="p-2">Type</th>
+                <th className="p-2">Bonus</th>
+                <th className="p-2">Min Direct L/R</th>
+                <th className="p-2">Min Personal IV</th>
+                <th className="p-2">Min Team TV</th>
+                <th className="p-2">Perks</th>
+                <th className="p-2 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {pairingRules.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="p-4 text-center text-muted-foreground italic">
+                    No custom pairing rules configured. System will use standard plan settings.
+                  </td>
+                </tr>
+              ) : (
+                pairingRules.map((r, i) => (
+                  <tr key={i} className="hover:bg-muted/20">
+                    <td className="p-1.5">
+                      <Input className="w-16 h-7 text-[11px] p-1 bg-background/50" value={r.levelRange} onChange={e => { const u = [...pairingRules]; u[i].levelRange = e.target.value; updatePairingRules(u); }} placeholder="e.g. 1" />
+                    </td>
+                    <td className="p-1.5">
+                      <select className="h-7 text-[11px] bg-background/50 border border-border rounded p-1 text-foreground" value={r.ratio} onChange={e => { const u = [...pairingRules]; u[i].ratio = e.target.value; updatePairingRules(u); }}>
+                        <option value="100:100">100:100</option>
+                        <option value="100:200">100:200</option>
+                        <option value="200:100">200:100</option>
+                      </select>
+                    </td>
+                    <td className="p-1.5">
+                      <select className="h-7 text-[11px] bg-background/50 border border-border rounded p-1 text-foreground" value={r.bonusType} onChange={e => { const u = [...pairingRules]; u[i].bonusType = e.target.value; updatePairingRules(u); }}>
+                        <option value="percent">Percent (%)</option>
+                        <option value="fixed">Fixed ($)</option>
+                      </select>
+                    </td>
+                    <td className="p-1.5">
+                      <Input type="number" className="w-16 h-7 text-[11px] p-1 bg-background/50" value={r.bonusValue} onChange={e => { const u = [...pairingRules]; u[i].bonusValue = Number(e.target.value); updatePairingRules(u); }} />
+                    </td>
+                    <td className="p-1.5">
+                      <div className="flex gap-1 items-center">
+                        <Input type="number" className="w-10 h-7 text-[11px] p-1 bg-background/50" value={r.minDirectLeft} onChange={e => { const u = [...pairingRules]; u[i].minDirectLeft = Number(e.target.value); updatePairingRules(u); }} placeholder="L" />
+                        <Input type="number" className="w-10 h-7 text-[11px] p-1 bg-background/50" value={r.minDirectRight} onChange={e => { const u = [...pairingRules]; u[i].minDirectRight = Number(e.target.value); updatePairingRules(u); }} placeholder="R" />
+                      </div>
+                    </td>
+                    <td className="p-1.5">
+                      <Input type="number" className="w-16 h-7 text-[11px] p-1 bg-background/50" value={r.minPersonalIv} onChange={e => { const u = [...pairingRules]; u[i].minPersonalIv = Number(e.target.value); updatePairingRules(u); }} />
+                    </td>
+                    <td className="p-1.5">
+                      <Input type="number" className="w-16 h-7 text-[11px] p-1 bg-background/50" value={r.minTeamTv} onChange={e => { const u = [...pairingRules]; u[i].minTeamTv = Number(e.target.value); updatePairingRules(u); }} />
+                    </td>
+                    <td className="p-1.5">
+                      <Input className="min-w-[100px] h-7 text-[11px] p-1 bg-background/50" value={r.perks} onChange={e => { const u = [...pairingRules]; u[i].perks = e.target.value; updatePairingRules(u); }} placeholder="e.g. VIP Badge" />
+                    </td>
+                    <td className="p-1.5 text-right">
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-rose-400 hover:text-rose-300" onClick={() => updatePairingRules(pairingRules.filter((_, idx) => idx !== i))}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Ranks table */}
-      <div className="space-y-2">
+      <div className="space-y-2 mb-6">
         <div className="flex items-center justify-between">
           <Label className="text-xs font-bold text-foreground flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-purple-400" /> LEADERSHIP RANKS & REWARDS</Label>
           <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => updateRanks([...ranks, { level: ranks.length, name: `Rank ${ranks.length}`, reqPv: 1000, reqBv: 5000, reqTv: 10000, bonus: 500, perks: 'Extra perks' }])}>

@@ -522,7 +522,7 @@ export function TeamTab() {
         <TabsList className="bg-muted/30 border border-border/30 rounded-xl p-1 max-w-md w-full grid grid-cols-3">
           <TabsTrigger value="direct">Direct Referrals</TabsTrigger>
           <TabsTrigger value="levels">Team Levels</TabsTrigger>
-          <TabsTrigger value="binary_tree">Binary Tree Downline</TabsTrigger>
+          <TabsTrigger value="binary_tree">Dual-Team Tree</TabsTrigger>
         </TabsList>
 
         <TabsContent value="direct" className="mt-4 space-y-3">
@@ -983,7 +983,7 @@ export function TeamTab() {
             <CardHeader className="py-3">
               <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Info className="size-4 text-emerald-400" />
-                Binary MLM Pairing Rules Guide
+                Dual-Team Pairing Rules Guide
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground space-y-2 leading-relaxed">

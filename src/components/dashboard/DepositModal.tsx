@@ -34,6 +34,7 @@ import {
   Lock,
   Bitcoin,
   Landmark,
+  Sparkles,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -104,6 +105,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
   const [paymentMethod, setPaymentMethod] = useState('crypto_usdc')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [isStaked, setIsStaked] = useState(false)
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId)
   const parsedAmount = parseFloat(amount) || 0
@@ -111,7 +113,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
   const fetchPlans = useCallback(async () => {
     try {
       setLoadingPlans(true)
-      const res = await fetch('/api/plans')
+      const res = await fetch(`/api/plans?t=${Date.now()}`)
       if (res.ok) {
         const json = await res.json()
         setPlans(json)
@@ -141,6 +143,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
       setSelectedPlanId('')
       setAmount('')
       setPaymentMethod('crypto_usdc')
+      setIsStaked(false)
     }
   }, [open, fetchPlans, fetchGateways])
 
@@ -156,9 +159,10 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
     return null
   })()
 
+  const stakingBonus = isStaked && selectedPlan?.stakingEnabled ? (selectedPlan.stakingBonusPercent || 0) : 0
   const stackingBonus = selectedPlan?.stackingEnabled ? selectedPlan.stackingBonusPercent : 0
   const estimatedDailyEarning = selectedPlan
-    ? (parsedAmount * (selectedPlan.dailyEarningPercent + stackingBonus)) / 100
+    ? (parsedAmount * (selectedPlan.dailyEarningPercent + stackingBonus + stakingBonus)) / 100
     : 0
 
   const handleSubmit = async () => {
@@ -174,6 +178,7 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
           planId: selectedPlanId,
           amount: parsedAmount,
           paymentMethod,
+          isStaked,
         }),
       })
 
@@ -386,6 +391,27 @@ export function DepositModal({ open, onOpenChange }: DepositModalProps) {
                 </div>
               )}
             </div>
+
+            {/* Staking Selection */}
+            {selectedPlan && selectedPlan.stakingEnabled && (
+              <div className="flex items-start gap-2.5 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 mt-2 animate-in fade-in duration-200">
+                <input 
+                  type="checkbox" 
+                  id="stake-checkbox" 
+                  checked={isStaked} 
+                  onChange={(e) => setIsStaked(e.target.checked)} 
+                  className="h-4 w-4 bg-background border border-border rounded accent-emerald-500 cursor-pointer mt-0.5"
+                />
+                <div className="flex-1 cursor-pointer select-none" onClick={() => setIsStaked(!isStaked)}>
+                  <Label htmlFor="stake-checkbox" className="text-xs font-semibold text-emerald-400 cursor-pointer flex items-center gap-1.5">
+                    <Sparkles className="size-3.5" /> Stake this investment
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                    Locks funds for {selectedPlan.stakingMinDays || 30} days. Earns +{selectedPlan.stakingBonusPercent || 0}% daily bonus yield. Early unstake fee is {selectedPlan.stakingEarlyWithdrawalPenalty || 10}%.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Validation Error */}
             {validationError && (

@@ -1,5 +1,48 @@
 import { db } from './db'
 
+function parseLevelRange(rangeStr: string): { min: number; max: number } {
+  const clean = rangeStr.trim()
+  if (clean.endsWith('+')) {
+    const min = parseInt(clean.slice(0, -1))
+    return { min, max: Infinity }
+  }
+  if (clean.includes('-')) {
+    const [minStr, maxStr] = clean.split('-')
+    return { min: parseInt(minStr), max: parseInt(maxStr) }
+  }
+  const single = parseInt(clean)
+  return { min: single, max: single }
+}
+
+async function countDirectReferralsByLeg(userId: string) {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { binaryTreePosition: true }
+  })
+  if (!user) return { left: 0, right: 0 }
+
+  const sponsorPath = user.binaryTreePosition || ''
+  
+  const directs = await db.user.findMany({
+    where: { referredById: userId },
+    select: { binaryTreePosition: true }
+  })
+
+  let leftCount = 0
+  let rightCount = 0
+
+  for (const direct of directs) {
+    const directPath = direct.binaryTreePosition || ''
+    if (directPath.startsWith(sponsorPath + 'L')) {
+      leftCount++
+    } else if (directPath.startsWith(sponsorPath + 'R')) {
+      rightCount++
+    }
+  }
+
+  return { left: leftCount, right: rightCount }
+}
+
 /**
  * Logs an audit event for binary tree operations.
  */
@@ -573,148 +616,232 @@ export async function distributeBinaryPairingBonusesForUser(userId: string, plan
   let leftAfterCycle = Math.max(0, leftCF - cycles * leftUnit)
   let rightAfterCycle = Math.max(0, rightCF - cycles * rightUnit)
 
-  // First Pair Check (1:2 or 2:1 ratio from registration amount)
-  const firstPairSettingKey = `binary_first_pair_matched_${userId}`
-  const firstPairSetting = await db.setting.findUnique({ where: { key: firstPairSettingKey } })
-  const hasMatchedFirstPair = firstPairSetting?.value === 'true'
+  // Load custom pairing rules
+  const pairingRules = await db.planPairingRule.findMany({
+    where: { planId: plan.id }
+  })
 
+  let finalPairingBonus = 0
+  let newLeftCF = leftAfterCycle
+  let newRightCF = rightAfterCycle
   let firstPairBonus = 0
   let isFirstPairMatch = false
   let firstPairLeftDeduct = 0
   let firstPairRightDeduct = 0
 
-  if (!hasMatchedFirstPair) {
-    if (leftAfterCycle >= 100 && rightAfterCycle >= 200) {
-      isFirstPairMatch = true
-      firstPairLeftDeduct = 100
-      firstPairRightDeduct = 200
-    } else if (leftAfterCycle >= 200 && rightAfterCycle >= 100) {
-      isFirstPairMatch = true
-      firstPairLeftDeduct = 200
-      firstPairRightDeduct = 100
-    }
+  if (pairingRules.length > 0) {
+    // 1. Sort rules by their level range min value
+    const parsedRules = pairingRules.map(r => ({
+      rule: r,
+      range: parseLevelRange(r.levelRange)
+    })).sort((a, b) => a.range.min - b.range.min)
 
-    if (isFirstPairMatch) {
-      // First pair pairing bonus is 10% of weaker side (100 BV), which is $10.
-      firstPairBonus = 100 * ((plan.binaryPairingBonusPercent || 10) / 100)
-      leftAfterCycle -= firstPairLeftDeduct
-      rightAfterCycle -= firstPairRightDeduct
+    // 2. Load matched pairs count
+    const matchedCountSettingKey = `binary_pairs_matched_count_${userId}`
+    const matchedCountSetting = await db.setting.findUnique({ where: { key: matchedCountSettingKey } })
+    let totalPairsMatched = matchedCountSetting ? parseInt(matchedCountSetting.value) : 0
+
+    // 3. Get qualification details
+    const directsLeg = await countDirectReferralsByLeg(userId)
+    const activeDeposits = await db.deposit.findMany({
+      where: { userId, status: { in: ['active', 'locked'] } },
+      select: { amount: true }
+    })
+    const totalActiveInvestment = activeDeposits.reduce((sum, d) => sum + d.amount, 0)
+    const personalIv = Math.max(user.personalVolume ?? 0, totalActiveInvestment)
+    const teamTv = Math.max(user.teamVolume ?? 0, user.businessVolume ?? 0)
+
+    let leftRemaining = leftAfterCycle
+    let rightRemaining = rightAfterCycle
+    let totalBonusEarned = 0
+    let matchedPairsCount = 0
+
+    while (true) {
+      const nextPairIndex = totalPairsMatched + 1
+      // Find the rule that covers nextPairIndex
+      const activeRuleObj = parsedRules.find(pr => pr.range.min <= nextPairIndex && nextPairIndex <= pr.range.max)
       
-      // Save setting that first pair has been matched
-      await db.setting.upsert({
-        where: { key: firstPairSettingKey },
-        update: { value: 'true' },
-        create: { key: firstPairSettingKey, value: 'true' },
-      })
-    }
-  }
+      if (!activeRuleObj) {
+        break
+      }
 
-  // Only allow standard pairing if first pair is matched (or matched in this run)
-  if (hasMatchedFirstPair || isFirstPairMatch) {
-    if (matchingType === 'weaker_leg') {
-      matchedVolume = Math.min(leftAfterCycle, rightAfterCycle)
-    } else if (matchingType === 'both_legs') {
-      matchedVolume = leftAfterCycle + rightAfterCycle
-    } else if (matchingType === 'stronger_leg') {
-      matchedVolume = Math.max(leftAfterCycle, rightAfterCycle)
-    }
-  }
+      const { rule } = activeRuleObj
 
-  let finalPairingBonus = 0
-  if (matchedVolume > 0) {
-    let bonusPerPair = 0
-    if (plan.binaryPairingBonusType === 'fixed') {
-      bonusPerPair = plan.binaryPairingBonusFixed || 0
-    } else {
-      bonusPerPair = referenceValue * ((plan.binaryPairingBonusPercent || 10) / 100)
-    }
+      // Check qualifications
+      const qualDirectLeft = directsLeg.left >= (rule.minDirectLeft ?? 0)
+      const qualDirectRight = directsLeg.right >= (rule.minDirectRight ?? 0)
+      const qualPersonalIv = personalIv >= (rule.minPersonalIv ?? 0)
+      const qualTeamTv = teamTv >= (rule.minTeamTv ?? 0)
 
-    // Daily & Weekly cap checks for pairing
-    const startOfDay = new Date(now)
-    startOfDay.setHours(0, 0, 0, 0)
-    const startOfWeek = new Date(now)
-    startOfWeek.setDate(now.getDate() - now.getDay())
-    startOfWeek.setHours(0, 0, 0, 0)
+      if (!qualDirectLeft || !qualDirectRight || !qualPersonalIv || !qualTeamTv) {
+        break
+      }
 
-    const [todayEarnings, weeklyEarnings] = await Promise.all([
-      db.earning.aggregate({
-        _sum: { amount: true },
-        where: {
-          userId,
-          type: 'binary_pairing_bonus',
-          createdAt: { gte: startOfDay },
+      // Check volume requirement
+      const [leftRatio, rightRatio] = rule.ratio.split(':').map(Number)
+      const requiredLeft = leftRatio * (referenceValue / 100)
+      const requiredRight = rightRatio * (referenceValue / 100)
+
+      if (leftRemaining >= requiredLeft && rightRemaining >= requiredRight) {
+        leftRemaining -= requiredLeft
+        rightRemaining -= requiredRight
+
+        let bonusAmt = 0
+        if (rule.bonusType === 'fixed') {
+          bonusAmt = rule.bonusValue
+        } else {
+          bonusAmt = referenceValue * (rule.bonusValue / 100)
         }
-      }),
-      db.earning.aggregate({
-        _sum: { amount: true },
-        where: {
-          userId,
-          type: 'binary_pairing_bonus',
-          createdAt: { gte: startOfWeek },
-        }
-      })
-    ])
 
-    const dailyBonusPaid = todayEarnings._sum.amount || 0
-    const weeklyBonusPaid = weeklyEarnings._sum.amount || 0
-
-    const maxDailyBonus = plan.binaryDailyPairingCap > 0 ? plan.binaryDailyPairingCap * bonusPerPair : Infinity
-    const maxWeeklyBonus = plan.binaryWeeklyPairingCap > 0 ? plan.binaryWeeklyPairingCap * bonusPerPair : Infinity
-
-    const remainingDailyBonus = Math.max(0, maxDailyBonus - dailyBonusPaid)
-    const remainingWeeklyBonus = Math.max(0, maxWeeklyBonus - weeklyBonusPaid)
-    const allowedBonus = Math.min(remainingDailyBonus, remainingWeeklyBonus)
-
-    if (allowedBonus > 0) {
-      let proposedBonus = 0
-      if (plan.binaryPairingBonusType === 'fixed') {
-        const matchedPairs = matchedVolume / referenceValue
-        proposedBonus = matchedPairs * plan.binaryPairingBonusFixed
+        totalBonusEarned += bonusAmt
+        totalPairsMatched++
+        matchedPairsCount++
+        matchedVolume += Math.min(requiredLeft, requiredRight)
       } else {
-        proposedBonus = matchedVolume * ((plan.binaryPairingBonusPercent || 10) / 100)
+        break
       }
-
-      finalPairingBonus = proposedBonus
-      if (proposedBonus > allowedBonus) {
-        matchedVolume = matchedVolume * (allowedBonus / proposedBonus)
-        finalPairingBonus = allowedBonus
-      }
-    } else {
-      matchedVolume = 0 // Cap reached, cannot match volume
     }
-  }
 
-  if (cycleBonus <= 0 && finalPairingBonus <= 0 && firstPairBonus <= 0) return
+    if (matchedPairsCount > 0) {
+      finalPairingBonus = totalBonusEarned
+      newLeftCF = leftRemaining
+      newRightCF = rightRemaining
 
-  // Calculate final carry forwards
-  let newLeftCF = leftAfterCycle
-  let newRightCF = rightAfterCycle
+      // Save updated count
+      await db.setting.upsert({
+        where: { key: matchedCountSettingKey },
+        update: { value: String(totalPairsMatched) },
+        create: { key: matchedCountSettingKey, value: String(totalPairsMatched) }
+      })
+    }
+  } else {
+    // Fallback to standard pairing (first pair match check, etc.)
+    const firstPairSettingKey = `binary_first_pair_matched_${userId}`
+    const firstPairSetting = await db.setting.findUnique({ where: { key: firstPairSettingKey } })
+    const hasMatchedFirstPair = firstPairSetting?.value === 'true'
 
-  if (finalPairingBonus > 0) {
-    if (plan.binaryCarryForward) {
+    if (!hasMatchedFirstPair) {
+      if (leftAfterCycle >= 100 && rightAfterCycle >= 200) {
+        isFirstPairMatch = true
+        firstPairLeftDeduct = 100
+        firstPairRightDeduct = 200
+      } else if (leftAfterCycle >= 200 && rightAfterCycle >= 100) {
+        isFirstPairMatch = true
+        firstPairLeftDeduct = 200
+        firstPairRightDeduct = 100
+      }
+
+      if (isFirstPairMatch) {
+        firstPairBonus = 100 * ((plan.binaryPairingBonusPercent || 10) / 100)
+        leftAfterCycle -= firstPairLeftDeduct
+        rightAfterCycle -= firstPairRightDeduct
+        
+        await db.setting.upsert({
+          where: { key: firstPairSettingKey },
+          update: { value: 'true' },
+          create: { key: firstPairSettingKey, value: 'true' },
+        })
+      }
+    }
+
+    if (hasMatchedFirstPair || isFirstPairMatch) {
       if (matchingType === 'weaker_leg') {
-        newLeftCF = Math.max(0, leftAfterCycle - matchedVolume)
-        newRightCF = Math.max(0, rightAfterCycle - matchedVolume)
+        matchedVolume = Math.min(leftAfterCycle, rightAfterCycle)
       } else if (matchingType === 'both_legs') {
+        matchedVolume = leftAfterCycle + rightAfterCycle
+      } else if (matchingType === 'stronger_leg') {
+        matchedVolume = Math.max(leftAfterCycle, rightAfterCycle)
+      }
+    }
+
+    if (matchedVolume > 0) {
+      let bonusPerPair = 0
+      if (plan.binaryPairingBonusType === 'fixed') {
+        bonusPerPair = plan.binaryPairingBonusFixed || 0
+      } else {
+        bonusPerPair = referenceValue * ((plan.binaryPairingBonusPercent || 10) / 100)
+      }
+
+      const startOfDay = new Date(now)
+      startOfDay.setHours(0, 0, 0, 0)
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay())
+      startOfWeek.setHours(0, 0, 0, 0)
+
+      const [todayEarnings, weeklyEarnings] = await Promise.all([
+        db.earning.aggregate({
+          _sum: { amount: true },
+          where: {
+            userId,
+            type: 'binary_pairing_bonus',
+            createdAt: { gte: startOfDay },
+          }
+        }),
+        db.earning.aggregate({
+          _sum: { amount: true },
+          where: {
+            userId,
+            type: 'binary_pairing_bonus',
+            createdAt: { gte: startOfWeek },
+          }
+        })
+      ])
+
+      const dailyBonusPaid = todayEarnings._sum.amount || 0
+      const weeklyBonusPaid = weeklyEarnings._sum.amount || 0
+
+      const maxDailyBonus = plan.binaryDailyPairingCap > 0 ? plan.binaryDailyPairingCap * bonusPerPair : Infinity
+      const maxWeeklyBonus = plan.binaryWeeklyPairingCap > 0 ? plan.binaryWeeklyPairingCap * bonusPerPair : Infinity
+
+      const remainingDailyBonus = Math.max(0, maxDailyBonus - dailyBonusPaid)
+      const remainingWeeklyBonus = Math.max(0, maxWeeklyBonus - weeklyBonusPaid)
+      const allowedBonus = Math.min(remainingDailyBonus, remainingWeeklyBonus)
+
+      if (allowedBonus > 0) {
+        let proposedBonus = 0
+        if (plan.binaryPairingBonusType === 'fixed') {
+          const matchedPairs = matchedVolume / referenceValue
+          proposedBonus = matchedPairs * plan.binaryPairingBonusFixed
+        } else {
+          proposedBonus = matchedVolume * ((plan.binaryPairingBonusPercent || 10) / 100)
+        }
+
+        finalPairingBonus = proposedBonus
+        if (proposedBonus > allowedBonus) {
+          matchedVolume = matchedVolume * (allowedBonus / proposedBonus)
+          finalPairingBonus = allowedBonus
+        }
+      } else {
+        matchedVolume = 0
+      }
+    }
+
+    if (finalPairingBonus > 0) {
+      if (plan.binaryCarryForward) {
+        if (matchingType === 'weaker_leg') {
+          newLeftCF = Math.max(0, leftAfterCycle - matchedVolume)
+          newRightCF = Math.max(0, rightAfterCycle - matchedVolume)
+        } else if (matchingType === 'both_legs') {
+          newLeftCF = 0
+          newRightCF = 0
+        } else if (matchingType === 'stronger_leg') {
+          const maxSide = leftAfterCycle >= rightAfterCycle ? 'left' : 'right'
+          if (maxSide === 'left') {
+            newLeftCF = Math.max(0, leftAfterCycle - matchedVolume)
+            newRightCF = 0
+          } else {
+            newRightCF = Math.max(0, rightAfterCycle - matchedVolume)
+            newLeftCF = 0
+          }
+        }
+      } else {
         newLeftCF = 0
         newRightCF = 0
-      } else if (matchingType === 'stronger_leg') {
-        const maxSide = leftAfterCycle >= rightAfterCycle ? 'left' : 'right'
-        if (maxSide === 'left') {
-          newLeftCF = Math.max(0, leftAfterCycle - matchedVolume)
-          newRightCF = 0
-        } else {
-          newRightCF = Math.max(0, rightAfterCycle - matchedVolume)
-          newLeftCF = 0
-        }
       }
-    } else {
+    } else if (!plan.binaryCarryForward) {
       newLeftCF = 0
       newRightCF = 0
     }
-  } else if (!plan.binaryCarryForward) {
-    newLeftCF = 0
-    newRightCF = 0
   }
 
   // --- 3. Execute Transaction for Pairing & Cycle Bonuses ---

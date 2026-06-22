@@ -113,7 +113,7 @@ export function OverviewTab() {
     },
     // Binary MLM Stats
     {
-      label: 'Binary Tree Position',
+      label: 'Dual-Team Position',
       value: profile?.binaryTreePosition || 'Not Set',
       icon: '🌳',
       color: 'text-green-600',
