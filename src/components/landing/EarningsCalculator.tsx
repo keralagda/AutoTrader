@@ -102,6 +102,9 @@ export function EarningsCalculator() {
     dailyCapUSD = plan.cappingType ? cappingValue : Math.abs(cappingValue)
   }
 
+  const dailyCapPercent = cappingValue
+
+
   const avgDailyPercent = (risk.min + risk.max) / 2
   const minDailyEarning = Math.min((investment * risk.min) / 100, dailyCapUSD)
   const maxDailyEarning = Math.min((investment * risk.max) / 100, dailyCapUSD)
@@ -337,11 +340,24 @@ export function EarningsCalculator() {
                 <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                   {isCapped ? (
                     <p className="text-[10px] leading-relaxed text-amber-400/90 font-mono">
-                      ⚠️ **Daily Earning Cap Reached**: Yield is limited by the {plan.name} plan&apos;s daily limit of ${dailyCapUSD.toLocaleString()} (based on {dailyCapPercent}% daily investment capping limit).
+                      ⚠️ **Daily Earning Cap Reached**: Yield is limited by the {plan.name} plan&apos;s daily limit of ${dailyCapUSD.toLocaleString()} (
+                      {cappingType === 'multiplier' 
+                        ? `based on ${dailyCapPercent}X daily activation fee capping limit` 
+                        : cappingType === 'fixed'
+                        ? `based on a fixed daily limit`
+                        : `based on ${dailyCapPercent}% daily investment capping limit`
+                      }).
                     </p>
                   ) : (
                     <p className="text-[10px] leading-relaxed text-white/40 font-mono">
-                      * Yield varies ({risk.min}%-{risk.max}% daily) under {risk.id} risk mode. Daily earning cap is {dailyCapPercent}% of investment (${dailyCapUSD.toLocaleString()}/day). Max limit is ${maxEarningCap.toLocaleString()} for {days} days.
+                      * Yield varies ({risk.min}%-{risk.max}% daily) under {risk.id} risk mode. Daily earning cap is{' '}
+                      {cappingType === 'multiplier'
+                        ? `${dailyCapPercent}X of joining fee`
+                        : cappingType === 'fixed'
+                        ? `a fixed $${dailyCapPercent}`
+                        : `${dailyCapPercent}% of investment`
+                      }{' '}
+                      (${dailyCapUSD.toLocaleString()}/day). Max limit is ${maxEarningCap.toLocaleString()} for {days} days.
                     </p>
                   )}
                 </div>
