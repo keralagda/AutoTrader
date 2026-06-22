@@ -90,12 +90,17 @@ const DEFAULT_LOGIC = {
 // GET - Load logic config
 export async function GET() {
   try {
+    const defaultTemplateSetting = await db.setting.findUnique({ where: { key: 'default_logic_builder_config' } })
+    const resolvedDefaultLogic = defaultTemplateSetting ? JSON.parse(defaultTemplateSetting.value) : DEFAULT_LOGIC
+    
     const setting = await db.setting.findUnique({ where: { key: 'logic_builder_config' } })
-    const config = setting ? { ...DEFAULT_LOGIC, ...JSON.parse(setting.value) } : DEFAULT_LOGIC
+    const config = setting ? { ...resolvedDefaultLogic, ...JSON.parse(setting.value) } : resolvedDefaultLogic
     return NextResponse.json(config)
   } catch (error) {
     console.error('Logic builder GET error:', error)
-    return NextResponse.json(DEFAULT_LOGIC)
+    const defaultTemplateSetting = await db.setting.findUnique({ where: { key: 'default_logic_builder_config' } }).catch(() => null)
+    const resolvedDefaultLogic = defaultTemplateSetting ? JSON.parse(defaultTemplateSetting.value) : DEFAULT_LOGIC
+    return NextResponse.json(resolvedDefaultLogic)
   }
 }
 

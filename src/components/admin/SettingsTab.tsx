@@ -35,6 +35,16 @@ interface SettingsState {
   branding_mode: string // 'name' | 'logo' | 'name_logo'
   smtp_gmail_user: string
   smtp_gmail_pass: string
+  smtp_servers: string
+  smtp_proton_user: string
+  smtp_proton_pass: string
+  smtp_proton_host: string
+  smtp_proton_port: string
+  smtp_proton_secure: string
+  resend_api_key: string
+  email_from: string
+  default_logic_builder_config: string
+  default_nova_points_config: string
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
@@ -51,6 +61,16 @@ const DEFAULT_SETTINGS: SettingsState = {
   branding_mode: 'name',
   smtp_gmail_user: '',
   smtp_gmail_pass: '',
+  smtp_servers: '',
+  smtp_proton_user: '',
+  smtp_proton_pass: '',
+  smtp_proton_host: '127.0.0.1',
+  smtp_proton_port: '1025',
+  smtp_proton_secure: 'false',
+  resend_api_key: '',
+  email_from: 'BNFX <onboarding@resend.dev>',
+  default_logic_builder_config: '',
+  default_nova_points_config: '',
 }
 
 export function SettingsTab() {
@@ -330,6 +350,105 @@ export function SettingsTab() {
 
           <Separator className="bg-border/50" />
 
+          {/* Resend and Sender Email */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-muted-foreground font-medium">Resend API Key</Label>
+              <Input
+                type="password"
+                placeholder="re_123456789"
+                value={settings.resend_api_key}
+                onChange={e => setSettings(prev => ({ ...prev, resend_api_key: e.target.value }))}
+                className="bg-muted/50 border-border/50 font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground">Resend delivery service authorization key (alternative to Gmail SMTP).</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground font-medium">System Sender Email (From)</Label>
+              <Input
+                type="text"
+                placeholder="BNFX <onboarding@resend.dev>"
+                value={settings.email_from}
+                onChange={e => setSettings(prev => ({ ...prev, email_from: e.target.value }))}
+                className="bg-muted/50 border-border/50"
+              />
+              <p className="text-[10px] text-muted-foreground">Default envelope header sender address shown on messages.</p>
+            </div>
+          </div>
+
+          <Separator className="bg-border/50" />
+
+          {/* Proton Bridge Local SMTP Settings */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Proton Bridge Local SMTP Settings</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label className="text-muted-foreground font-medium">Proton User</Label>
+                <Input
+                  type="text"
+                  placeholder="e.g. proton-bridge-user"
+                  value={settings.smtp_proton_user}
+                  onChange={e => setSettings(prev => ({ ...prev, smtp_proton_user: e.target.value }))}
+                  className="bg-muted/50 border-border/50"
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label className="text-muted-foreground font-medium">Proton Password</Label>
+                <Input
+                  type="password"
+                  value={settings.smtp_proton_pass}
+                  onChange={e => setSettings(prev => ({ ...prev, smtp_proton_pass: e.target.value }))}
+                  className="bg-muted/50 border-border/50 font-mono"
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label className="text-muted-foreground font-medium">Proton Host</Label>
+                <Input
+                  type="text"
+                  value={settings.smtp_proton_host}
+                  onChange={e => setSettings(prev => ({ ...prev, smtp_proton_host: e.target.value }))}
+                  className="bg-muted/50 border-border/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground font-medium">Proton Port</Label>
+                <Input
+                  type="number"
+                  value={settings.smtp_proton_port}
+                  onChange={e => setSettings(prev => ({ ...prev, smtp_proton_port: e.target.value }))}
+                  className="bg-muted/50 border-border/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-muted-foreground font-medium">Proton Secure (TLS)</Label>
+                <select
+                  value={settings.smtp_proton_secure}
+                  onChange={e => setSettings(prev => ({ ...prev, smtp_proton_secure: e.target.value }))}
+                  className="w-full bg-muted/50 border border-border/50 text-xs rounded-md h-9 px-2 text-foreground focus:outline-none"
+                >
+                  <option value="false">No (STARTTLS)</option>
+                  <option value="true">Yes (SSL/TLS)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <Separator className="bg-border/50" />
+
+          {/* SMTP Rotation List */}
+          <div className="space-y-2">
+            <Label className="text-muted-foreground font-medium">SMTP Rotation Servers List</Label>
+            <Textarea
+              placeholder="host:port:user:pass:from,host2:port2:user2:pass2:from2"
+              value={settings.smtp_servers}
+              onChange={e => setSettings(prev => ({ ...prev, smtp_servers: e.target.value }))}
+              className="bg-muted/50 border-border/50 text-xs font-mono h-16 resize-none"
+            />
+            <p className="text-[10px] text-muted-foreground">Comma-separated servers for round-robin rotation. Format: <code>host:port:user:pass:from</code></p>
+          </div>
+
+          <Separator className="bg-border/50" />
+
           {/* Test Mail Section */}
           <div className="space-y-3 max-w-lg">
             <Label className="text-muted-foreground font-medium">Verify SMTP Connection Settings</Label>
@@ -350,6 +469,38 @@ export function SettingsTab() {
               </Button>
             </div>
             <p className="text-[10px] text-muted-foreground">Attempts to authenticate with Gmail SMTP and send a verification test email to the address above before saving.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dynamic Default Configuration Templates CRUD */}
+      <Card className="bg-card/50 border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings className="h-4 w-4 text-violet-400" />
+            System Default Config Templates (Editable DB-backed JSON)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-muted-foreground font-medium">Default Logic Builder Config Template</Label>
+            <Textarea
+              placeholder='Enter valid JSON for Logic Builder defaults...'
+              value={settings.default_logic_builder_config}
+              onChange={e => setSettings(prev => ({ ...prev, default_logic_builder_config: e.target.value }))}
+              className="bg-muted/50 border-border/50 text-xs font-mono h-32"
+            />
+            <p className="text-[10px] text-muted-foreground">Defaults applied during Logic builder resets. Must be valid JSON matching the Logic Builder schema.</p>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-muted-foreground font-medium">Default Nova Points Config Template</Label>
+            <Textarea
+              placeholder='Enter valid JSON for Nova Points defaults...'
+              value={settings.default_nova_points_config}
+              onChange={e => setSettings(prev => ({ ...prev, default_nova_points_config: e.target.value }))}
+              className="bg-muted/50 border-border/50 text-xs font-mono h-32"
+            />
+            <p className="text-[10px] text-muted-foreground">Defaults applied during Nova Points resets. Must be valid JSON matching the Nova Points config schema.</p>
           </div>
         </CardContent>
       </Card>

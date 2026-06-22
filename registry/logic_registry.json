@@ -1,0 +1,47 @@
+{
+  "registry": "Logic Registry",
+  "version": "1.0.0",
+  "description": "Blueprint of core computational logic and algorithms executed across the platform",
+  "logic": {
+    "ProfitDistribution": {
+      "file": "src/lib/profit-distributor.ts",
+      "description": "Daily cron algorithm that distributes yields to active deposits",
+      "rules": [
+        "Checks plan limits and capping logic",
+        "Calculates daily return percentage based on active Risk Category bounds",
+        "Applies Logic Builder variable coefficients (Base Skew, Volatility Factor, Min Floor)",
+        "Applies compound bonuses and stacking multiplier rates",
+        "Distributes rewards and updates user wallet balances"
+      ]
+    },
+    "AllianceGrowthNetworkPairing": {
+      "file": "src/lib/binary-tree.ts",
+      "description": "Level-by-level pair matching, volume carry-forwards, and commission payout logic",
+      "rules": [
+        "Validates sponsor left and right directs requirements",
+        "Executes ratio matching (100:100, 100:200, 200:100) per pairing tier",
+        "Deducts matched volumes from Left/Right legs recursively",
+        "Applies carry-forward values and caps pairing cycles according to plan settings",
+        "Updates user stats and triggers payouts"
+      ]
+    },
+    "StakingYields": {
+      "file": "src/lib/profit-distributor.ts",
+      "description": "Calculates additional yields for staked deposits and enforces early withdrawal penalties",
+      "rules": [
+        "Validates if deposit.isStaked is true and stakedUntil has not passed",
+        "Adds deposit.stakingBonusRate directly to the calculated base daily profit rate",
+        "Restricts capital withdrawal before maturity date or charges penalty percentage"
+      ]
+    },
+    "VariableRotation": {
+      "file": "src/components/dashboard/TradingSimulator.tsx",
+      "description": "Oscillates simulator variables dynamically in real-time to mimic active markets",
+      "rules": [
+        "Fetches live variable coefficients from Logic Builder configurations",
+        "Fluctuates win rates, volatility spreads, and candle spreads randomly by +/- 5% per cycle",
+        "Injects noise into simulated trading signals and updates chart candle states"
+      ]
+    }
+  }
+}

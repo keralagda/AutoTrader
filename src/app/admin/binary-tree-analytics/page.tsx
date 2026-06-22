@@ -393,7 +393,7 @@ export default function BinaryTreeAnalyticsPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <SlidersHorizontal className="size-6 text-emerald-400 animate-pulse" />
-            Binary MLM Admin Control Console
+            Alliance Growth Network Console
           </h1>
           <p className="text-muted-foreground text-sm">System-wide network overview, manual volume overrides, and compliance log browsers</p>
         </div>

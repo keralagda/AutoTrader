@@ -21,8 +21,6 @@ const PROTON_PORT = parseInt(process.env.PROTON_PORT || '1025')
 const PROTON_SECURE = process.env.PROTON_SECURE === 'true'
 
 // SMTP Configuration (comma-separated for rotation)
-// Format per server: host:port:user:pass:from
-// Example: SMTP_SERVERS=smtp.gmail.com:587:user@gmail.com:apppassword:BNFX <user@gmail.com>,smtp2.example.com:465:user2:pass2:Sender <user2@example.com>
 const SMTP_SERVERS_RAW = process.env.SMTP_SERVERS || ''
 
 interface SMTPConfig {
@@ -33,9 +31,10 @@ interface SMTPConfig {
   from: string
 }
 
-function parseSMTPServers(): SMTPConfig[] {
-  if (!SMTP_SERVERS_RAW) return []
-  return SMTP_SERVERS_RAW.split(',').map(s => s.trim()).filter(Boolean).map(server => {
+function parseSMTPServers(raw: string = ''): SMTPConfig[] {
+  const source = raw || ''
+  if (!source) return []
+  return source.split(',').map(s => s.trim()).filter(Boolean).map(server => {
     const parts = server.split(':')
     if (parts.length < 4) return null
     return {
@@ -51,8 +50,8 @@ function parseSMTPServers(): SMTPConfig[] {
 // Round-robin counter for SMTP rotation
 let smtpRotationIndex = 0
 
-function getNextSMTP(): SMTPConfig | null {
-  const servers = parseSMTPServers()
+function getNextSMTP(raw: string = ''): SMTPConfig | null {
+  const servers = parseSMTPServers(raw)
   if (servers.length === 0) return null
   const server = servers[smtpRotationIndex % servers.length]
   smtpRotationIndex++
@@ -70,39 +69,83 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   // Strategy: Try Gmail first, then Proton, then Resend, then SMTP rotation
   
   // Load dynamic SMTP settings from DB if available, fallback to env variables
-  let dynamicUser = ''
-  let dynamicPass = ''
+  let dynamicGmailUser = ''
+  let dynamicGmailPass = ''
+  let dynamicProtonUser = ''
+  let dynamicProtonPass = ''
+  let dynamicProtonHost = ''
+  let dynamicProtonPort = 1025
+  let dynamicProtonSecure = false
+  let dynamicSmtpServers = ''
+  let dynamicResendApiKey = ''
+  let dynamicEmailFrom = ''
+
   try {
-    const userSetting = await db.setting.findUnique({ where: { key: 'smtp_gmail_user' } })
-    const passSetting = await db.setting.findUnique({ where: { key: 'smtp_gmail_pass' } })
-    dynamicUser = userSetting?.value || ''
-    dynamicPass = passSetting?.value || ''
+    const settings = await db.setting.findMany({
+      where: {
+        key: {
+          in: [
+            'smtp_gmail_user',
+            'smtp_gmail_pass',
+            'smtp_proton_user',
+            'smtp_proton_pass',
+            'smtp_proton_host',
+            'smtp_proton_port',
+            'smtp_proton_secure',
+            'smtp_servers',
+            'resend_api_key',
+            'email_from',
+          ]
+        }
+      }
+    })
+    const map: Record<string, string> = {}
+    settings.forEach(s => { map[s.key] = s.value })
+
+    dynamicGmailUser = map['smtp_gmail_user'] || ''
+    dynamicGmailPass = map['smtp_gmail_pass'] || ''
+    dynamicProtonUser = map['smtp_proton_user'] || ''
+    dynamicProtonPass = map['smtp_proton_pass'] || ''
+    dynamicProtonHost = map['smtp_proton_host'] || ''
+    dynamicProtonPort = map['smtp_proton_port'] ? parseInt(map['smtp_proton_port']) : 1025
+    dynamicProtonSecure = map['smtp_proton_secure'] === 'true'
+    dynamicSmtpServers = map['smtp_servers'] || ''
+    dynamicResendApiKey = map['resend_api_key'] || ''
+    dynamicEmailFrom = map['email_from'] || ''
   } catch (dbError) {
     console.error('Failed to read dynamic SMTP settings:', dbError)
   }
 
-  const activeUser = dynamicUser || GMAIL_USER
-  const activePass = dynamicPass || GMAIL_PASS
-  
+  const activeGmailUser = dynamicGmailUser || GMAIL_USER
+  const activeGmailPass = dynamicGmailPass || GMAIL_PASS
+  const activeProtonUser = dynamicProtonUser || PROTON_USER
+  const activeProtonPass = dynamicProtonPass || PROTON_PASS
+  const activeProtonHost = dynamicProtonHost || PROTON_HOST
+  const activeProtonPort = dynamicProtonPort !== 1025 ? dynamicProtonPort : PROTON_PORT
+  const activeProtonSecure = dynamicProtonSecure !== false ? dynamicProtonSecure : PROTON_SECURE
+  const activeResendApiKey = dynamicResendApiKey || RESEND_API_KEY
+  const activeEmailFrom = dynamicEmailFrom || FROM_EMAIL
+  const activeSmtpServers = dynamicSmtpServers || SMTP_SERVERS_RAW
+
   // 1. Try Gmail
-  if (activeUser && activePass) {
+  if (activeGmailUser && activeGmailPass) {
     try {
       const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 587,
         secure: false,
         auth: {
-          user: activeUser,
-          pass: activePass,
+          user: activeGmailUser,
+          pass: activeGmailPass,
         },
         tls: {
           rejectUnauthorized: false
         }
       })
       
-      const finalFrom = FROM_EMAIL.includes('<') && FROM_EMAIL.includes(activeUser)
+      const finalFrom = FROM_EMAIL.includes('<') && FROM_EMAIL.includes(activeGmailUser)
         ? FROM_EMAIL 
-        : `BNFX <${activeUser}>`
+        : `BNFX <${activeGmailUser}>`
       
       await transporter.sendMail({
         from: finalFrom,
@@ -119,15 +162,15 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   }
 
   // 2. Try Proton (ProtonMail Bridge)
-  if (PROTON_USER && PROTON_PASS) {
+  if (activeProtonUser && activeProtonPass) {
     try {
       const transporter = nodemailer.createTransport({
-        host: PROTON_HOST,
-        port: PROTON_PORT,
-        secure: PROTON_SECURE,
+        host: activeProtonHost,
+        port: activeProtonPort,
+        secure: activeProtonSecure,
         auth: {
-          user: PROTON_USER,
-          pass: PROTON_PASS,
+          user: activeProtonUser,
+          pass: activeProtonPass,
         },
         tls: {
           rejectUnauthorized: false // Proton Bridge typically uses self-signed certificates
@@ -135,7 +178,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       })
       
       await transporter.sendMail({
-        from: FROM_EMAIL.includes('<') ? FROM_EMAIL : `BNFX <${PROTON_USER}>`,
+        from: activeEmailFrom.includes('<') ? activeEmailFrom : `BNFX <${activeProtonUser}>`,
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -149,11 +192,11 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   }
 
   // 3. Try Resend (primary)
-  if (RESEND_API_KEY) {
+  if (activeResendApiKey) {
     try {
-      let finalResendFrom = FROM_EMAIL
-      const emailMatch = FROM_EMAIL.match(/<([^>]+)>/)
-      const senderEmail = emailMatch ? emailMatch[1] : FROM_EMAIL
+      let finalResendFrom = activeEmailFrom
+      const emailMatch = activeEmailFrom.match(/<([^>]+)>/)
+      const senderEmail = emailMatch ? emailMatch[1] : activeEmailFrom
       const domain = senderEmail.split('@')[1] || ''
       const isUnverifiedDomain = 
         domain.toLowerCase().includes('gmail.com') ||
@@ -169,7 +212,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       const res = await fetch(RESEND_API_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Authorization': `Bearer ${activeResendApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -193,9 +236,9 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   }
 
   // 4. Try SMTP rotation (fallback)
-  const smtpServers = parseSMTPServers()
-  for (let i = 0; i < smtpServers.length; i++) {
-    const smtp = getNextSMTP()
+  const parsedRotationServers = parseSMTPServers(activeSmtpServers)
+  for (let i = 0; i < parsedRotationServers.length; i++) {
+    const smtp = getNextSMTP(activeSmtpServers)
     if (!smtp) break
     
     try {
@@ -213,7 +256,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       })
       
       await transporter.sendMail({
-        from: smtp.from || FROM_EMAIL,
+        from: smtp.from || activeEmailFrom,
         to: options.to,
         subject: options.subject,
         html: options.html,

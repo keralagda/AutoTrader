@@ -9,7 +9,16 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { Sparkles, Save, Loader2, Coins, Gift, Dices, Settings, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Sparkles, Save, Loader2, Coins, Gift, Dices, Settings, TrendingUp, AlertTriangle, Plus, Trash2 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 interface StoreItem {
   id: string
@@ -58,6 +67,60 @@ export function AdminNovaPointsTab() {
   const [saving, setSaving] = useState(false)
   const [config, setConfig] = useState<NPConfig | null>(null)
   const [stats, setStats] = useState<any>(null)
+
+  // CRUD States for Store Items
+  const [isAddStoreItemOpen, setIsAddStoreItemOpen] = useState(false)
+  const [newItemId, setNewItemId] = useState('')
+  const [newItemName, setNewItemName] = useState('')
+  const [newItemCost, setNewItemCost] = useState(100)
+  const [newItemDesc, setNewItemDesc] = useState('')
+  const [newItemType, setNewItemType] = useState('conversion')
+
+  const handleCreateStoreItem = () => {
+    if (!config) return
+    const cleanId = newItemId.trim()
+    const cleanName = newItemName.trim()
+    const cleanDesc = newItemDesc.trim()
+
+    if (!cleanId) {
+      toast({ title: 'Invalid ID', description: 'Store Item ID is required', variant: 'destructive' })
+      return
+    }
+
+    if ((config.storeItems || []).some(item => item.id === cleanId)) {
+      toast({ title: 'Duplicate ID', description: `An item with ID "${cleanId}" already exists`, variant: 'destructive' })
+      return
+    }
+
+    if (!cleanName) {
+      toast({ title: 'Invalid Name', description: 'Store Item Name is required', variant: 'destructive' })
+      return
+    }
+
+    const newItem: StoreItem = {
+      id: cleanId,
+      name: cleanName,
+      cost: newItemCost,
+      description: cleanDesc,
+      type: newItemType,
+      enabled: true
+    }
+
+    setConfig({
+      ...config,
+      storeItems: [...(config.storeItems || []), newItem]
+    })
+
+    // Reset
+    setNewItemId('')
+    setNewItemName('')
+    setNewItemCost(100)
+    setNewItemDesc('')
+    setNewItemType('conversion')
+    setIsAddStoreItemOpen(false)
+
+    toast({ title: 'Store item added locally', description: 'Remember to save config to write changes to DB.' })
+  }
 
   useEffect(() => {
     fetch('/api/admin/nova-points')
@@ -200,9 +263,109 @@ export function AdminNovaPointsTab() {
 
         {/* Store Items */}
         <TabsContent value="store" className="space-y-3">
-          {config.storeItems.map((item, idx) => (
-            <Card key={item.id} className="border-border/50">
-              <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/10 p-3 rounded-lg border border-border/40 mb-3">
+            <div>
+              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Nova Store Items</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Manage virtual store rewards purchasable with earned Nova Points.</p>
+            </div>
+            <Dialog open={isAddStoreItemOpen} onOpenChange={setIsAddStoreItemOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1 bg-amber-500 hover:bg-amber-600 text-black shrink-0 text-xs h-8">
+                  <Plus className="size-3.5" /> Add Store Item
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md bg-card border-border/50 text-foreground">
+                <DialogHeader>
+                  <DialogTitle className="text-base font-semibold">Create Store Reward Item</DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    Add a new reward package to the user store catalog.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3.5 py-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Reward ID (Unique Slug)</Label>
+                    <Input
+                      placeholder="e.g. custom_perk_token"
+                      value={newItemId}
+                      onChange={e => setNewItemId(e.target.value)}
+                      className="bg-muted/50 border-border/50 text-xs h-8"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Display Name</Label>
+                    <Input
+                      placeholder="e.g. 5% Deposit Bonus Token"
+                      value={newItemName}
+                      onChange={e => setNewItemName(e.target.value)}
+                      className="bg-muted/50 border-border/50 text-xs h-8"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Description</Label>
+                    <Input
+                      placeholder="e.g. Unlocks 5% extra on your next deposit"
+                      value={newItemDesc}
+                      onChange={e => setNewItemDesc(e.target.value)}
+                      className="bg-muted/50 border-border/50 text-xs h-8"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Reward Type</Label>
+                      <select
+                        value={newItemType}
+                        onChange={e => setNewItemType(e.target.value)}
+                        className="w-full bg-muted/50 border border-border/50 text-xs rounded-md h-8 px-2 text-foreground focus:outline-none"
+                      >
+                        <option value="conversion">USDC Conversion</option>
+                        <option value="perk">Perk/Fee Waiver</option>
+                        <option value="boost">Multiplier Boost</option>
+                        <option value="spin">Wheel Spin</option>
+                        <option value="cosmetic">Cosmetic Customization</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Cost (Nova Points)</Label>
+                      <Input
+                        type="number"
+                        value={newItemCost}
+                        onChange={e => setNewItemCost(parseInt(e.target.value) || 0)}
+                        className="bg-muted/50 border-border/50 text-xs h-8"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter className="mt-2">
+                  <Button variant="ghost" size="sm" onClick={() => setIsAddStoreItemOpen(false)} className="text-xs">
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleCreateStoreItem} className="bg-amber-500 hover:bg-amber-600 text-black text-xs">
+                    Create Item
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {(config.storeItems || []).map((item, idx) => (
+            <Card key={item.id} className={`border-border/50 relative ${item.enabled ? 'border-amber-500/20 bg-amber-500/5' : 'opacity-60'}`}>
+              <CardContent className="p-4 pr-12">
+                {/* Delete Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (confirm(`Are you sure you want to delete the store item "${item.name}"?`)) {
+                      const items = (config.storeItems || []).filter((_, i) => i !== idx)
+                      setConfig({ ...config, storeItems: items })
+                      toast({ title: 'Item deleted locally', description: 'Save config to apply changes.' })
+                    }
+                  }}
+                  className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 rounded"
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+
                 <div className="flex items-center gap-4">
                   <Switch
                     checked={item.enabled}
@@ -215,7 +378,7 @@ export function AdminNovaPointsTab() {
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
                     <div>
                       <p className="text-sm font-medium">{item.name}</p>
-                      <Badge variant="outline" className="text-[9px] mt-0.5">{item.type}</Badge>
+                      <Badge variant="outline" className="text-[9px] mt-0.5 capitalize">{item.type}</Badge>
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px]">Cost (NP)</Label>
@@ -252,11 +415,43 @@ export function AdminNovaPointsTab() {
         {/* Lucky Spin */}
         <TabsContent value="spin" className="space-y-4">
           <Card className="border-border/50">
-            <CardHeader className="pb-3"><CardTitle className="text-sm flex items-center gap-2"><Dices className="size-4 text-amber-400" />Lucky Spin Prizes</CardTitle></CardHeader>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between gap-4">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Dices className="size-4 text-amber-400" />
+                Lucky Spin Prizes
+              </CardTitle>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const prizes = [...(config.luckySpinPrizes || []), { amount: 1.0, weight: 10 }]
+                  setConfig({ ...config, luckySpinPrizes: prizes })
+                  toast({ title: 'Prize option added locally', description: 'Configure values and save settings.' })
+                }}
+                className="gap-1 bg-amber-500 hover:bg-amber-600 text-black text-xs h-7"
+              >
+                <Plus className="size-3" /> Add Prize
+              </Button>
+            </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {config.luckySpinPrizes.map((prize, idx) => (
-                  <div key={idx} className="rounded-lg border border-border/50 p-3 space-y-2">
+                {(config.luckySpinPrizes || []).map((prize, idx) => (
+                  <div key={idx} className="rounded-lg border border-border/50 p-3 space-y-2 relative bg-card/40 pr-8">
+                    {/* Delete Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm(`Remove this spin prize option?`)) {
+                          const prizes = (config.luckySpinPrizes || []).filter((_, i) => i !== idx)
+                          setConfig({ ...config, luckySpinPrizes: prizes })
+                          toast({ title: 'Prize option removed locally', description: 'Save config to apply changes.' })
+                        }
+                      }}
+                      className="absolute top-2 right-2 h-5 w-5 text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 rounded"
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
+
                     <div className="space-y-1">
                       <Label className="text-[10px]">Prize ($)</Label>
                       <Input
@@ -285,7 +480,7 @@ export function AdminNovaPointsTab() {
                       />
                     </div>
                     <p className="text-[9px] text-muted-foreground text-center">
-                      {((prize.weight / config.luckySpinPrizes.reduce((s, p) => s + p.weight, 0)) * 100).toFixed(1)}% chance
+                      {((prize.weight / (config.luckySpinPrizes.reduce((s, p) => s + p.weight, 0) || 1)) * 100).toFixed(1)}% chance
                     </p>
                   </div>
                 ))}

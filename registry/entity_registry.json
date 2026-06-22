@@ -1,0 +1,120 @@
+{
+  "registry": "Entity Registry",
+  "version": "1.0.0",
+  "description": "Blueprint of all active database models and relationships on the platform",
+  "entities": {
+    "User": {
+      "table": "User",
+      "fields": {
+        "id": "String (PK)",
+        "email": "String (Unique)",
+        "name": "String",
+        "role": "String (admin, user, leader)",
+        "tradingBalance": "Float",
+        "withdrawalBalance": "Float",
+        "totalEarnings": "Float",
+        "totalDeposited": "Float",
+        "binaryTreePosition": "String",
+        "binaryTreeParentId": "String (FK)",
+        "binaryTreeLeftChildId": "String",
+        "binaryTreeRightChildId": "String",
+        "binaryTreeLeftVolume": "Float",
+        "binaryTreeRightVolume": "Float",
+        "mlmRank": "String",
+        "mlmLevel": "Int"
+      },
+      "relations": {
+        "referredBy": "User (Self-relation)",
+        "referrals": "User[] (Self-relation)",
+        "deposits": "Deposit[]",
+        "withdrawals": "Withdrawal[]",
+        "transactions": "Transaction[]"
+      }
+    },
+    "Plan": {
+      "table": "Plan",
+      "fields": {
+        "id": "String (PK)",
+        "name": "String",
+        "minDeposit": "Float",
+        "maxDeposit": "Float",
+        "entryFee": "Float",
+        "lockPeriodDays": "Int",
+        "isActive": "Boolean",
+        "isBinaryMlmEnabled": "Boolean",
+        "mlmRewardsConfig": "String (JSON)",
+        "mlmPoolsConfig": "String (JSON)",
+        "stakingEnabled": "Boolean",
+        "stakingMinDays": "Int",
+        "stakingBonusPercent": "Float",
+        "stakingEarlyWithdrawalPenalty": "Float",
+        "showPairingRulesInPlanDetails": "Boolean"
+      },
+      "relations": {
+        "pairingRules": "PlanPairingRule[]",
+        "deposits": "Deposit[]"
+      }
+    },
+    "PlanPairingRule": {
+      "table": "PlanPairingRule",
+      "fields": {
+        "id": "String (PK)",
+        "planId": "String (FK)",
+        "levelRange": "String (e.g. '1', '2', '3-5')",
+        "ratio": "String (e.g. '100:100', '100:200')",
+        "bonusType": "String (percent, fixed)",
+        "bonusValue": "Float",
+        "minDirectLeft": "Int",
+        "minDirectRight": "Int",
+        "minPersonalIv": "Float",
+        "minTeamTv": "Float"
+      },
+      "relations": {
+        "plan": "Plan"
+      }
+    },
+    "Deposit": {
+      "table": "Deposit",
+      "fields": {
+        "id": "String (PK)",
+        "userId": "String (FK)",
+        "planId": "String (FK)",
+        "amount": "Float",
+        "status": "String (pending, active, locked, completed, ended)",
+        "isStaked": "Boolean",
+        "stakedUntil": "DateTime",
+        "stakingBonusRate": "Float"
+      },
+      "relations": {
+        "user": "User",
+        "plan": "Plan"
+      }
+    },
+    "Setting": {
+      "table": "Setting",
+      "fields": {
+        "key": "String (PK)",
+        "value": "String"
+      },
+      "description": "General dynamic key-value storage for platform settings, configurations, and overrides"
+    },
+    "CustomPostType": {
+      "table": "CustomPostType",
+      "fields": {
+        "id": "String (PK)",
+        "slug": "String (Unique)",
+        "name": "String",
+        "description": "String"
+      }
+    },
+    "CustomFieldGroup": {
+      "table": "CustomFieldGroup",
+      "fields": {
+        "id": "String (PK)",
+        "name": "String",
+        "rules": "String (JSON)",
+        "conditionalLogic": "String (JSON)"
+      }
+    }
+  }
+}

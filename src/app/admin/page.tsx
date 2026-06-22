@@ -138,7 +138,7 @@ export default function AdminDashboard() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Binary MLM Module</span>
+              <span className="text-sm font-medium">Alliance Growth Network</span>
               <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-xs">
                 Active
               </span>

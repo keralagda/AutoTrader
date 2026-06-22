@@ -111,7 +111,7 @@ export function MlmRewardsTab() {
         setProfile(profileData)
 
         // 2. Fetch plans list to grab custom mlmRewardsConfig if it exists
-        const plansRes = await fetch('/api/plans')
+        const plansRes = await fetch(`/api/plans?t=${Date.now()}`)
         if (plansRes.ok) {
           const plansList = await plansRes.json()
           

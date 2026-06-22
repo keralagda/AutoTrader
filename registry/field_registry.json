@@ -1,0 +1,44 @@
+{
+  "registry": "Field Registry",
+  "version": "1.0.0",
+  "description": "Blueprint of all configurable parameters, input fields, and settings keys in management views",
+  "fields": {
+    "GeneralSettings": {
+      "platform_name": { "type": "text", "default": "BNFX", "description": "Platform brand name shown on header and titles" },
+      "currency": { "type": "text", "default": "USDC", "description": "Base trading currency" },
+      "min_withdrawal": { "type": "number", "default": "10", "description": "Minimum amount required to request withdrawal" },
+      "withdrawal_fee": { "type": "number", "default": "2", "description": "Flat rate fee deducted from withdrawals" },
+      "trading_days": { "type": "checkbox_group", "options": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"], "description": "Days when trading is operational" }
+    },
+    "SMTPSettings": {
+      "smtp_gmail_user": { "type": "email", "description": "Gmail email address for nodemailer transporter" },
+      "smtp_gmail_pass": { "type": "password", "description": "Gmail App-specific password credentials" },
+      "smtp_proton_user": { "type": "text", "description": "ProtonMail bridge user account" },
+      "smtp_proton_pass": { "type": "password", "description": "ProtonMail bridge local password" },
+      "smtp_proton_host": { "type": "text", "default": "127.0.0.1", "description": "Proton bridge host address" },
+      "smtp_proton_port": { "type": "number", "default": 1025, "description": "Proton bridge port number" },
+      "smtp_proton_secure": { "type": "boolean", "default": false, "description": "Whether to use TLS/SSL for Proton bridge" },
+      "smtp_servers": { "type": "textarea", "placeholder": "host:port:user:pass:from,...", "description": "SMTP servers list comma-separated for round-robin rotation" },
+      "resend_api_key": { "type": "password", "description": "API Key for Resend service delivery" },
+      "email_from": { "type": "text", "default": "BNFX <onboarding@resend.dev>", "description": "Standard Sender envelope header (From)" }
+    },
+    "PlanConfigurator": {
+      "name": { "type": "text", "required": true, "description": "Plan display title shown on plans list" },
+      "minDeposit": { "type": "number", "required": true, "description": "Minimum investment limit" },
+      "maxDeposit": { "type": "number", "required": true, "description": "Maximum investment limit" },
+      "entryFee": { "type": "number", "default": 0, "description": "One-time cost to unlock or invest in the plan" },
+      "lockPeriodDays": { "type": "number", "default": 0, "description": "Number of days deposits are locked" },
+      "isActive": { "type": "boolean", "default": true, "description": "Whether plan is open for new investments" },
+      "isBinaryMlmEnabled": { "type": "boolean", "default": false, "description": "Toggle to bind plan to Alliance Growth Network" },
+      "stakingEnabled": { "type": "boolean", "default": false, "description": "Allow optional lockup staking on deposit creation" },
+      "stakingMinDays": { "type": "number", "default": 30, "description": "Minimum staking period" },
+      "stakingBonusPercent": { "type": "number", "default": 0, "description": "Additional daily yield percentage for staked deposits" },
+      "stakingEarlyWithdrawalPenalty": { "type": "number", "default": 10, "description": "Penalty fee percent for withdrawing before maturity" },
+      "showPairingRulesInPlanDetails": { "type": "boolean", "default": false, "description": "Render pairings levels grid on cards details" }
+    },
+    "DefaultConfigTemplates": {
+      "default_logic_builder_config": { "type": "textarea_json", "description": "Default configuration populated on Logic Builder resets" },
+      "default_nova_points_config": { "type": "textarea_json", "description": "Default configuration populated on Nova Points resets" }
+    }
+  }
+}

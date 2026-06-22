@@ -13,8 +13,17 @@ import { useToast } from '@/hooks/use-toast'
 import {
   Save, Loader2, Layers, Zap, TrendingUp, Calendar,
   Dices, Crown, Shield, ArrowUpDown, AlertTriangle, Sparkles,
-  Activity, BarChart3,
+  Activity, BarChart3, Plus, Trash2,
 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 interface Rule {
   id: string
@@ -179,6 +188,76 @@ export function AdminLogicBuilderTab() {
   const [config, setConfig] = useState<LogicConfig | null>(null)
   const [aiPrompt, setAiPrompt] = useState('')
   const [generating, setGenerating] = useState(false)
+
+  // Add Variable Dialog States
+  const [isAddVarOpen, setIsAddVarOpen] = useState(false)
+  const [newVarId, setNewVarId] = useState('var_')
+  const [newVarName, setNewVarName] = useState('')
+  const [newVarDesc, setNewVarDesc] = useState('')
+  const [newVarType, setNewVarType] = useState('slider')
+  const [newVarValue, setNewVarValue] = useState(0.5)
+  const [newVarMin, setNewVarMin] = useState(0)
+  const [newVarMax, setNewVarMax] = useState(1)
+  const [newVarStep, setNewVarStep] = useState(0.05)
+
+  const handleAddVariable = () => {
+    if (!config) return
+    const cleanId = newVarId.trim()
+    const cleanName = newVarName.trim()
+    const cleanDesc = newVarDesc.trim()
+
+    if (!cleanId.startsWith('var_') || cleanId === 'var_') {
+      toast({ title: 'Invalid ID', description: 'Variable ID must start with "var_"', variant: 'destructive' })
+      return
+    }
+
+    if (!/^[a-z0-9_]+$/.test(cleanId)) {
+      toast({ title: 'Invalid ID', description: 'Variable ID must contain only lowercase letters, numbers, or underscores', variant: 'destructive' })
+      return
+    }
+
+    if (!cleanName) {
+      toast({ title: 'Invalid Name', description: 'Variable Name is required', variant: 'destructive' })
+      return
+    }
+
+    if ((config.variables || []).some((v: any) => v.id === cleanId)) {
+      toast({ title: 'Duplicate ID', description: `A variable with ID "${cleanId}" already exists`, variant: 'destructive' })
+      return
+    }
+
+    const newVar = {
+      id: cleanId,
+      name: cleanName,
+      description: cleanDesc,
+      type: newVarType,
+      value: newVarValue,
+      ...(newVarType !== 'number' ? {
+        min: newVarMin,
+        max: newVarMax,
+        step: newVarStep,
+      } : {}),
+      enabled: true,
+    }
+
+    setConfig({
+      ...config,
+      variables: [...(config.variables || []), newVar],
+    })
+
+    // Reset fields
+    setNewVarId('var_')
+    setNewVarName('')
+    setNewVarDesc('')
+    setNewVarType('slider')
+    setNewVarValue(0.5)
+    setNewVarMin(0)
+    setNewVarMax(1)
+    setNewVarStep(0.05)
+    setIsAddVarOpen(false)
+
+    toast({ title: 'Variable added', description: `Successfully added variable "${cleanName}"` })
+  }
 
   const handleGenerateWithAI = async () => {
     if (!aiPrompt.trim() || !config) return
@@ -351,12 +430,145 @@ export function AdminLogicBuilderTab() {
 
         {/* Variables Tab */}
         <TabsContent value="variables" className="space-y-3">
-          <p className="text-xs text-muted-foreground">Global variables that can be referenced by rules. Change a variable here and all linked rules update.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/10 p-3 rounded-lg border border-border/40">
+            <div>
+              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Logic Variables</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Global variables referenced by rules. Change here, and all linked rules update instantly.</p>
+            </div>
+            <Dialog open={isAddVarOpen} onOpenChange={setIsAddVarOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1 bg-violet-600 hover:bg-violet-700 text-white shrink-0 text-xs h-8">
+                  <Plus className="size-3.5" /> Add Variable
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md bg-card border-border/50 text-foreground">
+                <DialogHeader>
+                  <DialogTitle className="text-base font-semibold">Create Logic Variable</DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    Define a new parameter to use in platform logic rules or calculations.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3.5 py-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Variable ID (Unique Name Slug)</Label>
+                    <Input
+                      placeholder="e.g. var_custom_multiplier"
+                      value={newVarId}
+                      onChange={e => setNewVarId(e.target.value)}
+                      className="bg-muted/50 border-border/50 text-xs h-8"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Must start with <code className="text-violet-400">var_</code> and contain only lowercase letters, numbers, or underscores.</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Display Name</Label>
+                    <Input
+                      placeholder="e.g. Custom Multiplier"
+                      value={newVarName}
+                      onChange={e => setNewVarName(e.target.value)}
+                      className="bg-muted/50 border-border/50 text-xs h-8"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Description</Label>
+                    <Textarea
+                      placeholder="Describe what this variable controls or affects..."
+                      value={newVarDesc}
+                      onChange={e => setNewVarDesc(e.target.value)}
+                      className="bg-muted/50 border-border/50 text-xs resize-none h-16"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Input Type</Label>
+                      <select
+                        value={newVarType}
+                        onChange={e => setNewVarType(e.target.value)}
+                        className="w-full bg-muted/50 border border-border/50 text-xs rounded-md h-8 px-2 text-foreground focus:outline-none"
+                      >
+                        <option value="slider">Slider / Range</option>
+                        <option value="number">Direct Number Input</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Initial Value</Label>
+                      <Input
+                        type="number"
+                        step="any"
+                        value={newVarValue}
+                        onChange={e => setNewVarValue(parseFloat(e.target.value) || 0)}
+                        className="bg-muted/50 border-border/50 text-xs h-8"
+                      />
+                    </div>
+                  </div>
+
+                  {newVarType !== 'number' && (
+                    <div className="grid grid-cols-3 gap-2 p-2.5 rounded bg-muted/30 border border-border/40 animate-in fade-in duration-200">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Min</Label>
+                        <Input
+                          type="number"
+                          step="any"
+                          value={newVarMin}
+                          onChange={e => setNewVarMin(parseFloat(e.target.value) || 0)}
+                          className="bg-muted/50 border-border/50 text-[10px] h-7 px-1.5"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Max</Label>
+                        <Input
+                          type="number"
+                          step="any"
+                          value={newVarMax}
+                          onChange={e => setNewVarMax(parseFloat(e.target.value) || 0)}
+                          className="bg-muted/50 border-border/50 text-[10px] h-7 px-1.5"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Step</Label>
+                        <Input
+                          type="number"
+                          step="any"
+                          value={newVarStep}
+                          onChange={e => setNewVarStep(parseFloat(e.target.value) || 0.1)}
+                          className="bg-muted/50 border-border/50 text-[10px] h-7 px-1.5"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter className="mt-2">
+                  <Button variant="ghost" size="sm" onClick={() => setIsAddVarOpen(false)} className="text-xs">
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleAddVariable} className="bg-violet-600 hover:bg-violet-700 text-white text-xs">
+                    Create Variable
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {(config.variables || []).map((v: any, idx: number) => (
               <Card key={v.id} className={`transition-all duration-200 ${v.enabled !== false ? 'border-violet-500/20 bg-violet-500/5' : 'border-border/30 opacity-60'}`}>
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
+                <CardContent className="p-4 space-y-2 relative">
+                  {/* Delete Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to delete the variable "${v.name}"? Rules depending on this variable might revert to default values.`)) {
+                        const vars = (config.variables || []).filter((_: any, i: number) => i !== idx)
+                        setConfig({ ...config, variables: vars })
+                        toast({ title: 'Variable deleted locally', description: 'Save rules to apply this change to the database.' })
+                      }
+                    }}
+                    className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 rounded"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+
+                  <div className="flex items-center justify-between pr-6">
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={v.enabled !== false}
@@ -368,28 +580,49 @@ export function AdminLogicBuilderTab() {
                       />
                       <h4 className="text-sm font-semibold">{v.name}</h4>
                     </div>
-                    <Badge className="text-[9px] bg-violet-500/20 text-violet-400 border-violet-500/30">{v.type}</Badge>
+                    <Badge className="text-[9px] bg-violet-500/20 text-violet-400 border-violet-500/30 capitalize">{v.type}</Badge>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">{v.description}</p>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px]">
-                      <span>Value: <strong>{v.value}</strong></span>
-                      <span>{v.min} — {v.max}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={v.min}
-                      max={v.max}
-                      step={v.step || 0.1}
-                      value={v.value}
-                      disabled={v.enabled === false}
-                      onChange={e => {
-                        const vars = [...(config.variables || [])]
-                        vars[idx] = { ...vars[idx], value: parseFloat(e.target.value) }
-                        setConfig({ ...config, variables: vars })
-                      }}
-                      className="w-full h-2 rounded-full appearance-none bg-violet-500/20 cursor-pointer accent-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
+                  <p className="text-[10px] text-muted-foreground pr-6">{v.description}</p>
+                  
+                  <div className="space-y-1 pt-1">
+                    {v.min !== undefined && v.max !== undefined && v.type !== 'number' ? (
+                      <>
+                        <div className="flex justify-between text-[10px]">
+                          <span>Value: <strong>{v.value}</strong></span>
+                          <span>{v.min} — {v.max}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={v.min}
+                          max={v.max}
+                          step={v.step || 0.1}
+                          value={v.value}
+                          disabled={v.enabled === false}
+                          onChange={e => {
+                            const vars = [...(config.variables || [])]
+                            vars[idx] = { ...vars[idx], value: parseFloat(e.target.value) || 0 }
+                            setConfig({ ...config, variables: vars })
+                          }}
+                          className="w-full h-2 rounded-full appearance-none bg-violet-500/20 cursor-pointer accent-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-[10px]">Direct Value:</span>
+                        <Input
+                          type="number"
+                          step={v.step || 0.01}
+                          value={v.value}
+                          disabled={v.enabled === false}
+                          onChange={e => {
+                            const vars = [...(config.variables || [])]
+                            vars[idx] = { ...vars[idx], value: parseFloat(e.target.value) || 0 }
+                            setConfig({ ...config, variables: vars })
+                          }}
+                          className="h-7 text-xs bg-muted/40 border-border/40 w-24 text-right pr-2"
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

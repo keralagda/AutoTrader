@@ -1,0 +1,31 @@
+{
+  "registry": "UI Registry",
+  "version": "1.0.0",
+  "description": "Blueprint of UI tabs, paths, and admin sidebar control structures",
+  "navigation": {
+    "AdminTabs": {
+      "path": "/admin",
+      "tabs": {
+        "plans": "Manage Standard & Alliance Growth Network Plans",
+        "profits": "Manual override for daily dividends payout rates",
+        "users": "Inspect accounts, override balances, drill referrers",
+        "settings": "System-wide branding and email SMTP fallbacks configuration",
+        "withdrawals": "Approve, cancel, or reject pending customer payouts",
+        "fakeProfiles": "Mock active profiles injector for public statistics",
+        "logicBuilder": "Visual interface to edit variables, risk engines, and profit rules",
+        "novaPoints": "Gamification store items and lucky spins editor",
+        "performance": "Audits database connections, SMTP transports, and resets"
+      }
+    },
+    "UserDashboard": {
+      "path": "/dashboard",
+      "tabs": {
+        "overview": "Display wallets, direct earnings, and Alliance position",
+        "investment": "Configure active staking and view deposit histories",
+        "withdraw": "Initiate withdrawals and inspect limits",
+        "team": "Referral dashboard and visual interactive Alliance Tree",
+        "challenges": "Gamification check-ins, achievements, and shop rewards"
+      }
+    }
+  }
+}

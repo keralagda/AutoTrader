@@ -43,7 +43,7 @@ export function EarningsCalculator() {
   const [hoveredPlan, setHoveredPlan] = useState<number | null>(null)
 
   useEffect(() => {
-    fetch('/api/plans')
+    fetch(`/api/plans?t=${Date.now()}`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

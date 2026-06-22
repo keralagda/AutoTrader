@@ -381,7 +381,7 @@ export default function PlansSection() {
                         {/* Pairing Rules Grid */}
                         {plan.showPairingRulesInPlanDetails && (plan as any).pairingRules && (plan as any).pairingRules.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-border/30 space-y-1.5 text-[11px]">
-                            <p className="text-emerald-400 font-semibold uppercase tracking-wider text-[9px]">Dual-Team Pair Bonuses</p>
+                            <p className="text-emerald-400 font-semibold uppercase tracking-wider text-[9px]">Alliance Pair Bonuses</p>
                             <div className="grid grid-cols-2 gap-1.5">
                               {(plan as any).pairingRules.map((rule: any, ri: number) => (
                                 <div key={ri} className="p-1 rounded bg-muted/40 border border-border/30 text-[10px] flex flex-col">

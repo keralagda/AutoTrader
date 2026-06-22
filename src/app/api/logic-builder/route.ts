@@ -45,13 +45,18 @@ export async function GET() {
   if (!(await checkDbConnection())) return dbErrorResponse()
 
   try {
+    const defaultTemplateSetting = await db.setting.findUnique({ where: { key: 'default_logic_builder_config' } })
+    const resolvedDefaultLogic = defaultTemplateSetting ? JSON.parse(defaultTemplateSetting.value) : DEFAULT_LOGIC
+
     const setting = await db.setting.findUnique({ where: { key: 'logic_builder_config' } })
     if (setting) {
-      return NextResponse.json(JSON.parse(setting.value))
+      return NextResponse.json({ ...resolvedDefaultLogic, ...JSON.parse(setting.value) })
     }
-    return NextResponse.json(DEFAULT_LOGIC)
+    return NextResponse.json(resolvedDefaultLogic)
   } catch (error) {
     console.error('Public logic builder GET error:', error)
-    return NextResponse.json(DEFAULT_LOGIC)
+    const defaultTemplateSetting = await db.setting.findUnique({ where: { key: 'default_logic_builder_config' } }).catch(() => null)
+    const resolvedDefaultLogic = defaultTemplateSetting ? JSON.parse(defaultTemplateSetting.value) : DEFAULT_LOGIC
+    return NextResponse.json(resolvedDefaultLogic)
   }
 }

@@ -138,7 +138,7 @@ export function InvestmentTab() {
     try {
       const [depsRes, plansRes, activationRes] = await Promise.all([
         fetch(`/api/deposits?userId=${user.id}`),
-        fetch('/api/plans'),
+        fetch(`/api/plans?t=${Date.now()}`),
         fetch(`/api/plan-activation?userId=${user.id}`),
       ])
       if (depsRes.ok) setDeposits(await depsRes.json())

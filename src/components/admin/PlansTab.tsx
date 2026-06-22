@@ -1867,7 +1867,7 @@ function PlanEditor({
         <Tabs defaultValue="investment_settings" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 bg-muted/20 border border-border/50 p-1 rounded-xl">
             <TabsTrigger value="investment_settings" className="text-xs py-2 rounded-lg">Standard Investment Settings</TabsTrigger>
-            <TabsTrigger value="binary_config" className="text-xs py-2 rounded-lg">Dual-Team Synergy Configuration</TabsTrigger>
+            <TabsTrigger value="binary_config" className="text-xs py-2 rounded-lg">Alliance Growth Network Configuration</TabsTrigger>
           </TabsList>
 
           <TabsContent value="investment_settings" className="space-y-6">
@@ -1880,7 +1880,7 @@ function PlanEditor({
               <p>• <strong>Plan Name</strong>: The public label shown to investors.</p>
               <p>• <strong>Sort Order</strong>: Determines position in the list (ascending).</p>
               <p>• <strong>Description</strong>: Details the purpose and characteristics of the investment asset.</p>
-              <p>• <strong>Binary MLM Enabled</strong>: Turn on binary tree matching for registrations, deposits, and volume carries under this plan.</p>
+              <p>• <strong>Alliance Growth Network Enabled</strong>: Turn on Alliance Growth Network matching for registrations, deposits, and volume carries under this plan.</p>
             </div>
           }
         >
@@ -3231,8 +3231,8 @@ function PlanEditor({
       <TabsContent value="binary_config" className="space-y-6">
         <div className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-background/20">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Dual-Team Synergy Feature Activation</h3>
-            <p className="text-xs text-muted-foreground">Enable binary tree matching, spillover, and commissions for this plan</p>
+            <h3 className="text-sm font-semibold text-foreground">Alliance Growth Network Feature Activation</h3>
+            <p className="text-xs text-muted-foreground">Enable network structure matching, spillover, and commissions for this plan</p>
           </div>
           <Switch
             checked={!!plan.isBinaryMlmEnabled}
@@ -3251,9 +3251,9 @@ function PlanEditor({
         ) : (
           <div className="p-6 rounded-xl border border-border/50 bg-muted/15 text-center space-y-2">
             <Network className="h-8 w-8 text-muted-foreground mx-auto" />
-            <h4 className="text-sm font-semibold text-foreground">Dual-Team Synergy Disabled</h4>
+            <h4 className="text-sm font-semibold text-foreground">Alliance Growth Network Disabled</h4>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              This plan currently operates as a standard investment plan. Enable the toggle above to configure binary matching, pairing cycles, flush limits, and team spillover controls.
+              This plan currently operates as a standard investment plan. Enable the toggle above to configure structure matching, pairing cycles, flush limits, and team spillover controls.
             </p>
           </div>
         )}
@@ -3301,7 +3301,7 @@ function PlanSummary({
             </Badge>
             {plan.isBinaryMlmEnabled && (
               <Badge className="bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border-emerald-500/30">
-                <Network className="h-3 w-3 mr-1" /> Dual-Team Synergy
+                <Network className="h-3 w-3 mr-1" /> Alliance Growth Network
               </Badge>
             )}
             {plan.stackingEnabled && (
@@ -3413,7 +3413,7 @@ function PlanSummary({
             {plan.isBinaryMlmEnabled && (
               <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
                 <p className="text-xs font-medium text-emerald-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Network className="h-3.5 w-3.5" /> Dual-Team Synergy Settings
+                  <Network className="h-3.5 w-3.5" /> Alliance Growth Network Settings
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 bg-background/25 p-2.5 rounded border border-border/50">
                   <div>

@@ -34,7 +34,7 @@ export function ReferralCalculator() {
   const [avgInvestment, setAvgInvestment] = useState(500)
 
   useEffect(() => {
-    fetch('/api/plans')
+    fetch(`/api/plans?t=${Date.now()}`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

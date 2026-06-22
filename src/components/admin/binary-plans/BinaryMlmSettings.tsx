@@ -62,7 +62,7 @@ export function BinaryMlmSettings({
   return (
     <SectionCard 
       icon={<Award className="h-4 w-4 text-emerald-400" />} 
-      title="Advanced Dual-Team Synergy Leadership & Volume Ratios"
+      title="Advanced Alliance Growth Network Leadership & Volume Ratios"
       helpContent={
         <div className="space-y-1">
           <p>• <strong>PV, BV, TV Ratios</strong>: Point multiplier factors per dollar invested. PV (Personal Volume), BV (Business/Direct Sponsor Volume), and TV (Team downline Volume).</p>

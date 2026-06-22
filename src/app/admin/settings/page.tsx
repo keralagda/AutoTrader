@@ -139,7 +139,7 @@ export default function SettingsPage() {
       {/* Binary MLM Settings Section */}
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm mb-6">
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Binary MLM Fake Profiles Settings</CardTitle>
+          <CardTitle className="text-base font-semibold">Alliance Network Fake Profiles Settings</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -151,9 +151,9 @@ export default function SettingsPage() {
                     <Zap className="size-5 text-green-500" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Enable Binary MLM for Fake Profiles</h3>
+                    <h3 className="font-semibold">Enable Alliance Network for Fake Profiles</h3>
                     <p className="text-sm text-muted-foreground">
-                      When enabled, fake profiles will be configured with Binary MLM properties
+                      When enabled, fake profiles will be configured with Alliance Network properties
                     </p>
                   </div>
                 </div>
@@ -167,17 +167,17 @@ export default function SettingsPage() {
             {/* Binary MLM Plan ID */}
             <div className="space-y-3">
               <Label className="block text-sm font-medium mb-2">
-                Binary MLM Plan ID
+                Alliance Network Plan ID
               </Label>
               <Input
                 type="text"
-                placeholder="Enter plan ID for Binary MLM enabled plan"
+                placeholder="Enter plan ID for Alliance Network enabled plan"
                 value={updatedSettings['binaryMlmFakeProfilesPlanId'] || ''}
                 onChange={(e) => handleSettingChange('binaryMlmFakeProfilesPlanId', e.target.value)}
                 className="mb-2"
               />
               <p className="text-xs text-muted-foreground">
-                The plan ID that fake profiles will use for Binary MLM functionality
+                The plan ID that fake profiles will use for Alliance Network functionality
               </p>
             </div>
 
@@ -220,7 +220,7 @@ export default function SettingsPage() {
                   <div>
                     <h3 className="font-semibold">Activate Deposit for Fake Profiles</h3>
                     <p className="text-sm text-muted-foreground">
-                      When enabled, fake profiles will have an activating deposit to participate in Binary MLM
+                      When enabled, fake profiles will have an activating deposit to participate in Alliance Network
                     </p>
                   </div>
                 </div>
@@ -246,7 +246,7 @@ export default function SettingsPage() {
                 step="0.01"
               />
               <p className="text-xs text-muted-foreground">
-                The amount of deposit to create for each fake profile to activate Binary MLM participation
+                The amount of deposit to create for each fake profile to activate Alliance Network participation
               </p>
             </div>
           </div>

@@ -46,7 +46,7 @@ export function ProfileTab() {
   const [plans, setPlans] = useState<any[]>([])
 
   useEffect(() => {
-    fetch('/api/plans')
+    fetch(`/api/plans?t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {

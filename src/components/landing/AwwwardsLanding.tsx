@@ -80,7 +80,7 @@ export function AwwwardsLanding() {
 
   useEffect(() => {
     // Fetch active plans from db
-    fetch('/api/plans')
+    fetch(`/api/plans?t=${Date.now()}`)
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d)) setPlans(d)

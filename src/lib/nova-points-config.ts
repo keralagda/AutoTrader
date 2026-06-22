@@ -18,9 +18,19 @@ const DEFAULT_CONFIG = {
 }
 
 export async function loadNPConfig() {
+  let resolvedDefault = DEFAULT_CONFIG
+  try {
+    const defaultTemplateSetting = await db.setting.findUnique({ where: { key: 'default_nova_points_config' } })
+    if (defaultTemplateSetting) {
+      resolvedDefault = { ...DEFAULT_CONFIG, ...JSON.parse(defaultTemplateSetting.value) }
+    }
+  } catch (err) {
+    console.error('Failed to read default Nova Points template from DB:', err)
+  }
+
   const setting = await db.setting.findUnique({ where: { key: 'nova_points_config' } })
   if (setting) {
-    try { return { ...DEFAULT_CONFIG, ...JSON.parse(setting.value) } } catch {}
+    try { return { ...resolvedDefault, ...JSON.parse(setting.value) } } catch {}
   }
-  return DEFAULT_CONFIG
+  return resolvedDefault
 }
