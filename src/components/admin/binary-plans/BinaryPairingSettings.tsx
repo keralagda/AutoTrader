@@ -1,3 +1,5 @@
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { NumberField, SectionCard, HelpTooltip } from '../PlansTab'
 import { DollarSign } from 'lucide-react'
 import { cn } from '@/lib/utils'

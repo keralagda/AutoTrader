@@ -1,3 +1,4 @@
+import { Switch } from '@/components/ui/switch'
 import { NumberField, SectionCard, HelpTooltip } from '../PlansTab'
 import { Flame } from 'lucide-react'
 import type { EditablePlan } from '../PlansTab'

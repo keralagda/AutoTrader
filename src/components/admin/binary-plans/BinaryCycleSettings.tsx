@@ -1,5 +1,6 @@
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { NumberField, SectionCard, HelpTooltip } from '../PlansTab'
 import { RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'

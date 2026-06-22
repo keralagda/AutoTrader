@@ -1,3 +1,4 @@
+import { Label } from '@/components/ui/label'
 import { NumberField, SectionCard, HelpTooltip } from '../PlansTab'
 import { Network } from 'lucide-react'
 import { cn } from '@/lib/utils'
