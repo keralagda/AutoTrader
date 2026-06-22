@@ -163,6 +163,7 @@ model Plan {
   depositMultipleOf          Float    @default(1.0)
   strictMultiples            Boolean  @default(true)
   dailyEarningCapPercent     Float    @default(0.0)
+  cappingType                String   @default("percentage")
   cappingAppliesTo           String   @default("all")
   registrationReferralLevels Int      @default(7)
 

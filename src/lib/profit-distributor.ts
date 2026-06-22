@@ -293,25 +293,47 @@ export async function runProfitDistribution() {
       }
     }
 
-    // Clamp daily cap percent (only if dailyEarningCapPercent is positive, representing a multiplier cap)
-    if (plan.dailyEarningCapPercent > 0) {
-      if (dailyPercent > plan.dailyEarningCapPercent) {
-        dailyPercent = plan.dailyEarningCapPercent
+    // Resolve capping type and value
+    const cappingType = plan.cappingType || (plan.dailyEarningCapPercent < 0 ? "fixed" : (plan.dailyEarningCapPercent > 0 ? "multiplier" : "percentage"));
+    let cappingValue = plan.dailyEarningCapPercent;
+    
+    // Backwards compatibility for undefined cappingType
+    if (!plan.cappingType) {
+      if (plan.dailyEarningCapPercent > 0) {
+        cappingValue = plan.dailyEarningCapPercent / 100; // e.g. 200 becomes 2
+      } else if (plan.dailyEarningCapPercent < 0) {
+        cappingValue = Math.abs(plan.dailyEarningCapPercent);
       }
-    } else if (plan.dailyEarningCapPercent === 0) {
+    }
+
+    // Clamp daily percentage yield if cappingType is percentage
+    if (cappingType === "percentage" && cappingValue > 0) {
+      if (dailyPercent > cappingValue) {
+        dailyPercent = cappingValue
+      }
+    } else if (cappingValue === 0) {
       if (dailyPercent > globalDailyCap) {
         dailyPercent = globalDailyCap
       }
     }
-    // If dailyEarningCapPercent is negative, we do NOT clamp dailyPercent here; we will clamp the profitAmount later.
 
     let profitAmount = (deposit.amount * dailyPercent) / 100
 
-    // Clamp by fixed dollar cap if dailyEarningCapPercent is negative
-    if (plan.dailyEarningCapPercent < 0) {
-      const fixedDollarCap = Math.abs(plan.dailyEarningCapPercent)
-      if (profitAmount > fixedDollarCap) {
-        profitAmount = fixedDollarCap
+    // Clamp profit amount by multiplier cap (Joining Fee * X)
+    if (cappingType === "multiplier" && cappingValue > 0) {
+      // Base for multiplier capping is the Joining Fee (plan.entryFee). 
+      // If it is backwards-compatible, it used deposit.amount.
+      const multiplierBase = plan.cappingType ? plan.entryFee : deposit.amount;
+      const multiplierCap = multiplierBase * cappingValue
+      if (profitAmount > multiplierCap) {
+        profitAmount = multiplierCap
+      }
+    }
+
+    // Clamp by fixed dollar cap
+    if (cappingType === "fixed" && cappingValue > 0) {
+      if (profitAmount > cappingValue) {
+        profitAmount = cappingValue
       }
     }
 

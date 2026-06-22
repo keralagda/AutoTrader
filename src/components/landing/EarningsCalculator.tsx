@@ -23,13 +23,15 @@ interface PlanData {
   highRiskMin: number
   highRiskMax: number
   dailyEarningCapPercent?: number
+  entryFee?: number
+  cappingType?: string
 }
 
 const FALLBACK_PLANS: PlanData[] = [
-  { id: '1', name: 'Starter', minDeposit: 50, maxDeposit: 1000, dailyEarningPercent: 6, maxEarningLimit: 1000, maxEarningMultiplier: 2.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
-  { id: '2', name: 'Silver', minDeposit: 500, maxDeposit: 5000, dailyEarningPercent: 8, maxEarningLimit: 2500, maxEarningMultiplier: 2.5, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
-  { id: '3', name: 'Gold', minDeposit: 1000, maxDeposit: 10000, dailyEarningPercent: 10, maxEarningLimit: 5000, maxEarningMultiplier: 3.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
-  { id: '4', name: 'Platinum', minDeposit: 5000, maxDeposit: 50000, dailyEarningPercent: 15, maxEarningLimit: 25000, maxEarningMultiplier: 4.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200 },
+  { id: '1', name: 'Starter', minDeposit: 50, maxDeposit: 1000, dailyEarningPercent: 6, maxEarningLimit: 1000, maxEarningMultiplier: 2.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200, entryFee: 25, cappingType: 'percentage' },
+  { id: '2', name: 'Silver', minDeposit: 500, maxDeposit: 5000, dailyEarningPercent: 8, maxEarningLimit: 2500, maxEarningMultiplier: 2.5, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200, entryFee: 100, cappingType: 'percentage' },
+  { id: '3', name: 'Gold', minDeposit: 1000, maxDeposit: 10000, dailyEarningPercent: 10, maxEarningLimit: 5000, maxEarningMultiplier: 3.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200, entryFee: 250, cappingType: 'percentage' },
+  { id: '4', name: 'Platinum', minDeposit: 5000, maxDeposit: 50000, dailyEarningPercent: 15, maxEarningLimit: 25000, maxEarningMultiplier: 4.0, lowRiskMin: 0.5, lowRiskMax: 1.5, mediumRiskMin: 1.5, mediumRiskMax: 3.5, highRiskMin: 3.5, highRiskMax: 8.0, dailyEarningCapPercent: 200, entryFee: 500, cappingType: 'percentage' },
 ]
 
 export function EarningsCalculator() {
@@ -84,10 +86,21 @@ export function EarningsCalculator() {
 
   const risk = RISK_LEVELS[selectedRisk]
 
-  const dailyCapPercent = plan.dailyEarningCapPercent ?? 200.0
-  const dailyCapUSD = dailyCapPercent >= 0
-    ? investment * (dailyCapPercent / 100)
-    : Math.abs(dailyCapPercent)
+  const cappingType = plan.cappingType || (plan.dailyEarningCapPercent < 0 ? "fixed" : (plan.dailyEarningCapPercent > 0 ? "multiplier" : "percentage"))
+  const cappingValue = plan.dailyEarningCapPercent ?? 200.0
+  let dailyCapUSD = investment // Fallback default
+
+  if (cappingType === 'multiplier') {
+    if (plan.cappingType) {
+      dailyCapUSD = (plan.entryFee || 100) * cappingValue
+    } else {
+      dailyCapUSD = investment * (cappingValue / 100)
+    }
+  } else if (cappingType === 'percentage') {
+    dailyCapUSD = investment * (cappingValue / 100)
+  } else if (cappingType === 'fixed') {
+    dailyCapUSD = plan.cappingType ? cappingValue : Math.abs(cappingValue)
+  }
 
   const avgDailyPercent = (risk.min + risk.max) / 2
   const minDailyEarning = Math.min((investment * risk.min) / 100, dailyCapUSD)

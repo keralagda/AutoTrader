@@ -37,12 +37,22 @@ import { BinaryFlushSettings } from './binary-plans/BinaryFlushSettings'
 import { BinaryCycleSettings } from './binary-plans/BinaryCycleSettings'
 
 const getPlanLimitMultiplier = (plan: any): string => {
-  if (plan && typeof plan === 'object' && plan.dailyEarningCapPercent !== undefined) {
-    if (plan.dailyEarningCapPercent > 0) {
-      const val = plan.dailyEarningCapPercent / 100
-      return `${val}X`
-    } else if (plan.dailyEarningCapPercent < 0) {
-      return `$${Math.abs(plan.dailyEarningCapPercent)}`
+  if (plan && typeof plan === 'object') {
+    const cappingType = plan.cappingType
+    const value = plan.dailyEarningCapPercent
+    if (cappingType === 'multiplier') {
+      return `${value}X`
+    } else if (cappingType === 'percentage') {
+      return `${value}%`
+    } else if (cappingType === 'fixed') {
+      return `$${value}`
+    } else if (value !== undefined) {
+      if (value > 0) {
+        const val = value / 100
+        return `${val}X`
+      } else if (value < 0) {
+        return `$${Math.abs(value)}`
+      }
     }
   }
   const name = ((plan && typeof plan === 'object' ? plan.name : plan) || '').toLowerCase()
@@ -1016,6 +1026,10 @@ function PlanEditor({
 
   // Global Logic Builder variables configuration
   const [logicConfig, setLogicConfig] = useState<any>(null)
+  const [logicSuggestions, setLogicSuggestions] = useState<any[] | null>(null)
+  const [suggestingLogic, setSuggestingLogic] = useState(false)
+  const [logicPrompt, setLogicPrompt] = useState('')
+
   useEffect(() => {
     fetch('/api/admin/logic-builder')
       .then(r => r.json())
@@ -1092,6 +1106,51 @@ function PlanEditor({
     setBinaryPrompt('')
   }
 
+  const handleGetLogicSuggestions = async () => {
+    setSuggestingLogic(true)
+    try {
+      const res = await fetch('/api/admin/logic-builder/ai-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: logicPrompt })
+      })
+      if (!res.ok) throw new Error('Failed to fetch logic suggestions')
+      const data = await res.json()
+      setLogicSuggestions(data.suggestions || [])
+      toast({ title: 'AI Suggestions Ready', description: 'Recommended risk-reward configs generated.' })
+    } catch (err: any) {
+      toast({ title: 'Suggestions Failed', description: err.message, variant: 'destructive' })
+    } finally {
+      setSuggestingLogic(false)
+    }
+  }
+
+  const handleApplyLogicSuggestion = async (suggestion: any) => {
+    if (!logicConfig) return
+    try {
+      const updatedVars = logicConfig.variables.map((v: any) => {
+        if (suggestion.variables[v.id] !== undefined) {
+          return { ...v, value: suggestion.variables[v.id] }
+        }
+        return v
+      })
+      const updatedConfig = { ...logicConfig, variables: updatedVars }
+      setLogicConfig(updatedConfig)
+
+      const res = await fetch('/api/admin/logic-builder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedConfig)
+      })
+      if (!res.ok) throw new Error()
+      toast({ title: 'Suggestion Applied', description: `${suggestion.name} parameters saved.` })
+      setLogicSuggestions(null)
+      setLogicPrompt('')
+    } catch {
+      toast({ title: 'Failed to save logic config', variant: 'destructive' })
+    }
+  }
+
   const handleGenerateReferrals = async () => {
     if (!aiReferralPrompt.trim()) return
     setGeneratingReferrals(true)
@@ -1152,7 +1211,7 @@ function PlanEditor({
   const addRuleRow = (type: string) => {
     const currentRules = [...(plan.referralRules || [])]
     let nextLvl = 1
-    while (currentRules.some(r => r.type === type && r.level === nextLvl) && nextLvl < 20) {
+    while (currentRules.some(r => r.type === type && r.level === nextLvl) && nextLvl < 100) {
       nextLvl++
     }
     currentRules.push({
@@ -1172,6 +1231,34 @@ function PlanEditor({
     const currentRules = [...(plan.referralRules || [])]
     currentRules.splice(index, 1)
     ch('referralRules', currentRules)
+  }
+
+  const handleRegistrationLevelsChange = (newLevelCount: number) => {
+    const targetLevels = Math.max(1, Math.min(100, Math.round(newLevelCount)))
+    ch('registrationReferralLevels', targetLevels)
+    
+    const currentRules = [...(plan.referralRules || [])]
+    const otherRules = currentRules.filter(r => r.type !== 'registration')
+    const regRules = currentRules.filter(r => r.type === 'registration')
+    
+    if (targetLevels > regRules.length) {
+      for (let l = regRules.length + 1; l <= targetLevels; l++) {
+        regRules.push({
+          level: l,
+          commission: l <= 3 ? (l === 1 ? 25 : l === 2 ? 20 : 15) : 10,
+          amount: 0,
+          type: 'registration',
+          minSponsorDeposit: 0,
+          minDirectReferrals: 0,
+          targetWallet: 'trading',
+          enabled: true
+        })
+      }
+    } else if (targetLevels < regRules.length) {
+      regRules.splice(targetLevels)
+    }
+    
+    ch('referralRules', [...otherRules, ...regRules])
   }
 
   const addLogicRow = () => {
@@ -1304,7 +1391,7 @@ function PlanEditor({
                                 onChange={e => updateRule(rule.originalIndex, 'level', parseInt(e.target.value) || 1)}
                                 className="bg-muted/50 border border-border/50 rounded h-7 px-1.5 text-[11px] text-foreground w-[80px]"
                               >
-                                {Array.from({ length: 20 }).map((_, i) => (
+                                {Array.from({ length: 100 }).map((_, i) => (
                                   <option key={i + 1} value={i + 1}>Level {i + 1}</option>
                                 ))}
                               </select>
@@ -1582,8 +1669,8 @@ function PlanEditor({
 
         {/* Connected Global Logic Builder Variables */}
         {logicConfig && (
-          <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -1594,30 +1681,122 @@ function PlanEditor({
                   <p className="text-[11px] text-muted-foreground">Connected to platform-wide active rules</p>
                 </div>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 text-[10px] bg-emerald-600/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20"
-                onClick={() => {
-                  const capPercent = logicConfig.variables?.find((v: any) => v.id === 'var_daily_cap')?.value ?? 0
-                  const floorPercent = logicConfig.variables?.find((v: any) => v.id === 'var_min_floor')?.value ?? 0
-                  
-                  ch('dailyEarningCapPercent', capPercent)
-                  ch('minLossPercent', floorPercent)
-                  toast({
-                    title: 'Applied Global Baseline',
-                    description: `Daily Capping set to ${capPercent}%, Min Floor set to ${floorPercent}%.`
-                  })
-                }}
-              >
-                Apply Baseline Settings
-              </Button>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* AI Prompt Input */}
+                <div className="relative w-full sm:w-[220px]">
+                  <Input
+                    placeholder="E.g., optimize for high risk..."
+                    value={logicPrompt}
+                    onChange={e => setLogicPrompt(e.target.value)}
+                    className="h-7 text-[10px] pr-6 bg-background/50 border-border/40"
+                  />
+                  {logicPrompt && (
+                    <button 
+                      onClick={() => setLogicPrompt('')} 
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-[10px]"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[10px] bg-purple-600/10 border-purple-500/30 text-purple-400 hover:bg-purple-600/20 flex items-center gap-1"
+                  onClick={handleGetLogicSuggestions}
+                  disabled={suggestingLogic}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  {suggestingLogic ? 'Suggesting...' : 'AI Suggest Values'}
+                </Button>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[10px] bg-emerald-600/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/20"
+                  onClick={() => {
+                    const capPercent = logicConfig.variables?.find((v: any) => v.id === 'var_daily_cap')?.value ?? 0
+                    const floorPercent = logicConfig.variables?.find((v: any) => v.id === 'var_min_floor')?.value ?? 0
+                    
+                    ch('dailyEarningCapPercent', capPercent)
+                    ch('cappingType', 'percentage')
+                    ch('minLossPercent', floorPercent)
+                    toast({
+                      title: 'Applied Global Baseline',
+                      description: `Daily Capping set to ${capPercent}%, Min Floor set to ${floorPercent}%.`
+                    })
+                  }}
+                >
+                  Apply Baseline Settings
+                </Button>
+              </div>
             </div>
+
+            {/* AI Logic Suggestions Panel */}
+            {logicSuggestions && logicSuggestions.length > 0 && (
+              <div className="p-3 bg-purple-950/20 border border-purple-500/20 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs text-purple-400 font-semibold">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>AI Risk-Reward Optimization Options</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 text-[9px] text-muted-foreground hover:text-foreground"
+                    onClick={() => setLogicSuggestions(null)}
+                  >
+                    Close Suggestions
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {logicSuggestions.map((sug: any) => (
+                    <div key={sug.id} className="bg-background/40 border border-border/40 p-2.5 rounded-lg flex flex-col justify-between gap-3 text-[10px]">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={cn(
+                            "font-bold text-xs uppercase tracking-wider",
+                            sug.color === 'emerald' && "text-emerald-400",
+                            sug.color === 'cyan' && "text-cyan-400",
+                            sug.color === 'amber' && "text-amber-400",
+                          )}>
+                            {sug.name}
+                          </span>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground leading-normal mb-2">{sug.description}</p>
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[9px] bg-background/30 p-1.5 rounded border border-border/20 text-muted-foreground">
+                          {Object.entries(sug.variables).map(([k, v]: any) => (
+                            <div key={k} className="flex justify-between">
+                              <span className="truncate max-w-[80px]" title={k}>{k.replace('var_', '')}:</span>
+                              <span className="text-foreground font-semibold">{v}{k.includes('cap') || k.includes('floor') || k.includes('threshold') ? '%' : ''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleApplyLogicSuggestion(sug)}
+                        className="h-7 w-full bg-purple-600 hover:bg-purple-700 text-white text-[10px] rounded"
+                      >
+                        Apply Config
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Variables Editing Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-[10px] text-muted-foreground bg-background/20 p-2.5 rounded-lg border border-border/30">
               {(logicConfig.variables || []).map((v: any) => (
                 <div key={v.id} className={`flex flex-col justify-between p-2 rounded-md border ${v.enabled !== false ? 'border-emerald-500/10 bg-emerald-500/5' : 'border-border/30 opacity-60'} transition-all`}>
-                  <div className="flex items-center justify-between gap-1 mb-1">
+                  <div className="flex items-center justify-between gap-1 mb-1.5">
                     <span className="font-semibold text-foreground truncate max-w-[120px]" title={v.name}>{v.name}</span>
                     <Switch
                       checked={v.enabled !== false}
@@ -1645,11 +1824,33 @@ function PlanEditor({
                       }}
                     />
                   </div>
-                  <div className="flex items-center justify-between text-[9px] text-muted-foreground">
-                    <span>{v.id}</span>
-                    <span className="font-bold text-foreground">
-                      {v.value}{v.id.includes('cap') || v.id.includes('floor') || v.id.includes('threshold') ? '%' : ''}
-                    </span>
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <span className="text-[8px] font-mono text-muted-foreground">{v.id}</span>
+                    
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        step={v.step || 'any'}
+                        value={v.value}
+                        onChange={async (e) => {
+                          const val = parseFloat(e.target.value) || 0
+                          const updatedVars = logicConfig.variables.map((item: any) =>
+                            item.id === v.id ? { ...item, value: val } : item
+                          )
+                          const updatedConfig = { ...logicConfig, variables: updatedVars }
+                          setLogicConfig(updatedConfig)
+                          await fetch('/api/admin/logic-builder', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updatedConfig),
+                          })
+                        }}
+                        className="w-16 h-6 px-1 py-0 bg-background/50 border border-border/50 text-[10px] text-right rounded text-foreground font-bold"
+                      />
+                      <span className="text-[9px] font-semibold">
+                        {v.id.includes('cap') || v.id.includes('floor') || v.id.includes('threshold') ? '%' : ''}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1763,38 +1964,77 @@ function PlanEditor({
             <div className="space-y-4 p-3 rounded-lg border border-border/50 bg-background/10 col-span-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-xs font-semibold text-foreground">Multiplier Capping</Label>
-                  <p className="text-[9px] text-muted-foreground leading-normal">Limit daily return as a multiplier (e.g. 1.5X, 2X) rather than a fixed dollar amount</p>
+                  <Label className="text-xs font-semibold text-foreground">Daily Earning Capping Mode</Label>
+                  <p className="text-[9px] text-muted-foreground leading-normal">Choose capping daily earnings by Multiplier (X), Yield Percentage (%), or Fixed Amount ($)</p>
                 </div>
-                <Switch
-                  checked={plan.dailyEarningCapPercent >= 0}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      ch('dailyEarningCapPercent', Math.abs(plan.dailyEarningCapPercent || 200))
-                    } else {
-                      ch('dailyEarningCapPercent', -Math.abs(plan.dailyEarningCapPercent || 50))
-                    }
-                  }}
-                />
               </div>
-              
-              {plan.dailyEarningCapPercent >= 0 ? (
-                <NumberField 
-                  label="Daily Earning Cap % (Multiplier)" 
-                  suffix="%" 
-                  value={plan.dailyEarningCapPercent || 0} 
-                  onChange={v => ch('dailyEarningCapPercent', Math.max(0, v))} 
-                  hint="e.g. 150 = 1.5X, 200 = 2X. 0 = no cap" 
-                />
-              ) : (
-                <NumberField 
-                  label="Daily Earning Cap $ (Fixed Amount)" 
-                  prefix="$" 
-                  value={Math.abs(plan.dailyEarningCapPercent) || 0} 
-                  onChange={v => ch('dailyEarningCapPercent', -Math.max(0, v))} 
-                  hint="e.g. 20 = $20 limit, 50 = $50 limit" 
-                />
-              )}
+
+              {/* Segmented Switch for cappingType */}
+              <div className="flex gap-1 bg-muted/30 p-0.5 rounded-lg border border-border/30">
+                {[
+                  { value: 'multiplier', label: 'Multiplier (X)' },
+                  { value: 'percentage', label: 'Percentage (%)' },
+                  { value: 'fixed', label: 'Fixed Amount ($)' }
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      ch('cappingType', opt.value);
+                      if (!plan.dailyEarningCapPercent) {
+                        if (opt.value === 'multiplier') ch('dailyEarningCapPercent', 2.0);
+                        else if (opt.value === 'percentage') ch('dailyEarningCapPercent', 15.0);
+                        else ch('dailyEarningCapPercent', 100.0);
+                      } else {
+                        ch('dailyEarningCapPercent', Math.abs(plan.dailyEarningCapPercent));
+                      }
+                    }}
+                    className={cn(
+                      "flex-1 py-1.5 rounded-md text-[11px] font-semibold transition-all duration-200",
+                      (plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === opt.value
+                        ? "bg-background shadow-sm border border-border/40 text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/20 border border-transparent"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input for capping value */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'multiplier' && 'Daily Cap Multiplier (X)'}
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'percentage' && 'Daily Cap Yield %'}
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'fixed' && 'Daily Cap Fixed Amount ($)'}
+                </Label>
+                <div className="relative">
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'fixed' && (
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                  )}
+                  <Input
+                    type="number"
+                    step="any"
+                    value={Math.abs(plan.dailyEarningCapPercent || 0)}
+                    onChange={e => ch('dailyEarningCapPercent', parseFloat(e.target.value) || 0)}
+                    className={cn(
+                      "bg-muted/50 border-border/50 h-[38px] text-xs text-foreground",
+                      (plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'fixed' ? "pl-7 pr-3" : "px-3"
+                    )}
+                  />
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'multiplier' && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">X</span>
+                  )}
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'percentage' && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                  )}
+                </div>
+                <p className="text-[9px] text-muted-foreground leading-normal">
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'multiplier' && 'e.g. 5 = 5X limit (for $100 Joining Fee, cap is $500 daily profit). 0 = no cap.'}
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'percentage' && 'e.g. 15 = 15% maximum daily interest yield. 0 = no cap.'}
+                  {(plan.cappingType || (plan.dailyEarningCapPercent < 0 ? 'fixed' : (plan.dailyEarningCapPercent > 0 ? 'multiplier' : 'percentage'))) === 'fixed' && 'e.g. 500 = $500 maximum daily profit limit. 0 = no cap.'}
+                </p>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Capping Applies To</Label>
@@ -1820,7 +2060,38 @@ function PlanEditor({
                 ))}
               </div>
             </div>
-            <NumberField label="Registration Levels" value={plan.registrationReferralLevels || 7} onChange={v => ch('registrationReferralLevels', Math.max(1, Math.min(20, Math.round(v))))} hint="Upline levels" />
+            <div className="space-y-1.5 mt-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Registration Levels</Label>
+              <div className="flex gap-2 items-center">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  className="h-[38px] px-3 bg-muted/30 border-border/50 text-foreground hover:bg-background/20"
+                  onClick={() => handleRegistrationLevelsChange((plan.registrationReferralLevels || 7) - 1)}
+                  disabled={(plan.registrationReferralLevels || 7) <= 1}
+                >
+                  -
+                </Button>
+                <Input
+                  type="number"
+                  value={plan.registrationReferralLevels || 7}
+                  onChange={e => handleRegistrationLevelsChange(parseInt(e.target.value) || 1)}
+                  className="bg-muted/50 border-border/50 h-[38px] text-center text-xs text-foreground w-16"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  className="h-[38px] px-3 bg-muted/30 border-border/50 text-foreground hover:bg-background/20"
+                  onClick={() => handleRegistrationLevelsChange((plan.registrationReferralLevels || 7) + 1)}
+                  disabled={(plan.registrationReferralLevels || 7) >= 100}
+                >
+                  +
+                </Button>
+              </div>
+              <p className="text-[9px] text-muted-foreground">Adjust upline registration levels (1-100)</p>
+            </div>
           </div>
 
           {/* Variable Win % Configuration */}

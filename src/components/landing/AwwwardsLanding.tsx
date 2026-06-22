@@ -11,12 +11,22 @@ import StatsSection from './StatsSection'
 import DistributionSection from './DistributionSection'
 
 const getPlanLimitMultiplier = (plan: any): string => {
-  if (plan && plan.dailyEarningCapPercent !== undefined) {
-    if (plan.dailyEarningCapPercent > 0) {
-      const val = plan.dailyEarningCapPercent / 100
-      return `${val}X`
-    } else if (plan.dailyEarningCapPercent < 0) {
-      return `$${Math.abs(plan.dailyEarningCapPercent)}`
+  if (plan && typeof plan === 'object') {
+    const cappingType = plan.cappingType
+    const value = plan.dailyEarningCapPercent
+    if (cappingType === 'multiplier') {
+      return `${value}X`
+    } else if (cappingType === 'percentage') {
+      return `${value}%`
+    } else if (cappingType === 'fixed') {
+      return `$${value}`
+    } else if (value !== undefined) {
+      if (value > 0) {
+        const val = value / 100
+        return `${val}X`
+      } else if (value < 0) {
+        return `$${Math.abs(value)}`
+      }
     }
   }
   const name = (plan.name || '').toLowerCase()

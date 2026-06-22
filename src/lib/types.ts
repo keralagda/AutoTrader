@@ -39,6 +39,7 @@ export interface PlanType {
   depositMultipleOf?: number
   strictMultiples?: boolean
   dailyEarningCapPercent?: number
+  cappingType?: string
   cappingAppliesTo?: string
   registrationReferralLevels?: number
 
