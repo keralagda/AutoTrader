@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2, Award, Sparkles, Flame, Zap } from 'lucide-react'
-import { NumberField, SectionCard } from '../PlansTab'
+import { NumberField, SectionCard, HelpTooltip } from '../PlansTab'
 import type { EditablePlan } from '../PlansTab'
 
 const getDefaultLocalRanks = () => [
@@ -74,9 +74,9 @@ export function BinaryMlmSettings({
     >
       {/* Ratios */}
       <div className="grid grid-cols-3 gap-4 mb-4 p-3 rounded-lg bg-muted/20 border border-border/40">
-        <NumberField label="PV Ratio (Personal Volume)" value={plan.binaryPvRatio ?? 1.0} onChange={v => onChange('binaryPvRatio', v)} />
-        <NumberField label="BV Ratio (Business Volume)" value={plan.binaryBvRatio ?? 1.0} onChange={v => onChange('binaryBvRatio', v)} />
-        <NumberField label="TV Ratio (Team Volume)" value={plan.binaryTvRatio ?? 1.0} onChange={v => onChange('binaryTvRatio', v)} />
+        <NumberField label="PV Ratio (Personal Volume)" value={plan.binaryPvRatio ?? 1.0} onChange={v => onChange('binaryPvRatio', v)} tooltip="Multiplier mapping active deposit amounts to PV (Personal Volume)." />
+        <NumberField label="BV Ratio (Business Volume)" value={plan.binaryBvRatio ?? 1.0} onChange={v => onChange('binaryBvRatio', v)} tooltip="Multiplier mapping sponsor direct deposit amounts to BV (Business Volume)." />
+        <NumberField label="TV Ratio (Team Volume)" value={plan.binaryTvRatio ?? 1.0} onChange={v => onChange('binaryTvRatio', v)} tooltip="Multiplier mapping team-wide downline deposits to TV (Team Volume)." />
       </div>
 
       {/* Level Pairing Rules */}
@@ -93,7 +93,8 @@ export function BinaryMlmSettings({
                 onChange={e => onChange('showPairingRulesInPlanDetails', e.target.checked)} 
                 className="rounded border-border/40 text-emerald-500 bg-background/50 h-3.5 w-3.5"
               />
-              Show in public plan cards
+              <span>Show in public plan cards</span>
+              <HelpTooltip content="If checked, the level-by-level pair bonuses table is displayed to users on the dashboard and landing pages." />
             </label>
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => updatePairingRules([...pairingRules, { levelRange: `${pairingRules.length + 1}`, ratio: '100:100', bonusType: 'percent', bonusValue: 10.0, minDirectLeft: 0, minDirectRight: 0, minPersonalIv: 0.0, minTeamTv: 0.0, perks: '' }])}>
               <Plus className="h-3 w-3 mr-1" /> Add Rule

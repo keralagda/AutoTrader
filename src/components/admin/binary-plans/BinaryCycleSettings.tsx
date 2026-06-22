@@ -1,7 +1,6 @@
-import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
-import { NumberField, SectionCard } from '../PlansTab'
+import { NumberField, SectionCard, HelpTooltip } from '../PlansTab'
 import { RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { EditablePlan } from '../PlansTab'
@@ -28,7 +27,10 @@ export function BinaryCycleSettings({
       <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20">
           <div>
-            <p className="text-xs font-semibold text-foreground">Enable Binary Cycles</p>
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+              <span>Enable Binary Cycles</span>
+              <HelpTooltip content="Enable cycle bonus payments when set volume matching ratios are hit." />
+            </p>
             <p className="text-[10px] text-muted-foreground">Trigger cycle bonuses when specific leg ratios are met</p>
           </div>
           <Switch
@@ -41,7 +43,10 @@ export function BinaryCycleSettings({
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Required Ratio (Left:Right)</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <span>Required Ratio (Left:Right)</span>
+                  <HelpTooltip content="The volume proportions required to qualify for cycle completions (e.g. 1:1, 2:1)." />
+                </Label>
                 <Input
                   value={plan.binaryCycleRatio || '1:1'}
                   onChange={e => onChange('binaryCycleRatio', e.target.value)}
@@ -50,7 +55,10 @@ export function BinaryCycleSettings({
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cycle Bonus Type</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <span>Cycle Bonus Type</span>
+                  <HelpTooltip content="Determine if cycle completion payouts are calculated as a percentage or a flat dollar rate." />
+                </Label>
                 <div className="flex gap-1.5">
                   {[
                     { value: 'percent', label: 'Percentage' },
@@ -76,13 +84,13 @@ export function BinaryCycleSettings({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cycle Bonus Value</Label>
                 {plan.binaryCycleBonusType === 'fixed' ? (
                   <NumberField
                     label="Cycle Bonus ($)"
                     prefix="$"
                     value={plan.binaryCycleBonusFixed || 0}
                     onChange={v => onChange('binaryCycleBonusFixed', v)}
+                    tooltip="Flat dollar amount paid upon completing a cycle."
                   />
                 ) : (
                   <NumberField
@@ -90,6 +98,7 @@ export function BinaryCycleSettings({
                     suffix="%"
                     value={plan.binaryCycleBonusPercent || 5}
                     onChange={v => onChange('binaryCycleBonusPercent', v)}
+                    tooltip="The percentage paid on cycle volume."
                   />
                 )}
               </div>

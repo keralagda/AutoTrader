@@ -1,5 +1,4 @@
-import { Label } from '@/components/ui/label'
-import { NumberField, SectionCard } from '../PlansTab'
+import { NumberField, SectionCard, HelpTooltip } from '../PlansTab'
 import { Network } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { EditablePlan } from '../PlansTab'
@@ -26,7 +25,10 @@ export function BinarySpilloverSettings({
       <div className="space-y-4 pt-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Default Spillover Preference</Label>
+            <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <span>Default Spillover Preference</span>
+              <HelpTooltip content="Determine where newly sponsored users are placed in the binary tree if placement is not manually specified." />
+            </Label>
             <div className="flex gap-1.5 flex-wrap">
               {[
                 { value: 'left', label: 'Left Outer Leg' },
@@ -51,12 +53,12 @@ export function BinarySpilloverSettings({
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground uppercase tracking-wider">Binary Depth Limit</Label>
             <NumberField
               label="Maximum Tree Depth"
               value={plan.binaryDepthLimit || 0}
               onChange={v => onChange('binaryDepthLimit', Math.max(0, Math.round(v)))}
               hint="0 = infinite (no limit)"
+              tooltip="The maximum level depth downline calculations will scan and pay matching volume on (0 = infinite)."
             />
           </div>
         </div>

@@ -1,6 +1,4 @@
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { NumberField, SectionCard } from '../PlansTab'
+import { NumberField, SectionCard, HelpTooltip } from '../PlansTab'
 import { Flame } from 'lucide-react'
 import type { EditablePlan } from '../PlansTab'
 
@@ -26,7 +24,10 @@ export function BinaryFlushSettings({
       <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20">
           <div>
-            <p className="text-xs font-semibold text-foreground">Enable Volume Flush Bonus</p>
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+              <span>Enable Volume Flush Bonus</span>
+              <HelpTooltip content="If active, excessive leg volume imbalances will be flushed and user will get a smaller payout." />
+            </p>
             <p className="text-[10px] text-muted-foreground">Flushes excessive imbalanced volume and awards a smaller payout</p>
           </div>
           <Switch
@@ -43,12 +44,14 @@ export function BinaryFlushSettings({
               value={plan.binaryFlushBonusPercent || 5}
               onChange={v => onChange('binaryFlushBonusPercent', v)}
               hint="Percentage paid on flushed volume"
+              tooltip="The percentage yield paid to the user on flushed volume."
             />
             <NumberField
               label="Imbalance Threshold ($)"
               value={plan.binaryFlushBonusThreshold || 200}
               onChange={v => onChange('binaryFlushBonusThreshold', Math.max(0, Math.round(v)))}
               hint="Trigger flush when difference exceeds this"
+              tooltip="The volume discrepancy threshold in USD required between left and right legs to trigger a volume flush."
             />
           </div>
         )}

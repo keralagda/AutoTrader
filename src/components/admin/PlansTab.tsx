@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import type { PlanType } from '@/lib/types'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { BinaryMlmSettings } from './binary-plans/BinaryMlmSettings'
 import { BinaryPairingSettings } from './binary-plans/BinaryPairingSettings'
 import { BinarySpilloverSettings } from './binary-plans/BinarySpilloverSettings'
@@ -1885,7 +1886,10 @@ function PlanEditor({
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Plan Name</Label>
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1">
+                <span>Plan Name</span>
+                <HelpTooltip content="The public name/label for the plan shown to investors (e.g. Starter, Silver, Gold)." />
+              </Label>
               <Input
                 value={plan.name}
                 onChange={e => ch('name', e.target.value)}
@@ -1894,7 +1898,10 @@ function PlanEditor({
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Sort Order</Label>
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1">
+                <span>Sort Order</span>
+                <HelpTooltip content="Sorting rank of the plan. Determines its display position relative to other plans on public pages (ascending order)." />
+              </Label>
               <Input
                 type="number"
                 value={plan.sortOrder}
@@ -1904,7 +1911,10 @@ function PlanEditor({
               />
             </div>
             <div className="md:col-span-2 space-y-2">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Description</Label>
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1">
+                <span>Description</span>
+                <HelpTooltip content="A detailed plain English description explaining the plan's characteristics and terms to users." />
+              </Label>
               <Textarea
                 value={plan.description || ''}
                 onChange={e => ch('description', e.target.value)}
@@ -1914,7 +1924,10 @@ function PlanEditor({
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
               <div>
-                <p className="text-sm font-medium text-foreground">Active</p>
+                <p className="text-sm font-medium text-foreground flex items-center gap-1">
+                  <span>Active</span>
+                  <HelpTooltip content="Toggle whether this plan is live and open for new deposits/subscriptions." />
+                </p>
                 <p className="text-xs text-muted-foreground">Enable this plan for users</p>
               </div>
               <Switch
@@ -1940,13 +1953,16 @@ function PlanEditor({
           }
         >
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <NumberField label="Entry Fee" prefix="$" value={plan.entryFee} onChange={v => ch('entryFee', v)} />
-            <NumberField label="Min Deposit" prefix="$" value={plan.minDeposit} onChange={v => ch('minDeposit', v)} />
-            <NumberField label="Max Deposit" prefix="$" value={plan.maxDeposit} onChange={v => ch('maxDeposit', v)} />
-            <NumberField label="Base Daily % (display)" suffix="%" value={plan.dailyEarningPercent} onChange={v => ch('dailyEarningPercent', v)} />
-            <NumberField label="Daily Earning Cap" prefix="$" value={plan.maxEarningLimit} onChange={v => ch('maxEarningLimit', v)} />
+            <NumberField label="Entry Fee" prefix="$" value={plan.entryFee} onChange={v => ch('entryFee', v)} tooltip="Fee charged from trading balance once upon plan activation." />
+            <NumberField label="Min Deposit" prefix="$" value={plan.minDeposit} onChange={v => ch('minDeposit', v)} tooltip="The minimum dollar amount required to open an active deposit under this plan." />
+            <NumberField label="Max Deposit" prefix="$" value={plan.maxDeposit} onChange={v => ch('maxDeposit', v)} tooltip="The maximum dollar amount allowed for a single deposit under this plan." />
+            <NumberField label="Base Daily % (display)" suffix="%" value={plan.dailyEarningPercent} onChange={v => ch('dailyEarningPercent', v)} tooltip="Base daily percentage return credited to the user's trading account." />
+            <NumberField label="Daily Earning Cap" prefix="$" value={plan.maxEarningLimit} onChange={v => ch('maxEarningLimit', v)} tooltip="Maximum dollar amount of total daily returns allowed from this plan." />
             <div className="space-y-1.5 mt-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cap Multiplier</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <span>Cap Multiplier</span>
+                <HelpTooltip content="The capital payout multiplier. E.g. 2.0X means the plan completes when total payouts reach 200% of the principal." />
+              </Label>
               <div className="relative">
                 <Input
                   type="number"
@@ -1958,10 +1974,13 @@ function PlanEditor({
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">X</span>
               </div>
             </div>
-            <NumberField label="Deposit Increment" prefix="$" value={plan.depositMultipleOf || 1} onChange={v => ch('depositMultipleOf', v)} hint="Multiples of" />
+            <NumberField label="Deposit Increment" prefix="$" value={plan.depositMultipleOf || 1} onChange={v => ch('depositMultipleOf', v)} hint="Multiples of" tooltip="The incremental step size for deposits (e.g. multiples of $10 or $50)." />
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5">
               <div>
-                <p className="text-xs font-semibold">Strict Multiples</p>
+                <p className="text-xs font-semibold flex items-center gap-1">
+                  <span>Strict Multiples</span>
+                  <HelpTooltip content="If checked, deposits must be exact multiples of the increment amount." />
+                </p>
                 <p className="text-[9px] text-muted-foreground">Only allow deposit multiples</p>
               </div>
               <Switch checked={plan.strictMultiples !== false} onCheckedChange={v => ch('strictMultiples', v)} />
@@ -2042,7 +2061,10 @@ function PlanEditor({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Capping Applies To</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <span>Capping Applies To</span>
+                <HelpTooltip content="Determine what kinds of earnings are restricted by the daily cap. All = Profits + Referrals." />
+              </Label>
               <div className="flex gap-1.5">
                 {[
                   { value: 'all', label: 'All' },
@@ -2066,7 +2088,10 @@ function PlanEditor({
               </div>
             </div>
             <div className="space-y-1.5 mt-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Registration Levels</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <span>Registration Levels</span>
+                <HelpTooltip content="The referral tier levels that receive a registration fee commission bonus when a new user signs up." />
+              </Label>
               <div className="flex gap-2 items-center">
                 <Button 
                   type="button" 
@@ -2113,24 +2138,24 @@ function PlanEditor({
               <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 space-y-2">
                 <p className="text-xs font-medium text-emerald-400">🟢 Low Risk</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <NumberField label="Min %" suffix="%" value={(plan as any).lowRiskMin || 0.5} onChange={v => ch('lowRiskMin' as any, v)} />
-                  <NumberField label="Max %" suffix="%" value={(plan as any).lowRiskMax || 2.0} onChange={v => ch('lowRiskMax' as any, v)} />
+                  <NumberField label="Min %" suffix="%" value={(plan as any).lowRiskMin || 0.5} onChange={v => ch('lowRiskMin' as any, v)} tooltip="Minimum daily yield under Low Risk mode." />
+                  <NumberField label="Max %" suffix="%" value={(plan as any).lowRiskMax || 2.0} onChange={v => ch('lowRiskMax' as any, v)} tooltip="Maximum daily yield under Low Risk mode." />
                 </div>
               </div>
               {/* Medium Risk */}
               <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 space-y-2">
                 <p className="text-xs font-medium text-amber-400">🟡 Medium Risk</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <NumberField label="Min %" suffix="%" value={(plan as any).mediumRiskMin || 2.0} onChange={v => ch('mediumRiskMin' as any, v)} />
-                  <NumberField label="Max %" suffix="%" value={(plan as any).mediumRiskMax || 5.0} onChange={v => ch('mediumRiskMax' as any, v)} />
+                  <NumberField label="Min %" suffix="%" value={(plan as any).mediumRiskMin || 2.0} onChange={v => ch('mediumRiskMin' as any, v)} tooltip="Minimum daily yield under Medium Risk mode." />
+                  <NumberField label="Max %" suffix="%" value={(plan as any).mediumRiskMax || 5.0} onChange={v => ch('mediumRiskMax' as any, v)} tooltip="Maximum daily yield under Medium Risk mode." />
                 </div>
               </div>
               {/* High Risk */}
               <div className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 space-y-2">
                 <p className="text-xs font-medium text-rose-400">🔴 High Risk</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <NumberField label="Min %" suffix="%" value={(plan as any).highRiskMin || 5.0} onChange={v => ch('highRiskMin' as any, v)} />
-                  <NumberField label="Max %" suffix="%" value={(plan as any).highRiskMax || 15.0} onChange={v => ch('highRiskMax' as any, v)} />
+                  <NumberField label="Min %" suffix="%" value={(plan as any).highRiskMin || 5.0} onChange={v => ch('highRiskMin' as any, v)} tooltip="Minimum daily yield under High Risk mode." />
+                  <NumberField label="Max %" suffix="%" value={(plan as any).highRiskMax || 15.0} onChange={v => ch('highRiskMax' as any, v)} tooltip="Maximum daily yield under High Risk mode." />
                 </div>
               </div>
             </div>
@@ -2139,12 +2164,15 @@ function PlanEditor({
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
                 <div>
-                  <p className="text-xs font-medium">Rotate Win % with Stacks</p>
+                  <p className="text-xs font-semibold flex items-center gap-1">
+                    <span>Rotate Win % with Stacks</span>
+                    <HelpTooltip content="If enabled, each additional active deposit stack slightly shifts the daily win percentage range upward." />
+                  </p>
                   <p className="text-[9px] text-muted-foreground">Increase % range per stack level</p>
                 </div>
                 <Switch checked={(plan as any).rotateWinPercent !== false} onCheckedChange={v => ch('rotateWinPercent' as any, v)} />
               </div>
-              <NumberField label="Rotation Increment per Stack" suffix="%" value={(plan as any).rotationIncrement || 0.5} onChange={v => ch('rotationIncrement' as any, v)} />
+              <NumberField label="Rotation Increment per Stack" suffix="%" value={(plan as any).rotationIncrement || 0.5} onChange={v => ch('rotationIncrement' as any, v)} tooltip="The percentage boost added to the win range per additional active stack." />
             </div>
           </div>
         </SectionCard>
@@ -2164,21 +2192,27 @@ function PlanEditor({
           }
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <NumberField label="Min Loss %" suffix="%" value={plan.minLossPercent || 0.1} onChange={v => ch('minLossPercent', v)} />
-            <NumberField label="Max Loss %" suffix="%" value={plan.maxLossPercent || 5.0} onChange={v => ch('maxLossPercent', v)} />
-            <NumberField label="Max Consecutive Loss Days" value={plan.maxConsecutiveLossDays || 3} onChange={v => ch('maxConsecutiveLossDays', Math.max(1, Math.round(v)))} />
+            <NumberField label="Min Loss %" suffix="%" value={plan.minLossPercent || 0.1} onChange={v => ch('minLossPercent', v)} tooltip="The minimum negative daily yield percentage that can occur on a down day." />
+            <NumberField label="Max Loss %" suffix="%" value={plan.maxLossPercent || 5.0} onChange={v => ch('maxLossPercent', v)} tooltip="The maximum negative daily yield percentage that can occur on a down day." />
+            <NumberField label="Max Consecutive Loss Days" value={plan.maxConsecutiveLossDays || 3} onChange={v => ch('maxConsecutiveLossDays', Math.max(1, Math.round(v)))} tooltip="The consecutive count of down/loss days allowed before safety actions trigger." />
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5 col-span-2 sm:col-span-1">
               <div>
-                <p className="text-xs font-semibold">Allow Negative Balance</p>
+                <p className="text-xs font-semibold flex items-center gap-1">
+                  <span>Allow Negative Balance</span>
+                  <HelpTooltip content="If checked, negative daily returns can reduce the user's active deposit principal balance below zero." />
+                </p>
                 <p className="text-[9px] text-muted-foreground">User balance can drop below 0</p>
               </div>
               <Switch checked={plan.allowNegativeBalance || false} onCheckedChange={v => ch('allowNegativeBalance', v)} />
             </div>
-            <NumberField label="Drawdown Limit" suffix="%" value={plan.drawdownLimit ?? 10.0} onChange={v => ch('drawdownLimit', v)} />
-            <NumberField label="Profit Target" suffix="%" value={plan.profitTarget ?? 20.0} onChange={v => ch('profitTarget', v)} />
-            <NumberField label="Hedging Ratio" suffix="%" value={plan.hedgingRatio ?? 0.0} onChange={v => ch('hedgingRatio', v)} />
+            <NumberField label="Drawdown Limit" suffix="%" value={plan.drawdownLimit ?? 10.0} onChange={v => ch('drawdownLimit', v)} tooltip="The maximum cumulative loss percentage of deposit value allowed before auto-pausing yields." />
+            <NumberField label="Profit Target" suffix="%" value={plan.profitTarget ?? 20.0} onChange={v => ch('profitTarget', v)} tooltip="The total percentage yield target (e.g. 20%) required to complete or recycle the investment cycle." />
+            <NumberField label="Hedging Ratio" suffix="%" value={plan.hedgingRatio ?? 0.0} onChange={v => ch('hedgingRatio', v)} tooltip="Percentage of active capital allocated to insurance cover or hedging pools to cushion drawdown hits." />
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Loss Limit Action</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <span>Loss Limit Action</span>
+                <HelpTooltip content="System behavior triggered when the drawdown limit or max consecutive loss day threshold is hit." />
+              </Label>
               <select
                 value={plan.lossLimitAction || 'pause'}
                 onChange={e => ch('lossLimitAction', e.target.value)}
@@ -2279,7 +2313,10 @@ function PlanEditor({
           <div className="space-y-4">
             {/* Return Type Selection */}
             <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Return Type</Label>
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1">
+                <span>Return Type</span>
+                <HelpTooltip content="Frequency interval of profit payments (e.g. Daily pays every 24 hours)." />
+              </Label>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 {[
                   { value: 'hourly', label: 'Hourly', desc: 'Every hour' },
@@ -2320,6 +2357,7 @@ function PlanEditor({
                 value={plan.returnPeriodHours}
                 onChange={v => ch('returnPeriodHours', Math.max(1, Math.round(v)))}
                 hint="1=hourly, 24=daily"
+                tooltip="The duration in hours between each profit payout step."
               />
               <NumberField
                 label="Duration"
@@ -2327,6 +2365,7 @@ function PlanEditor({
                 value={plan.durationDays}
                 onChange={v => ch('durationDays', Math.max(0, Math.round(v)))}
                 hint="0 = unlimited"
+                tooltip="The active lifecycle length of the plan in days. 0 means runs indefinitely."
               />
               <NumberField
                 label="Total Return"
@@ -2334,18 +2373,23 @@ function PlanEditor({
                 value={plan.totalReturnPercent}
                 onChange={v => ch('totalReturnPercent', Math.max(0, v))}
                 hint="0 = use daily%"
+                tooltip="Total target return percentage. If 0, standard daily percentage calculations are used."
               />
               <NumberField
                 label="Repeat Count"
                 value={plan.repeatCount}
                 onChange={v => ch('repeatCount', Math.max(0, Math.round(v)))}
                 hint="0 = unlimited"
+                tooltip="Limits the number of times yield payouts will repeat. 0 means infinite repeats."
               />
             </div>
 
             {/* Capital Return Selection */}
             <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Capital Return</Label>
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1">
+                <span>Capital Return</span>
+                <HelpTooltip content="Determine if the principal investment is returned to the user at the end of the duration." />
+              </Label>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { value: 'included', label: 'Included in Profit', desc: 'Principal is part of returns' },
@@ -2403,7 +2447,10 @@ function PlanEditor({
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
               <div>
-                <p className="text-sm font-medium text-foreground">Stacking Enabled</p>
+                <p className="text-sm font-medium text-foreground flex items-center gap-1">
+                  <span>Stacking Enabled</span>
+                  <HelpTooltip content="Enable users to deposit multiple times under this plan simultaneously." />
+                </p>
                 <p className="text-xs text-muted-foreground">Allow multiple simultaneous deposits</p>
               </div>
               <Switch
@@ -2421,6 +2468,7 @@ function PlanEditor({
                   min={1}
                   max={10}
                   hint="1-10"
+                  tooltip="The maximum limit of concurrent active deposits a user can have."
                 />
                 <NumberField
                   label="Stacking Bonus"
@@ -2428,13 +2476,17 @@ function PlanEditor({
                   value={plan.stackingBonusPercent}
                   onChange={v => ch('stackingBonusPercent', v)}
                   hint="Per additional stack"
+                  tooltip="A yield rate premium added per extra active deposit stack."
                 />
               </div>
             )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Stacking Rule</Label>
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1">
+                  <span>Stacking Rule</span>
+                  <HelpTooltip content="Plain English text outlining stacking constraints, shown to users." />
+                </Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -2469,7 +2521,10 @@ function PlanEditor({
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
               <div>
-                <p className="text-sm font-medium text-foreground">Staking Enabled</p>
+                <p className="text-sm font-medium text-foreground flex items-center gap-1">
+                  <span>Staking Enabled</span>
+                  <HelpTooltip content="Toggle whether staking options are active for this plan." />
+                </p>
                 <p className="text-xs text-muted-foreground">Allow users to lock investments as staked funds</p>
               </div>
               <Switch
@@ -2486,6 +2541,7 @@ function PlanEditor({
                   onChange={v => ch('stakingMinDays', Math.max(1, Math.round(v)))}
                   min={1}
                   hint="e.g. 30 days"
+                  tooltip="The minimum lockup lock days required for staking."
                 />
                 <NumberField
                   label="Staking Bonus Yield"
@@ -2493,6 +2549,7 @@ function PlanEditor({
                   value={plan.stakingBonusPercent || 0}
                   onChange={v => ch('stakingBonusPercent', v)}
                   hint="Extra daily rate"
+                  tooltip="The extra daily interest yield credited for choosing to stake."
                 />
                 <NumberField
                   label="Staking Early Exit Penalty"
@@ -2500,6 +2557,7 @@ function PlanEditor({
                   value={plan.stakingEarlyWithdrawalPenalty || 10}
                   onChange={v => ch('stakingEarlyWithdrawalPenalty', v)}
                   hint="Early unstake fee"
+                  tooltip="Penalty fee deducted from the principal if user withdraws funds early."
                 />
               </div>
             )}
@@ -2526,6 +2584,7 @@ function PlanEditor({
                 onChange={v => ch('lockPeriodDays', Math.max(0, Math.round(v)))}
                 min={0}
                 hint="0 = no lock"
+                tooltip="Duration in days where the principal amount cannot be withdrawn without paying an exit penalty."
               />
               <NumberField
                 label="Early Exit Penalty"
@@ -2533,12 +2592,16 @@ function PlanEditor({
                 value={plan.earlyExitPenalty}
                 onChange={v => ch('earlyExitPenalty', Math.max(0, v))}
                 min={0}
+                tooltip="Percentage fee subtracted from the user's principal if they cancel the investment early."
               />
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
               <div>
-                <p className="text-sm font-medium text-foreground">Auto Compound</p>
+                <p className="text-sm font-medium text-foreground flex items-center gap-1">
+                  <span>Auto Compound</span>
+                  <HelpTooltip content="If active, daily yields are automatically added back to the active principal balance to compound future earnings." />
+                </p>
                 <p className="text-xs text-muted-foreground">Automatically reinvest earnings</p>
               </div>
               <Switch
@@ -2549,7 +2612,10 @@ function PlanEditor({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Withdrawal Rule</Label>
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider flex items-center gap-1">
+                  <span>Withdrawal Rule</span>
+                  <HelpTooltip content="Description summarizing the lock period and exit penalty rules shown to users." />
+                </Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -2585,7 +2651,10 @@ function PlanEditor({
           <div className="space-y-4">
             {/* Profit Schedule */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium">Profit Days</Label>
+              <Label className="text-xs font-semibold flex items-center gap-1">
+                <span>Profit Days</span>
+                <HelpTooltip content="Select the days of the week on which interest yields are distributed to active deposits." />
+              </Label>
               <div className="flex flex-wrap gap-2">
                 {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => {
                   const profitDays = ((plan as any).profitDays || 'mon,tue,wed,thu,fri').split(',')
@@ -2603,23 +2672,26 @@ function PlanEditor({
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <NumberField label="Grace Period (days)" value={(plan as any).gracePeriodDays || 0} onChange={v => ch('gracePeriodDays' as any, v)} />
-              <NumberField label="Withdrawal Cooldown (hrs)" value={(plan as any).withdrawalCooldown || 24} onChange={v => ch('withdrawalCooldown' as any, v)} />
-              <NumberField label="Spots Limit (0=∞)" value={(plan as any).spotsLimit || 0} onChange={v => ch('spotsLimit' as any, v)} />
-              <NumberField label="Loss Day Chance %" suffix="%" value={(plan as any).lossDayChance || 0} onChange={v => ch('lossDayChance' as any, v)} />
+              <NumberField label="Grace Period (days)" value={(plan as any).gracePeriodDays || 0} onChange={v => ch('gracePeriodDays' as any, v)} tooltip="Extra days granted at the end of the duration before a deposit expires." />
+              <NumberField label="Withdrawal Cooldown (hrs)" value={(plan as any).withdrawalCooldown || 24} onChange={v => ch('withdrawalCooldown' as any, v)} tooltip="The mandatory hours/cooldown interval required between consecutive withdrawals." />
+              <NumberField label="Spots Limit (0=∞)" value={(plan as any).spotsLimit || 0} onChange={v => ch('spotsLimit' as any, v)} tooltip="Maximum number of deposits allowed globally across the platform. 0 = infinite." />
+              <NumberField label="Loss Day Chance %" suffix="%" value={(plan as any).lossDayChance || 0} onChange={v => ch('lossDayChance' as any, v)} tooltip="The percentage probability of a daily return resulting in a loss." />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <NumberField label="Bonus Day Chance %" suffix="%" value={(plan as any).bonusDayChance || 5} onChange={v => ch('bonusDayChance' as any, v)} />
-              <NumberField label="Custom Referral %" suffix="%" value={(plan as any).customReferralPct || 0} onChange={v => ch('customReferralPct' as any, v)} />
-              <NumberField label="Team Requirement" value={(plan as any).teamRequirement || 0} onChange={v => ch('teamRequirement' as any, v)} />
-              <NumberField label="Early Exit Penalty" suffix="%" value={plan.earlyExitPenalty || 0} onChange={v => ch('earlyExitPenalty', v)} />
+              <NumberField label="Bonus Day Chance %" suffix="%" value={(plan as any).bonusDayChance || 5} onChange={v => ch('bonusDayChance' as any, v)} tooltip="The percentage probability of a daily return receiving a bonus yield day." />
+              <NumberField label="Custom Referral %" suffix="%" value={(plan as any).customReferralPct || 0} onChange={v => ch('customReferralPct' as any, v)} tooltip="Custom referral payout rate for this plan override." />
+              <NumberField label="Team Requirement" value={(plan as any).teamRequirement || 0} onChange={v => ch('teamRequirement' as any, v)} tooltip="Minimum downline team size required to unlock subscription or interest rewards." />
+              <NumberField label="Early Exit Penalty" suffix="%" value={plan.earlyExitPenalty || 0} onChange={v => ch('earlyExitPenalty', v)} tooltip="Deducted exit penalty rate from principal." />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {/* Plan Badge */}
               <div className="space-y-2">
-                <Label className="text-xs">Plan Badge</Label>
+                <Label className="text-xs flex items-center gap-1">
+                  <span>Plan Badge</span>
+                  <HelpTooltip content="A promotional tag label displayed on the plan card (e.g. Popular, New, VIP)." />
+                </Label>
                 <div className="flex gap-1 flex-wrap">
                   {['', 'popular', 'new', 'limited', 'vip'].map(badge => (
                     <button key={badge} type="button" onClick={() => ch('planBadge' as any, badge)} className={`px-2 py-1 rounded text-[10px] border transition-all ${(plan as any).planBadge === badge ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}>
@@ -2631,7 +2703,10 @@ function PlanEditor({
 
               {/* Min VIP Tier */}
               <div className="space-y-2">
-                <Label className="text-xs">Min VIP Tier</Label>
+                <Label className="text-xs flex items-center gap-1">
+                  <span>Min VIP Tier</span>
+                  <HelpTooltip content="The minimum user VIP tier level required to subscribe or invest in this plan." />
+                </Label>
                 <div className="flex gap-1 flex-wrap">
                   {['Bronze', 'Silver', 'Gold', 'Platinum'].map(tier => (
                     <button key={tier} type="button" onClick={() => ch('minVipTier' as any, tier)} className={`px-2 py-1 rounded text-[10px] border transition-all ${(plan as any).minVipTier === tier ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}>
@@ -2643,7 +2718,10 @@ function PlanEditor({
 
               {/* Volatility Mode */}
               <div className="space-y-2">
-                <Label className="text-xs">Volatility Mode</Label>
+                <Label className="text-xs flex items-center gap-1">
+                  <span>Volatility Mode</span>
+                  <HelpTooltip content="Determines trading yield volatility. Stable keeps changes minimal, volatile allows large swings." />
+                </Label>
                 <div className="flex gap-1 flex-wrap">
                   {['stable', 'moderate', 'volatile'].map(mode => (
                     <button key={mode} type="button" onClick={() => ch('volatilityMode' as any, mode)} className={`px-2 py-1 rounded text-[10px] border transition-all capitalize ${(plan as any).volatilityMode === mode ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border/50 text-muted-foreground'}`}>
@@ -2657,7 +2735,13 @@ function PlanEditor({
             {/* Toggles */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50">
-                <div><p className="text-xs font-medium">Require KYC</p><p className="text-[9px] text-muted-foreground">KYC needed to invest</p></div>
+                <div>
+                  <p className="text-xs font-semibold flex items-center gap-1">
+                    <span>Require KYC</span>
+                    <HelpTooltip content="If enabled, user must complete and pass full KYC verification before investing in this plan." />
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">KYC needed to invest</p>
+                </div>
                 <Switch checked={(plan as any).requireKyc || false} onCheckedChange={v => ch('requireKyc' as any, v)} />
               </div>
             </div>
@@ -2685,7 +2769,10 @@ function PlanEditor({
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5">
                 <div>
-                  <p className="text-xs font-semibold text-foreground">Auto-Reinvest Profits</p>
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <span>Auto-Reinvest Profits</span>
+                    <HelpTooltip content="Automatically rolls over user earnings into new active deposits of this plan upon payout." />
+                  </p>
                   <p className="text-[9px] text-muted-foreground">Automatically reinvest profits back into the active plan</p>
                 </div>
                 <Switch checked={(plan as any).autoReinvest || false} onCheckedChange={v => ch('autoReinvest' as any, v)} />
@@ -2693,7 +2780,10 @@ function PlanEditor({
 
               <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 h-[58px] mt-1.5">
                 <div>
-                  <p className="text-xs font-semibold text-foreground">Auto-Compound Yields</p>
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <span>Auto-Compound Yields</span>
+                    <HelpTooltip content="Re-adds earnings back to the active principal balance to increase future yields." />
+                  </p>
                   <p className="text-[9px] text-muted-foreground">Compounding yields directly to active principal</p>
                 </div>
                 <Switch checked={plan.autoCompound || false} onCheckedChange={v => ch('autoCompound', v)} />
@@ -2701,9 +2791,9 @@ function PlanEditor({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <NumberField label="Re-Investment Bonus %" suffix="%" value={(plan as any).reinvestBonus || 2} onChange={v => ch('reinvestBonus' as any, v)} hint="Bonus added on manual/auto reinvest" />
-              <NumberField label="Min Re-Investment Amount ($)" suffix="$" value={(plan as any).minReinvestAmount || 0} onChange={v => ch('minReinvestAmount' as any, v)} hint="Minimum amount to reinvest (0 = default to plan min)" />
-              <NumberField label="Re-Investment Lock Period" suffix="days" value={(plan as any).reinvestLockPeriod || 0} onChange={v => ch('reinvestLockPeriod' as any, v)} hint="Separate lock for reinvested funds (0 = no lock)" />
+              <NumberField label="Re-Investment Bonus %" suffix="%" value={(plan as any).reinvestBonus || 2} onChange={v => ch('reinvestBonus' as any, v)} hint="Bonus added on manual/auto reinvest" tooltip="Bonus percentage yield credited to the user for choosing to reinvest instead of withdraw." />
+              <NumberField label="Min Re-Investment Amount ($)" suffix="$" value={(plan as any).minReinvestAmount || 0} onChange={v => ch('minReinvestAmount' as any, v)} hint="Minimum amount to reinvest (0 = default to plan min)" tooltip="The minimum profit balance required to trigger a reinvestment." />
+              <NumberField label="Re-Investment Lock Period" suffix="days" value={(plan as any).reinvestLockPeriod || 0} onChange={v => ch('reinvestLockPeriod' as any, v)} hint="Separate lock for reinvested funds (0 = no lock)" tooltip="Separate lock for reinvested funds (0 = no lock)." />
             </div>
           </div>
         </SectionCard>
@@ -2959,6 +3049,7 @@ function PlanEditor({
                 value={plan.accountHolderPercent}
                 onChange={v => ch('accountHolderPercent', v)}
                 color="text-emerald-400"
+                tooltip="The percentage of daily trading profits allocated directly to the investor's balance."
               />
               <NumberField
                 label="Shared Pool"
@@ -2966,6 +3057,7 @@ function PlanEditor({
                 value={plan.tradeProfitSharePercent}
                 onChange={v => ch('tradeProfitSharePercent', v)}
                 color="text-cyan-400"
+                tooltip="The percentage of daily profits distributed to the company matching volume pools."
               />
               <NumberField
                 label="Rewards"
@@ -2973,6 +3065,7 @@ function PlanEditor({
                 value={plan.rewardsOffersPercent}
                 onChange={v => ch('rewardsOffersPercent', v)}
                 color="text-amber-400"
+                tooltip="The percentage of profits set aside to fund ranks rewards and contest prizes."
               />
               <NumberField
                 label="Platform Fee"
@@ -2980,6 +3073,7 @@ function PlanEditor({
                 value={plan.platformFeePercent}
                 onChange={v => ch('platformFeePercent', v)}
                 color="text-rose-400"
+                tooltip="The percentage of daily profits reserved by the platform for administration and operation."
               />
               <NumberField
                 label="Charity Donation"
@@ -2987,6 +3081,7 @@ function PlanEditor({
                 value={plan.charityDonationPercent || 0}
                 onChange={v => ch('charityDonationPercent', v)}
                 color="text-purple-400"
+                tooltip="The percentage of profits donated to charity foundations."
               />
               <NumberField
                 label="Insurance Reserve"
@@ -2994,6 +3089,7 @@ function PlanEditor({
                 value={plan.insuranceReservePercent || 0}
                 onChange={v => ch('insuranceReservePercent', v)}
                 color="text-blue-400"
+                tooltip="The percentage of profits kept in reserve to protect users from drawdown loss days."
               />
               <NumberField
                 label="Developer Fund"
@@ -3001,6 +3097,7 @@ function PlanEditor({
                 value={plan.developerFundPercent || 0}
                 onChange={v => ch('developerFundPercent', v)}
                 color="text-indigo-400"
+                tooltip="The percentage of profits allocated to support system development and upgrades."
               />
               <NumberField
                 label="Liquidity Pool"
@@ -3008,6 +3105,7 @@ function PlanEditor({
                 value={plan.liquidityPoolPercent || 0}
                 onChange={v => ch('liquidityPoolPercent', v)}
                 color="text-teal-400"
+                tooltip="The percentage of profits used to provide liquidity for token conversions."
               />
             </div>
 
@@ -3056,6 +3154,7 @@ function PlanEditor({
                 value={plan.subscriptionReferralPercent}
                 onChange={v => ch('subscriptionReferralPercent', v)}
                 color="text-violet-400"
+                tooltip="The percentage of the entry fee distributed up the sponsor upline referral tree."
               />
               <NumberField
                 label="Rewards & Offers"
@@ -3063,6 +3162,7 @@ function PlanEditor({
                 value={plan.subscriptionRewardsPercent}
                 onChange={v => ch('subscriptionRewardsPercent', v)}
                 color="text-amber-400"
+                tooltip="The percentage of the entry fee reserved for marketing promotions and rewards."
               />
               <NumberField
                 label="Platform Fee"
@@ -3070,6 +3170,7 @@ function PlanEditor({
                 value={plan.subscriptionPlatformPercent}
                 onChange={v => ch('subscriptionPlatformPercent', v)}
                 color="text-rose-400"
+                tooltip="The percentage of the entry fee kept by the system admin."
               />
             </div>
 
@@ -3378,6 +3479,26 @@ function PlanSummary({
   )
 }
 
+// ─── Helper: Help Tooltip ───────────────────────────────────────────────────
+export function HelpTooltip({ content }: { content: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="ml-1 inline-flex items-center text-muted-foreground/60 hover:text-emerald-400 focus:outline-none transition-colors"
+          title={content}
+        >
+          <Info className="h-3 w-3 shrink-0" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs p-2 text-[11px] bg-popover text-popover-foreground border border-border shadow-md rounded-md z-[9999] leading-normal font-sans">
+        {content}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 // ─── Helper: Section Card ────────────────────────────────────────────────────
 export function SectionCard({
   icon,
@@ -3461,6 +3582,7 @@ export function NumberField({
   max,
   hint,
   color,
+  tooltip,
 }: {
   label: string
   prefix?: string
@@ -3471,6 +3593,7 @@ export function NumberField({
   max?: number
   hint?: string
   color?: string
+  tooltip?: string
 }) {
   const [localValue, setLocalValue] = useState(String(value))
 
@@ -3504,9 +3627,10 @@ export function NumberField({
 
   return (
     <div className="space-y-1.5">
-      <Label className={cn("text-xs uppercase tracking-wider", color || "text-muted-foreground")}>
-        {label}
-        {hint && <span className="ml-1 text-muted-foreground/60 normal-case">({hint})</span>}
+      <Label className={cn("text-xs uppercase tracking-wider flex items-center gap-1", color || "text-muted-foreground")}>
+        <span>{label}</span>
+        {hint && <span className="text-muted-foreground/60 normal-case">({hint})</span>}
+        {tooltip && <HelpTooltip content={tooltip} />}
       </Label>
       <div className="relative">
         {prefix && (
