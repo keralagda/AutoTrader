@@ -52,7 +52,24 @@ export async function PUT(request: Request) {
       }, { status: 503 })
     }
 
-    const { id, referralRules, conditionalLogics, pairingRules, ...data } = await request.json()
+    const body = await request.json()
+    const payload = body.plan ? body.plan : body
+    const {
+      id,
+      referralRules,
+      conditionalLogics,
+      pairingRules,
+      deposits,
+      autoUpgradeTargetUsers,
+      pnlLogs,
+      insuranceVault,
+      isEditing,
+      isNew,
+      isExpanded,
+      createdAt,
+      updatedAt,
+      ...data
+    } = payload
 
     if (!id) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 })
@@ -184,10 +201,26 @@ export async function POST(request: Request) {
       }, { status: 503 })
     }
 
-    const data = await request.json()
+    const body = await request.json()
+    const data = body.plan ? body.plan : body
 
     // Remove fields that shouldn't be in create
-    const { id, createdAt, updatedAt, deposits, isEditing, isNew, isExpanded, referralRules, conditionalLogics, pairingRules, ...createData } = data as any
+    const {
+      id,
+      createdAt,
+      updatedAt,
+      deposits,
+      autoUpgradeTargetUsers,
+      pnlLogs,
+      insuranceVault,
+      isEditing,
+      isNew,
+      isExpanded,
+      referralRules,
+      conditionalLogics,
+      pairingRules,
+      ...createData
+    } = data as any
 
     createData.minReinvestAmount = Number(createData.minReinvestAmount || 0)
     createData.reinvestLockPeriod = Math.round(Number(createData.reinvestLockPeriod || 0))
