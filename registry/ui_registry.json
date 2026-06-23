@@ -1,31 +1,41 @@
 {
   "registry": "UI Registry",
-  "version": "1.0.0",
-  "description": "Blueprint of UI tabs, paths, and admin sidebar control structures",
-  "navigation": {
-    "AdminTabs": {
-      "path": "/admin",
-      "tabs": {
-        "plans": "Manage Standard & Alliance Growth Network Plans",
-        "profits": "Manual override for daily dividends payout rates",
-        "users": "Inspect accounts, override balances, drill referrers",
-        "settings": "System-wide branding and email SMTP fallbacks configuration",
-        "withdrawals": "Approve, cancel, or reject pending customer payouts",
-        "fakeProfiles": "Mock active profiles injector for public statistics",
-        "logicBuilder": "Visual interface to edit variables, risk engines, and profit rules",
-        "novaPoints": "Gamification store items and lucky spins editor",
-        "performance": "Audits database connections, SMTP transports, and resets"
-      }
+  "version": "1.1.0",
+  "description": "Blueprint of application interfaces, screens, components, and layout hierarchies",
+  "interfaces": [
+    {
+      "id": "UI-001",
+      "name": "Admin Plans Tab",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "src/components/admin/PlansTab.tsx",
+      "layouts": ["control-hub-layout"],
+      "components": ["BinaryMlmSettings", "BinaryPairingSettings", "BinarySpilloverSettings", "BinaryFlushSettings", "BinaryCycleSettings"],
+      "blocks": ["General Config Details Section", "Advanced P&L Configuration Section"],
+      "navSystems": ["Admin Sidebar -> Active View Switcher -> Admin Console"],
+      "forms": ["Create Plan Dialog Form", "Edit Plan Inline Tabbed Panel Form"],
+      "widgets": ["Leadership Eligibility Switch Toggle"],
+      "stateOwnership": "Zustand Global AppState / Local editingPlan Form State",
+      "visibilityRules": ["User role matches admin, super_admin, moderator, support"]
     },
-    "UserDashboard": {
-      "path": "/dashboard",
-      "tabs": {
-        "overview": "Display wallets, direct earnings, and Alliance position",
-        "investment": "Configure active staking and view deposit histories",
-        "withdraw": "Initiate withdrawals and inspect limits",
-        "team": "Referral dashboard and visual interactive Alliance Tree",
-        "challenges": "Gamification check-ins, achievements, and shop rewards"
-      }
+    {
+      "id": "UI-002",
+      "name": "Leader Console Dashboard",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "src/app/leader/page.tsx",
+      "layouts": ["leader-layout"],
+      "components": ["LeaderDashboard", "InstallPWA"],
+      "blocks": ["Downline Referrals list card", "Binary Pairing analytics chart", "Next Rank Milestone progression tracker"],
+      "navSystems": ["User Sidebar -> Active View Switcher -> Leader Dashboard"],
+      "forms": [],
+      "widgets": ["Volume carry-forward status widgets", "Downline rank nudging indicators"],
+      "stateOwnership": "Local react state / Session cookie fetch sync",
+      "visibilityRules": ["User role matches leader, admin, super_admin, moderator, support"]
     }
-  }
+  ]
 }

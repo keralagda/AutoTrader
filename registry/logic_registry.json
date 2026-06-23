@@ -1,47 +1,72 @@
 {
-  "registry": "Logic Registry",
-  "version": "1.0.0",
-  "description": "Blueprint of core computational logic and algorithms executed across the platform",
-  "logic": {
-    "ProfitDistribution": {
-      "file": "src/lib/profit-distributor.ts",
-      "description": "Daily cron algorithm that distributes yields to active deposits",
-      "rules": [
-        "Checks plan limits and capping logic",
-        "Calculates daily return percentage based on active Risk Category bounds",
-        "Applies Logic Builder variable coefficients (Base Skew, Volatility Factor, Min Floor)",
-        "Applies compound bonuses and stacking multiplier rates",
-        "Distributes rewards and updates user wallet balances"
-      ]
+  "registry": "Rule / Logic Registry",
+  "version": "1.1.0",
+  "description": "Blueprint of core validation checks, yield calculations, and AI instructional rules",
+  "rules": [
+    {
+      "id": "RUL-001",
+      "name": "Cron Daily Yield Distribution Formulas",
+      "status": "actual",
+      "granularity": "module-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "src/lib/profit-distributor.ts",
+      "formulas": [
+        "profitAmount = (deposit.amount * dailyPercent) / 100",
+        "stakedYield = (deposit.amount * deposit.stakingBonusRate) / 100",
+        "totalProfit = baseProfit + stakedYield + stackingBonuses"
+      ],
+      "eligibilityLogic": [
+        "user.isActive === true",
+        "deposit.status === 'active' || (deposit.status === 'locked' && lockedUntil has passed)"
+      ],
+      "edgeCaseRules": [
+        "Weekend Reduced multiplier: dailyPercent = dailyPercent * weekendReducedMultiplier",
+        "Loss Days check: if (randomValue < lossChance) dailyPercent = -lossPercent"
+      ],
+      "validationRules": [
+        "totalProfit <= plan.dailyEarningCapPercent",
+        "totalProfit <= plan.entryFee * cappingMultiplier"
+      ],
+      "aiInstructions": []
     },
-    "AllianceGrowthNetworkPairing": {
-      "file": "src/lib/binary-tree.ts",
-      "description": "Level-by-level pair matching, volume carry-forwards, and commission payout logic",
-      "rules": [
-        "Validates sponsor left and right directs requirements",
-        "Executes ratio matching (100:100, 100:200, 200:100) per pairing tier",
-        "Deducts matched volumes from Left/Right legs recursively",
-        "Applies carry-forward values and caps pairing cycles according to plan settings",
-        "Updates user stats and triggers payouts"
-      ]
+    {
+      "id": "RUL-002",
+      "name": "MLM Level Dynamic Role Promotion Rules",
+      "status": "actual",
+      "granularity": "module-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "src/lib/binary-tree.ts",
+      "formulas": [
+        "minRankLevel = Math.min(...ranks.map(r => r.level))",
+        "newRole = user.role === 'user' && newLevel > minRankLevel ? 'leader' : undefined"
+      ],
+      "eligibilityLogic": [
+        "user.role === 'user' (only standard users are promoted, admin and other staff roles are ignored)",
+        "newLevel > minRankLevel (promoted only when exceeding base rank of the plan)"
+      ],
+      "edgeCaseRules": [],
+      "validationRules": [],
+      "aiInstructions": []
     },
-    "StakingYields": {
-      "file": "src/lib/profit-distributor.ts",
-      "description": "Calculates additional yields for staked deposits and enforces early withdrawal penalties",
-      "rules": [
-        "Validates if deposit.isStaked is true and stakedUntil has not passed",
-        "Adds deposit.stakingBonusRate directly to the calculated base daily profit rate",
-        "Restricts capital withdrawal before maturity date or charges penalty percentage"
-      ]
-    },
-    "VariableRotation": {
-      "file": "src/components/dashboard/TradingSimulator.tsx",
-      "description": "Oscillates simulator variables dynamically in real-time to mimic active markets",
-      "rules": [
-        "Fetches live variable coefficients from Logic Builder configurations",
-        "Fluctuates win rates, volatility spreads, and candle spreads randomly by +/- 5% per cycle",
-        "Injects noise into simulated trading signals and updates chart candle states"
-      ]
+    {
+      "id": "RUL-003",
+      "name": "Earning Type Unified Display Format",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "src/lib/utils.ts",
+      "formulas": [],
+      "eligibilityLogic": [
+        "If earning type is platform_fee/rewards/charity/developer_fee/liquidity_pool and it has depositId, map to 'Trade Bonus (<Type> Split)'",
+        "If earning type is platform_fee/rewards/charity/developer_fee/liquidity_pool and has no depositId, map to 'Referral Reward (<Type> Split)'",
+        "Otherwise map daily to 'Trade Bonus', referral to 'Referral Reward', and profit_share to 'Team Profit Share'"
+      ],
+      "edgeCaseRules": [],
+      "validationRules": [],
+      "aiInstructions": []
     }
-  }
+  ]
 }

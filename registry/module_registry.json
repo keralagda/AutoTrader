@@ -1,0 +1,62 @@
+{
+  "registry": "Module Registry",
+  "version": "1.0.0",
+  "description": "Platform backend and frontend modular structure and system boundaries",
+  "modules": [
+    {
+      "id": "MOD-001",
+      "name": "Fintech Engines (Finance & MLM)",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "system",
+      "origin": "parsed",
+      "submodules": [
+        "profit-distributor",
+        "binary-tree-engine"
+      ],
+      "ownership": "Core Engineering Team",
+      "dependencies": [
+        "Database-Layer"
+      ],
+      "linkedScreens": [
+        "/admin/profits",
+        "/dashboard/team"
+      ],
+      "linkedWorkflows": [
+        "daily-profit-distribution",
+        "mlm-rank-promotion"
+      ],
+      "linkedServices": [
+        "db-client"
+      ]
+    },
+    {
+      "id": "MOD-002",
+      "name": "Auth & Session Control",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "system",
+      "origin": "parsed",
+      "submodules": [
+        "jwt-authenticator",
+        "two-factor-auth"
+      ],
+      "ownership": "Security Team",
+      "dependencies": [
+        "Database-Layer"
+      ],
+      "linkedScreens": [
+        "/login",
+        "/register"
+      ],
+      "linkedWorkflows": [
+        "login-auth-flow",
+        "registration-flow"
+      ],
+      "linkedServices": [
+        "bcrypt-hasher",
+        "session-cookie-store"
+      ]
+    }
+  ]
+}

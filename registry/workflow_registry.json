@@ -1,0 +1,35 @@
+{
+  "registry": "Workflow Registry",
+  "version": "1.0.0",
+  "description": "Blueprint of transactional business workflows, automation rules, and lifecycle transitions",
+  "workflows": [
+    {
+      "id": "WKF-001",
+      "name": "Daily Profit Distribution Payout",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "src/lib/profit-distributor.ts",
+      "triggers": ["Daily automated cron trigger at midnight", "Admin manual trigger via dashboard"],
+      "stateTransitions": ["pending -> active (if deposit lock period ends)", "active -> completed (if repeat count limit or max profit limit reached)"],
+      "cronRules": ["0 0 * * * (standard daily distribution)"],
+      "dependencies": ["Prisma-Client", "Logic-Builder-Variables"],
+      "edgeCases": ["User account deactivated dynamically mid-run", "Weekend reduced profit multipliers", "System negative balance flags check"]
+    },
+    {
+      "id": "WKF-002",
+      "name": "MLM Rank Qualification Calculation",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "src/lib/binary-tree.ts",
+      "triggers": ["Plan activation complete payment confirmed", "Manual admin adjust volumes triggered"],
+      "stateTransitions": ["Member -> Executive (if PV >= 100, Left Volume >= 500, Right Volume >= 500)"],
+      "cronRules": [],
+      "dependencies": ["SLC-004", "FEAT-002"],
+      "edgeCases": ["Referred sponsor deactivated or invalid", "Required sponsor active directs not met"]
+    }
+  ]
+}

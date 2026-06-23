@@ -1,9 +1,16 @@
 {
   "registry": "Entity Registry",
-  "version": "1.0.0",
-  "description": "Blueprint of all active database models and relationships on the platform",
-  "entities": {
-    "User": {
+  "version": "1.1.0",
+  "description": "Blueprint of all active database models, schemas, and fields",
+  "entities": [
+    {
+      "id": "ENT-001",
+      "name": "User",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "prisma/schema.prisma",
       "table": "User",
       "fields": {
         "id": "String (PK)",
@@ -29,9 +36,20 @@
         "deposits": "Deposit[]",
         "withdrawals": "Withdrawal[]",
         "transactions": "Transaction[]"
-      }
+      },
+      "indexes": ["email"],
+      "validations": ["email format matches regexp", "password length >= 8"],
+      "permissions": ["super_admin can manage all fields", "admin can update except role super_admin", "user can read own profile"],
+      "moduleUsage": ["MOD-001", "MOD-002"]
     },
-    "Plan": {
+    {
+      "id": "ENT-002",
+      "name": "Plan",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "prisma/schema.prisma",
       "table": "Plan",
       "fields": {
         "id": "String (PK)",
@@ -42,39 +60,32 @@
         "lockPeriodDays": "Int",
         "isActive": "Boolean",
         "isBinaryMlmEnabled": "Boolean",
+        "isLeadershipEligible": "Boolean",
         "mlmRewardsConfig": "String (JSON)",
         "mlmPoolsConfig": "String (JSON)",
         "stakingEnabled": "Boolean",
         "stakingMinDays": "Int",
         "stakingBonusPercent": "Float",
         "stakingEarlyWithdrawalPenalty": "Float",
-        "showPairingRulesInPlanDetails": "Boolean",
-        "isLeadershipEligible": "Boolean"
+        "showPairingRulesInPlanDetails": "Boolean"
       },
       "relations": {
         "pairingRules": "PlanPairingRule[]",
         "deposits": "Deposit[]"
-      }
-    },
-    "PlanPairingRule": {
-      "table": "PlanPairingRule",
-      "fields": {
-        "id": "String (PK)",
-        "planId": "String (FK)",
-        "levelRange": "String (e.g. '1', '2', '3-5')",
-        "ratio": "String (e.g. '100:100', '100:200')",
-        "bonusType": "String (percent, fixed)",
-        "bonusValue": "Float",
-        "minDirectLeft": "Int",
-        "minDirectRight": "Int",
-        "minPersonalIv": "Float",
-        "minTeamTv": "Float"
       },
-      "relations": {
-        "plan": "Plan"
-      }
+      "indexes": ["id"],
+      "validations": ["minDeposit <= maxDeposit", "entryFee >= 0"],
+      "permissions": ["admin can create/update/delete", "user can read"],
+      "moduleUsage": ["MOD-001"]
     },
-    "Deposit": {
+    {
+      "id": "ENT-003",
+      "name": "Deposit",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "prisma/schema.prisma",
       "table": "Deposit",
       "fields": {
         "id": "String (PK)",
@@ -89,33 +100,11 @@
       "relations": {
         "user": "User",
         "plan": "Plan"
-      }
-    },
-    "Setting": {
-      "table": "Setting",
-      "fields": {
-        "key": "String (PK)",
-        "value": "String"
       },
-      "description": "General dynamic key-value storage for platform settings, configurations, and overrides"
-    },
-    "CustomPostType": {
-      "table": "CustomPostType",
-      "fields": {
-        "id": "String (PK)",
-        "slug": "String (Unique)",
-        "name": "String",
-        "description": "String"
-      }
-    },
-    "CustomFieldGroup": {
-      "table": "CustomFieldGroup",
-      "fields": {
-        "id": "String (PK)",
-        "name": "String",
-        "rules": "String (JSON)",
-        "conditionalLogic": "String (JSON)"
-      }
+      "indexes": ["userId", "planId"],
+      "validations": ["amount > 0"],
+      "permissions": ["admin can read/update", "user can create/read"],
+      "moduleUsage": ["MOD-001"]
     }
-  }
+  ]
 }

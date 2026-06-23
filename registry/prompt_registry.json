@@ -1,0 +1,56 @@
+{
+  "registry": "Prompt Registry",
+  "version": "1.0.0",
+  "description": "Chronological history, refined lineage, and artifact mappings of generative AI prompts",
+  "prompts": [
+    {
+      "id": "PRM-001",
+      "name": "MLM Base Rank Fix Prompt",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "agent",
+      "origin": "parsed",
+      "requestId": "REQ-002",
+      "initialPrompt": "Also Users when signing up are given leadership role first itself, make it like the User has base role, and only by ranking they can level up to become a leader",
+      "refinedPrompt": "Adjust the role upgrade check inside `checkMlmRankUpgrade` to verify that `newLevel` is strictly greater than `minRankLevel`, preventing base level 1 members from immediately gaining the 'leader' role.",
+      "fullPrompt": "Check the code in src/lib/binary-tree.ts and update checkMlmRankUpgrade so that user.role remains 'user' at the entry rank.",
+      "halfPrompt": "Update checkMlmRankUpgrade level promotion check.",
+      "slicedPrompts": [
+        "Find where role gets updated to 'leader' in checkMlmRankUpgrade.",
+        "Change the check user.role === 'user' && newLevel >= 1 to compare against minRankLevel dynamically."
+      ],
+      "promptLineage": "root-prompt",
+      "promptVersion": "1.0.0",
+      "producedArtifacts": [
+        "src/lib/binary-tree.ts"
+      ]
+    },
+    {
+      "id": "PRM-002",
+      "name": "Plan Leadership Eligibility Toggle Prompt",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "agent",
+      "origin": "parsed",
+      "requestId": "REQ-003",
+      "initialPrompt": "add an option in Plan builder to toggle if Leadership is Eligible or not",
+      "refinedPrompt": "Add 'isLeadershipEligible' boolean (default: true) to Plan model, UI toggle, API controllers, and check it in updateBinaryTreeVolumes & checkMlmRankUpgrade.",
+      "fullPrompt": "Perform complete implementation: Add field to schema.prisma, update entity registry, add UI toggle, adapt PUT/POST API, and enforce checks in binary-tree functions.",
+      "halfPrompt": "Add isLeadershipEligible toggle to Plan.",
+      "slicedPrompts": [
+        "Update prisma/schema.prisma with isLeadershipEligible.",
+        "Add toggle to src/components/admin/PlansTab.tsx.",
+        "Update plans API and binary-tree.ts checks."
+      ],
+      "promptLineage": "REQ-003",
+      "promptVersion": "1.0.0",
+      "producedArtifacts": [
+        "prisma/schema.prisma",
+        "registry/entity_registry.json",
+        "src/components/admin/PlansTab.tsx",
+        "src/app/api/admin/plans/route.ts",
+        "src/lib/binary-tree.ts"
+      ]
+    }
+  ]
+}

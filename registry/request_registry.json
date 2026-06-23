@@ -1,0 +1,55 @@
+{
+  "registry": "Request Registry",
+  "version": "1.0.0",
+  "description": "Normalized record of incoming client change requests, categorization, and classification",
+  "requests": [
+    {
+      "id": "REQ-001",
+      "name": "Management CRUD Control and Real-time Sync",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "admin",
+      "origin": "parsed",
+      "rawRequest": "every management needs full CRUD control in Admin, and every field change should be able to save and real time update on User Dashboard and Public pages as well",
+      "normalizedBrief": "Enable full CRUD configuration on admin panels, and ensure immediate real-time caching updates for User Dashboards and public calculations.",
+      "intentSummary": "Admin CRUD operations should propagate dynamically and bust frontend caches.",
+      "classification": "feature-enhancement",
+      "businessType": "Operations / Control",
+      "complexity": "medium",
+      "priority": "critical",
+      "referencesAttached": []
+    },
+    {
+      "id": "REQ-002",
+      "name": "Base Role Signup and MLM Rank Promotion Fix",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "admin",
+      "origin": "parsed",
+      "rawRequest": "Also Users when signing up are given leadership role first itself, make it like the User has base role, and only by ranking they can level up to become a leader",
+      "normalizedBrief": "Newly registered users default to 'user' role; role changes to 'leader' only upon rank promotion.",
+      "intentSummary": "Prevent premature leader role assignments on registration, promoting only when rank exceeds minimum rank level.",
+      "classification": "bugfix",
+      "businessType": "Compliance / Roles",
+      "complexity": "low",
+      "priority": "critical",
+      "referencesAttached": []
+    },
+    {
+      "id": "REQ-003",
+      "name": "Leadership Eligibility Toggle in Plan Builder",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "admin",
+      "origin": "parsed",
+      "rawRequest": "add an option in Plan builder to toggle if Leadership is Eligible or not",
+      "normalizedBrief": "Add an isLeadershipEligible toggle to the Plan model, UI, and API. Skip volume calculation if false.",
+      "intentSummary": "Enable admin to toggle if an investment plan contributes to MLM / binary tree structures.",
+      "classification": "feature-enhancement",
+      "businessType": "Fintech / Compensation Plan",
+      "complexity": "medium",
+      "priority": "critical",
+      "referencesAttached": []
+    }
+  ]
+}

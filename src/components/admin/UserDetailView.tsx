@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
+import { formatEarningType } from '@/lib/utils'
 import {
   ArrowLeft, User, Mail, Phone, Wallet, Shield, Calendar, TrendingUp,
   DollarSign, Users, Activity, Clock, Save, Loader2,
@@ -604,7 +605,7 @@ export function UserDetailView({ userId, onBack }: UserDetailProps) {
                 {user.earnings.slice(0, 10).map((earn: any) => (
                   <div key={earn.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 text-xs">
                     <div>
-                      <p className="font-medium capitalize">{earn.type.replace('_', ' ')}</p>
+                      <p className="font-medium">{formatEarningType(earn.type, !!earn.depositId)}</p>
                       <p className="text-muted-foreground">{new Date(earn.createdAt).toLocaleDateString()}</p>
                     </div>
                     <span className="font-bold text-emerald-400">+${earn.amount.toFixed(2)}</span>

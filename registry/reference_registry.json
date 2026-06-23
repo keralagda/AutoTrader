@@ -1,0 +1,37 @@
+{
+  "registry": "Reference Registry",
+  "version": "1.0.0",
+  "description": "Blueprint of external benchmarks, screenshots, moodboards, and example site references",
+  "references": [
+    {
+      "id": "REF-001",
+      "name": "Stripe/Linear Neumorphic UI Design Benchmarks",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "admin",
+      "origin": "inferred",
+      "links": [
+        "https://linear.app/features",
+        "https://stripe.com/design"
+      ],
+      "screenshots": [
+        "linear_light_skeuo_mockup.png"
+      ],
+      "pdfs": [],
+      "examples": [
+        "Kinetic scroll indicators",
+        "Glassmorphic pricing tables"
+      ],
+      "benchmarks": [
+        "Linear bento grid cards UI"
+      ],
+      "moodboards": [],
+      "influencedSlices": [
+        "SLC-003"
+      ],
+      "influencedFeatures": [
+        "FEAT-002"
+      ]
+    }
+  ]
+}

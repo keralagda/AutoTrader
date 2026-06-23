@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
+import { formatEarningType } from '@/lib/utils'
 import { Switch } from '@/components/ui/switch'
 import { Search, Eye, UserCheck, UserX, DollarSign, Users as UsersIcon, ChevronRight, Trash2, MonitorPlay, Pencil, KeyRound, UserPlus, Calendar, Mail, Smartphone } from 'lucide-react'
 import { UserDetailView } from './UserDetailView'
@@ -57,6 +58,7 @@ interface UserEarning {
   type: string
   level?: number | null
   createdAt: string
+  depositId?: string | null
 }
 
 interface UserDetail extends UserRecord {
@@ -897,7 +899,7 @@ export function UsersTab() {
                       <div key={earn.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
                         <div>
                           <p className="text-sm text-foreground">
-                            {earn.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {formatEarningType(earn.type, !!earn.depositId)}
                             {earn.level ? ` (Level ${earn.level})` : ''}
                           </p>
                           <p className="text-xs text-muted-foreground">{new Date(earn.createdAt).toLocaleDateString()}</p>

@@ -1,0 +1,56 @@
+{
+  "registry": "Outcome Registry",
+  "version": "1.0.0",
+  "description": "Historical log of generated, selected, and rejected architecture outcomes",
+  "outcomes": [
+    {
+      "id": "OTC-001",
+      "name": "MLM Level Dynamic Promotion Resolution",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "agent",
+      "origin": "parsed",
+      "requestId": "REQ-002",
+      "generatedOutcomes": [
+        "Change level threshold to newLevel > minRankLevel",
+        "Add a manual toggle to disable role updates per user"
+      ],
+      "selectedOutcome": "Change level threshold to newLevel > minRankLevel dynamically based on configured ranks (prevents base role signup leadership assignments automatically).",
+      "rejectedOutcomes": [
+        {
+          "id": "OTC-001-ALT1",
+          "reason": "Adding manual toggles per user creates administrative overhead and does not fix the root automated promotion issue."
+        }
+      ],
+      "reuseTags": [
+        "MLM",
+        "Role-Promotion",
+        "Base-Rank-Fix"
+      ]
+    },
+    {
+      "id": "OTC-002",
+      "name": "Plan Leadership Eligibility Outcome",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "agent",
+      "origin": "parsed",
+      "requestId": "REQ-003",
+      "generatedOutcomes": [
+        "Add isLeadershipEligible boolean field",
+        "Separate leadership plans into a different database table completely"
+      ],
+      "selectedOutcome": "Add isLeadershipEligible boolean field to Plan schema and filter out non-eligible plan deposits in checkMlmRankUpgrade and exit early in updateBinaryTreeVolumes.",
+      "rejectedOutcomes": [
+        {
+          "id": "OTC-002-ALT1",
+          "reason": "Creating a separate table complicates the schema, breaks existing plan UI cards, and duplicates plan management logic."
+        }
+      ],
+      "reuseTags": [
+        "Plan-Eligibility",
+        "Prisma-Field-Toggle"
+      ]
+    }
+  ]
+}

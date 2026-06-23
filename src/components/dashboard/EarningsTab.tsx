@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
+import { formatEarningType } from '@/lib/utils'
 import type { EarningType, ReferralLevelType } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -406,16 +407,16 @@ export function EarningsTab() {
                         <Badge
                           variant="secondary"
                           className={`text-xs ${
-                            earning.type === 'referral'
+                            earning.type === 'referral' || ((earning.type === 'platform_fee' || earning.type === 'rewards' || earning.type === 'charity' || earning.type === 'developer_fee' || earning.type === 'liquidity_pool') && !earning.depositId)
                               ? 'bg-emerald-500/20 text-emerald-400'
                               : earning.type === 'profit_share'
                               ? 'bg-amber-500/20 text-amber-400'
-                              : earning.type === 'daily'
+                              : earning.type === 'daily' || ((earning.type === 'platform_fee' || earning.type === 'rewards' || earning.type === 'charity' || earning.type === 'developer_fee' || earning.type === 'liquidity_pool') && earning.depositId)
                               ? 'bg-cyan-500/20 text-cyan-400'
                               : 'bg-primary/20 text-primary'
                           }`}
                         >
-                          {earning.type.replace('_', ' ')}
+                          {formatEarningType(earning.type, !!earning.depositId)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">

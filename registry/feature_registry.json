@@ -1,0 +1,68 @@
+{
+  "registry": "Feature Registry",
+  "version": "1.0.0",
+  "description": "Blueprint of active features, feature flags, dependencies, and business values",
+  "features": [
+    {
+      "id": "FEAT-001",
+      "name": "MLM Rank Promotion Hierarchy",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "system",
+      "origin": "parsed",
+      "definitions": [
+        "Upgrade users' ranks (e.g. Executive, Manager) and roles ('leader') based on downline active legs volumes and sponsor metrics."
+      ],
+      "featureFlags": [],
+      "rolloutStage": "production",
+      "dependencies": [
+        "FEAT-003"
+      ],
+      "businessValue": "Drives platform engagement and rewards networking behavior.",
+      "affectedModules": [
+        "binary-tree",
+        "profit-distributor"
+      ]
+    },
+    {
+      "id": "FEAT-002",
+      "name": "Leadership Eligibility Toggle",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "system",
+      "origin": "parsed",
+      "definitions": [
+        "Enables toggling if a plan's deposits should propagate downline binary tree volumes or count towards rank requirements."
+      ],
+      "featureFlags": [],
+      "rolloutStage": "production",
+      "dependencies": [
+        "FEAT-001"
+      ],
+      "businessValue": "Allows customized fintech configurations for high-interest/special products that shouldn't inflate pairing tree commissions.",
+      "affectedModules": [
+        "PlansTab",
+        "plans-api",
+        "binary-tree"
+      ]
+    },
+    {
+      "id": "FEAT-003",
+      "name": "Alliance Growth Network (Binary MLM)",
+      "status": "actual",
+      "granularity": "platform-level",
+      "who": "system",
+      "origin": "parsed",
+      "definitions": [
+        "Binary placement tree structure supporting pairing cycles, commission matching, and downline volume calculations."
+      ],
+      "featureFlags": [],
+      "rolloutStage": "production",
+      "dependencies": [],
+      "businessValue": "Primary user growth and commission engine.",
+      "affectedModules": [
+        "binary-tree"
+      ]
+    }
+  ]
+}
