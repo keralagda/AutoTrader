@@ -102,9 +102,35 @@ export async function GET(request: Request) {
     })
     const calculatedTotalDeposited = confirmedPayments._sum.amount || 0
 
+    // Calculate total earnings on the fly based on Earning records (excluding 'subtract' debits)
+    const confirmedEarnings = await db.earning.aggregate({
+      where: { userId, type: { not: 'subtract' } },
+      _sum: { amount: true }
+    })
+    const calculatedTotalEarnings = confirmedEarnings._sum.amount || 0
+
+    // Self-healing: synchronize cached User fields if out of sync
+    let needsUpdate = false
+    const updateData: any = {}
+    if (user.totalDeposited !== calculatedTotalDeposited) {
+      updateData.totalDeposited = calculatedTotalDeposited
+      user.totalDeposited = calculatedTotalDeposited
+      needsUpdate = true
+    }
+    if (user.totalEarnings !== calculatedTotalEarnings) {
+      updateData.totalEarnings = calculatedTotalEarnings
+      user.totalEarnings = calculatedTotalEarnings
+      needsUpdate = true
+    }
+    if (needsUpdate) {
+      await db.user.update({
+        where: { id: userId },
+        data: updateData
+      })
+    }
+
     return NextResponse.json({
       ...user,
-      totalDeposited: calculatedTotalDeposited,
       activePlan: activePlanIds.length > 0 ? 'Active Alliance Plans' : null,
       planCategory: 'alliance',
       investmentAmount: totalActiveInvestment,
