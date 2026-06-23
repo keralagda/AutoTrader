@@ -469,6 +469,10 @@ export function AwwwardsLanding() {
                             })()}
                           </span>
                         </div>
+                        <div className="flex justify-between text-white/60">
+                          <span>Duration</span>
+                          <span className="font-mono">{plan.durationDays && plan.durationDays > 0 ? `${plan.durationDays} days` : 'Lifetime'}</span>
+                        </div>
                       </div>
                     </div>
                     <button

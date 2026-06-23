@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
-import { Gem, Shield, Crown, Rocket, TrendingUp, Layers, Lock, Zap, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Gem, Shield, Crown, Rocket, TrendingUp, Layers, Lock, Zap, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -345,6 +345,12 @@ export default function PlansSection() {
                               const mult = getPlanLimitMultiplier(plan)
                               return mult.startsWith('$') ? mult : `${mult} of Investment`
                             })()}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Duration</span>
+                          <span className="font-semibold flex items-center gap-1">
+                            <Clock className="size-3 text-emerald-400" />{plan.durationDays && plan.durationDays > 0 ? `${plan.durationDays} days` : 'Lifetime'}
                           </span>
                         </div>
 

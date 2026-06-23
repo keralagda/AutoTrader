@@ -56,6 +56,7 @@ interface Deposit {
     name: string
     dailyEarningPercent: number
     maxEarningLimit: number
+    durationDays?: number
   }
 }
 
@@ -775,7 +776,7 @@ function DepositCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Invested</p>
             <p className="font-bold">${(deposit.amount || 0).toFixed(2)}</p>
@@ -787,6 +788,12 @@ function DepositCard({
           <div>
             <p className="text-xs text-muted-foreground">Daily Return</p>
             <p className="font-bold text-cyan-400">~${((deposit.amount * deposit.plan.dailyEarningPercent) / 100).toFixed(2)}/day</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Duration</p>
+            <p className="font-bold text-violet-400">
+              {deposit.plan.durationDays && deposit.plan.durationDays > 0 ? `${deposit.plan.durationDays} days` : 'Lifetime'}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Capital + Profit</p>

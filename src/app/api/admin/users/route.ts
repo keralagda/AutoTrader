@@ -4,6 +4,24 @@ import { hashPassword } from '@/lib/auth'
 
 export async function GET(request: Request) {
   try {
+    // Database connectivity guard
+    try {
+      await db.$queryRaw`SELECT 1`
+    } catch (dbError) {
+      return NextResponse.json({
+        error: 'Database connection failed',
+        diagnosticTrace: {
+          message: 'Failed to connect to the database container or host.',
+          actions: [
+            'Check DB Container Status (running/healthy)',
+            'Verify Network Bridge / port mappings',
+            'Validate .env mapping (DATABASE_URL)'
+          ],
+          originalError: dbError instanceof Error ? dbError.message : String(dbError)
+        }
+      }, { status: 503 })
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
@@ -70,7 +88,6 @@ export async function GET(request: Request) {
       })
     }
 
-    // List all users (exclude fake profiles - they have their own management tab)
     // List all users (exclude fake profiles and soft-deleted users)
     const users = await db.user.findMany({
       where: {
@@ -78,27 +95,18 @@ export async function GET(request: Request) {
         isFake: false,
         NOT: { email: { contains: '@removed.local' } },
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        referralCode: true,
-        tradingBalance: true,
-        withdrawalBalance: true,
-        totalEarnings: true,
-        totalDeposited: true,
-        isActive: true,
-        isFake: true,
-        isEmailVerified: true,
-        createdAt: true,
-        referredById: true,
-        riskCategory: true,
-        personalVolume: true,
-        businessVolume: true,
-        teamVolume: true,
-        mlmRank: true,
-        mlmLevel: true,
+      include: {
+        deposits: {
+          select: { amount: true, status: true }
+        },
+        earnings: {
+          where: { type: { not: 'subtract' } },
+          select: { amount: true }
+        },
+        payments: {
+          where: { status: 'confirmed' },
+          select: { amount: true }
+        },
         _count: {
           select: {
             deposits: true,
@@ -119,10 +127,53 @@ export async function GET(request: Request) {
       phoneMap.set(uId, s.value === 'true')
     })
 
-    const usersMapped = users.map(u => ({
-      ...u,
-      isPhoneVerified: phoneMap.get(u.id) || false
-    }))
+    const usersMapped = []
+
+    for (const u of users) {
+      const calculatedTotalEarnings = u.earnings.reduce((sum, e) => sum + e.amount, 0)
+      const calculatedTotalPayments = u.payments.reduce((sum, p) => sum + p.amount, 0)
+      const confirmedDeposits = u.deposits
+        .filter(d => ['active', 'locked', 'completed'].includes(d.status))
+        .reduce((sum, d) => sum + d.amount, 0)
+      
+      const calculatedTotalDeposited = Math.max(calculatedTotalPayments, confirmedDeposits)
+
+      // Self-healing: update DB if the stored cached value differs from computed SSoT
+      if (u.totalDeposited !== calculatedTotalDeposited || u.totalEarnings !== calculatedTotalEarnings) {
+        await db.user.update({
+          where: { id: u.id },
+          data: {
+            totalDeposited: calculatedTotalDeposited,
+            totalEarnings: calculatedTotalEarnings
+          }
+        })
+      }
+
+      usersMapped.push({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        referralCode: u.referralCode,
+        tradingBalance: u.tradingBalance,
+        withdrawalBalance: u.withdrawalBalance,
+        totalEarnings: calculatedTotalEarnings,
+        totalDeposited: calculatedTotalDeposited,
+        isActive: u.isActive,
+        isFake: u.isFake,
+        isEmailVerified: u.isEmailVerified,
+        createdAt: u.createdAt,
+        referredById: u.referredById,
+        riskCategory: u.riskCategory,
+        personalVolume: u.personalVolume,
+        businessVolume: u.businessVolume,
+        teamVolume: u.teamVolume,
+        mlmRank: u.mlmRank,
+        mlmLevel: u.mlmLevel,
+        _count: u._count,
+        isPhoneVerified: phoneMap.get(u.id) || false
+      })
+    }
 
     return NextResponse.json(usersMapped)
   } catch (error) {
@@ -130,6 +181,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to get users' }, { status: 500 })
   }
 }
+
 
 export async function PUT(request: Request) {
   try {
