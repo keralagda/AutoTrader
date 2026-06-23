@@ -90,14 +90,14 @@ export async function GET(request: Request) {
     const totalTeam = teamByLevel.reduce((sum, l) => sum + l.count, 0)
     const totalDirect = directReferralsFormatted.length
 
-    // Retrieve registration level commissions from active binary plans
+    // Retrieve profit level commissions from active binary plans
     const activeBinaryPlan = await db.plan.findFirst({
       where: { isActive: true, isBinaryMlmEnabled: true },
-      include: { referralRules: { where: { type: 'registration', enabled: true }, orderBy: { level: 'asc' } } }
+      include: { referralRules: { where: { type: 'profit', enabled: true }, orderBy: { level: 'asc' } } }
     })
     const activePlan = activeBinaryPlan || await db.plan.findFirst({
       where: { isActive: true },
-      include: { referralRules: { where: { type: 'registration', enabled: true }, orderBy: { level: 'asc' } } }
+      include: { referralRules: { where: { type: 'profit', enabled: true }, orderBy: { level: 'asc' } } }
     })
     
     const registrationRates = (activePlan?.referralRules || []).map(r => ({
