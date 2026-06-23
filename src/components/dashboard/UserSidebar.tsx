@@ -28,6 +28,8 @@ import {
   LogOut,
   Copy,
   Check,
+  ChevronDown,
+  ChevronRight,
   Menu,
   PiggyBank,
   CreditCard,
@@ -69,6 +71,7 @@ const navItems: NavItem[] = [
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
   const { user, dashboardTab, setDashboardTab, logout, setTransferModalOpen } = useAppStore()
   const [copied, setCopied] = useState(false)
+  const [walletCollapsed, setWalletCollapsed] = useState(true)
 
   const handleCopyCode = async () => {
     if (user?.referralCode) {
@@ -112,34 +115,50 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           <NotificationCenter />
         </div>
 
-        {/* Dual Wallet Display (My Wallet) */}
-        <div className="rounded-xl border border-border/50 bg-card/30 p-3 space-y-3">
-          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">💳 My Wallet</p>
-          <div className="space-y-2">
-            <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 p-2.5">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] text-emerald-400 font-medium">Trading Wallet</span>
-                <TrendingUp className="size-3 text-emerald-400/70" />
-              </div>
-              <p className="text-base font-bold text-emerald-400">${tradingBalance.toFixed(2)}</p>
-            </div>
-
-            <div className="rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 p-2.5">
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] text-cyan-400 font-medium">Withdrawal Wallet</span>
-                <Wallet className="size-3 text-cyan-400/70" />
-              </div>
-              <p className="text-base font-bold text-cyan-400">${withdrawalBalance.toFixed(2)}</p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => setTransferModalOpen(true)}
-            className="w-full h-8 gap-1.5 text-xs bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
+        {/* Collapsible Dual Wallet Display (My Wallet) */}
+        <div className="rounded-xl border border-border/50 bg-card/30 p-3">
+          <button
+            type="button"
+            onClick={() => setWalletCollapsed(!walletCollapsed)}
+            className="w-full flex items-center justify-between text-left focus:outline-none"
           >
-            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></svg>
-            Transfer Funds
-          </Button>
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">💳 My Wallet</p>
+            {walletCollapsed ? (
+              <ChevronRight className="size-3.5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="size-3.5 text-muted-foreground" />
+            )}
+          </button>
+          
+          {!walletCollapsed && (
+            <div className="space-y-3 mt-3 animate-in fade-in duration-200">
+              <div className="space-y-2">
+                <div className="rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 p-2.5">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[10px] text-emerald-400 font-medium">Trading Wallet</span>
+                    <TrendingUp className="size-3 text-emerald-400/70" />
+                  </div>
+                  <p className="text-base font-bold text-emerald-400">${tradingBalance.toFixed(2)}</p>
+                </div>
+
+                <div className="rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 border border-cyan-500/20 p-2.5">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[10px] text-cyan-400 font-medium">Withdrawal Wallet</span>
+                    <Wallet className="size-3 text-cyan-400/70" />
+                  </div>
+                  <p className="text-base font-bold text-cyan-400">${withdrawalBalance.toFixed(2)}</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setTransferModalOpen(true)}
+                className="w-full h-8 gap-1.5 text-xs bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
+              >
+                <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></svg>
+                Transfer Funds
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
