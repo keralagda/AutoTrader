@@ -26,12 +26,27 @@ export async function GET(request: Request) {
       subtracted: earnings.filter(e => e.type === 'subtract').reduce((sum, e) => sum + e.amount, 0),
     }
 
+    // Fetch active plan referral rules to get dynamic level percentages
+    const activeBinaryPlan = await db.plan.findFirst({
+      where: { isActive: true, isBinaryMlmEnabled: true },
+      include: { referralRules: { where: { enabled: true }, orderBy: { level: 'asc' } } }
+    })
+    const activePlan = activeBinaryPlan || await db.plan.findFirst({
+      where: { isActive: true },
+      include: { referralRules: { where: { enabled: true }, orderBy: { level: 'asc' } } }
+    })
+
+    const registrationRules = activePlan?.referralRules.filter(r => r.type === 'registration') || []
+    const profitRules = activePlan?.referralRules.filter(r => r.type === 'profit') || []
+    const defaultRates = [25, 20, 15, 10, 10, 10, 10]
+
     const referralByLevel = Array.from({ length: 7 }, (_, i) => {
       const level = i + 1
       const levelEarnings = earnings.filter(e => e.type === 'referral' && e.level === level)
+      const rule = registrationRules.find(r => r.level === level)
       return {
         level,
-        percent: [25, 20, 15, 10, 10, 10, 10][i],
+        percent: rule ? rule.commission : (defaultRates[i] || 10),
         earnings: levelEarnings.reduce((sum, e) => sum + e.amount, 0),
         count: levelEarnings.length,
       }
@@ -40,9 +55,10 @@ export async function GET(request: Request) {
     const profitShareByLevel = Array.from({ length: 7 }, (_, i) => {
       const level = i + 1
       const levelEarnings = earnings.filter(e => e.type === 'profit_share' && e.level === level)
+      const rule = profitRules.find(r => r.level === level)
       return {
         level,
-        percent: [25, 20, 15, 10, 10, 10, 10][i],
+        percent: rule ? rule.commission : (defaultRates[i] || 10),
         earnings: levelEarnings.reduce((sum, e) => sum + e.amount, 0),
         count: levelEarnings.length,
       }
