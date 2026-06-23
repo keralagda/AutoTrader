@@ -67,6 +67,25 @@
       "edgeCaseRules": [],
       "validationRules": [],
       "aiInstructions": []
+    },
+    {
+      "id": "RUL-004",
+      "name": "Binary MLM Income Classification",
+      "status": "actual",
+      "granularity": "feature-level",
+      "who": "system",
+      "origin": "parsed",
+      "sourceFile": "src/app/api/earnings/route.ts",
+      "formulas": [
+        "binaryTotal = sum(amount) where type.startsWith('binary_')"
+      ],
+      "eligibilityLogic": [
+        "Isolate binary_pairing_bonus, binary_cycle_bonus, binary_flush_bonus, and all other binary_ prefixed types into 'binary' summary",
+        "Exclude binary prefixed types from the general 'bonus' summary aggregation"
+      ],
+      "edgeCaseRules": [],
+      "validationRules": [],
+      "aiInstructions": []
     }
   ]
 }

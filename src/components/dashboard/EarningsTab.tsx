@@ -23,6 +23,7 @@ import {
   Zap,
   ArrowUpRight,
   ArrowDownRight,
+  GitBranch,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -46,6 +47,7 @@ interface EarningsSummary {
   referral: number
   profitShare: number
   daily: number
+  binary: number
   bonus: number
 }
 
@@ -199,8 +201,8 @@ export function EarningsTab() {
   if (loading) {
     return (
       <div className="space-y-6 p-4 md:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
         </div>
@@ -215,13 +217,14 @@ export function EarningsTab() {
     referral: 0,
     profitShare: 0,
     daily: 0,
+    binary: 0,
     bonus: 0,
   }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <SummaryCard
           title="Total Earnings"
           amount={summary.total}
@@ -235,6 +238,13 @@ export function EarningsTab() {
           icon={Users}
           change={8.3}
           color="bg-cyan-500/20 text-cyan-400"
+        />
+        <SummaryCard
+          title="Binary Income"
+          amount={summary.binary}
+          icon={GitBranch}
+          change={4.1}
+          color="bg-indigo-500/20 text-indigo-400"
         />
         <SummaryCard
           title="Profit Share"

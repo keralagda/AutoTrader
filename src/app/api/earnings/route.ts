@@ -21,7 +21,8 @@ export async function GET(request: Request) {
       referral: earnings.filter(e => e.type === 'referral').reduce((sum, e) => sum + e.amount, 0),
       profitShare: earnings.filter(e => e.type === 'profit_share').reduce((sum, e) => sum + e.amount, 0),
       daily: earnings.filter(e => e.type === 'daily').reduce((sum, e) => sum + e.amount, 0),
-      bonus: earnings.filter(e => e.type === 'bonus' || e.type === 'stacking_bonus' || e.type === 'binary_pairing_bonus' || e.type === 'binary_cycle_bonus' || e.type === 'binary_flush_bonus').reduce((sum, e) => sum + e.amount, 0),
+      binary: earnings.filter(e => e.type === 'binary_pairing_bonus' || e.type === 'binary_cycle_bonus' || e.type === 'binary_flush_bonus' || e.type.startsWith('binary_')).reduce((sum, e) => sum + e.amount, 0),
+      bonus: earnings.filter(e => (e.type === 'bonus' || e.type === 'stacking_bonus') && !e.type.startsWith('binary_')).reduce((sum, e) => sum + e.amount, 0),
       subtracted: earnings.filter(e => e.type === 'subtract').reduce((sum, e) => sum + e.amount, 0),
     }
 
