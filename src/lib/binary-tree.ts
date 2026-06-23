@@ -501,7 +501,8 @@ export async function checkMlmRankUpgrade(userId: string, plan?: any) {
 
     await db.$transaction(async (tx) => {
       // 1. Update User Rank, Level, role and tradingBalance
-      const newRole = user.role === 'user' && newLevel >= 1 ? 'leader' : undefined
+      const minRankLevel = ranks.length > 0 ? Math.min(...ranks.map(r => r.level)) : 0
+      const newRole = user.role === 'user' && newLevel > minRankLevel ? 'leader' : undefined
 
       await tx.user.update({
         where: { id: userId },
