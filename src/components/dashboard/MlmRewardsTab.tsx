@@ -219,7 +219,7 @@ export function MlmRewardsTab() {
     <div className="p-4 md:p-6 space-y-6">
       <div>
         <h2 className="text-xl font-bold text-foreground">Leadership Gifts & Rewards</h2>
-        <p className="text-sm text-muted-foreground">Perform and grow your binary team network volume to unlock luxury rewards.</p>
+        <p className="text-sm text-muted-foreground">Perform and grow your Alliance Network volume to unlock luxury rewards.</p>
       </div>
 
       {/* Overview stats */}
@@ -271,7 +271,7 @@ export function MlmRewardsTab() {
               </span>
               <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400">Level {nextRank.level}</Badge>
             </CardTitle>
-            <CardDescription className="text-xs">Satisfy all constraints in both the Investment Plan and the Binary Plan to qualify.</CardDescription>
+            <CardDescription className="text-xs">Satisfy all constraints in both the Investment Plan and the Alliance Network to qualify.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             

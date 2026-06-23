@@ -59,6 +59,7 @@ export function OverviewTab() {
     silver: 'bg-slate-400/20 text-slate-300 border-slate-400/30',
     gold: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
     platinum: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
+    alliance: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
   }
 
   const planColor = planColors[profile?.planCategory || ''] || planColors.starter

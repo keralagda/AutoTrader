@@ -105,8 +105,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ...user,
       totalDeposited: calculatedTotalDeposited,
-      activePlan: activePlanIds.length > 0 ? 'Active MLM Plans' : null,
-      planCategory: 'mlm',
+      activePlan: activePlanIds.length > 0 ? 'Active Alliance Plans' : null,
+      planCategory: 'alliance',
       investmentAmount: totalActiveInvestment,
       totalActiveInvestment,
       activePlanIds,
