@@ -48,7 +48,8 @@
         "stakingMinDays": "Int",
         "stakingBonusPercent": "Float",
         "stakingEarlyWithdrawalPenalty": "Float",
-        "showPairingRulesInPlanDetails": "Boolean"
+        "showPairingRulesInPlanDetails": "Boolean",
+        "isLeadershipEligible": "Boolean"
       },
       "relations": {
         "pairingRules": "PlanPairingRule[]",

@@ -280,11 +280,14 @@ export async function updateBinaryTreeVolumes(userId: string, amount: number, pl
       include: { plan: true }
     })
     plan = activeDeposits.map(d => d.plan).find(p => p.isBinaryMlmEnabled)
+    if (!plan) {
+      plan = await db.plan.findFirst({
+        where: { isBinaryMlmEnabled: true }
+      })
+    }
   }
-  if (!plan) {
-    plan = await db.plan.findFirst({
-      where: { isBinaryMlmEnabled: true }
-    })
+  if (plan && plan.isLeadershipEligible === false) {
+    return
   }
 
   const pvRatio = plan?.binaryPvRatio ?? 1.0
@@ -445,10 +448,19 @@ export async function checkMlmRankUpgrade(userId: string, plan?: any) {
   // Load all active deposits for the user
   const deposits = await db.deposit.findMany({
     where: { userId, status: { in: ['active', 'locked'] } },
-    select: { amount: true, planId: true }
+    select: {
+      amount: true,
+      planId: true,
+      plan: {
+        select: {
+          isLeadershipEligible: true
+        }
+      }
+    }
   })
-  const totalActiveInvestment = deposits.reduce((sum, d) => sum + d.amount, 0)
-  const activePlanIds = deposits.map(d => d.planId)
+  const eligibleDeposits = deposits.filter(d => d.plan?.isLeadershipEligible !== false)
+  const totalActiveInvestment = eligibleDeposits.reduce((sum, d) => sum + d.amount, 0)
+  const activePlanIds = eligibleDeposits.map(d => d.planId)
 
   // Load direct referrals
   const directReferrals = await db.user.findMany({

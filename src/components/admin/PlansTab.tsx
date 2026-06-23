@@ -101,6 +101,7 @@ interface EditablePlan extends PlanType {
 
   // Binary MLM Configuration
   isBinaryMlmEnabled?: boolean
+  isLeadershipEligible?: boolean
   binaryPairingBonusPercent?: number
   binaryPairingBonusType?: 'percent' | 'fixed'
   binaryPairingBonusFixed?: number
@@ -425,6 +426,7 @@ export function PlansTab() {
       cappingAppliesTo: 'all',
       registrationReferralLevels: 7,
       isBinaryMlmEnabled: isBinary,
+      isLeadershipEligible: true,
       minLossPercent: 0.1,
       maxLossPercent: 5.0,
       allowNegativeBalance: false,
@@ -3237,6 +3239,17 @@ function PlanEditor({
           <Switch
             checked={!!plan.isBinaryMlmEnabled}
             onCheckedChange={checked => ch('isBinaryMlmEnabled', checked)}
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-background/20">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Leadership Eligibility</h3>
+            <p className="text-xs text-muted-foreground">Toggle if deposits in this plan count towards leadership volume (PV, BV, TV) and rank qualifications</p>
+          </div>
+          <Switch
+            checked={plan.isLeadershipEligible !== false}
+            onCheckedChange={checked => ch('isLeadershipEligible', checked)}
           />
         </div>
 

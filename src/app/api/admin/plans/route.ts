@@ -81,6 +81,7 @@ export async function PUT(request: Request) {
     if (updateData.reinvestLockPeriod !== undefined) updateData.reinvestLockPeriod = Math.round(Number(updateData.reinvestLockPeriod || 0))
     if (updateData.reinvestBonus !== undefined) updateData.reinvestBonus = Number(updateData.reinvestBonus || 0)
     if (updateData.autoReinvest !== undefined) updateData.autoReinvest = Boolean(updateData.autoReinvest)
+    if (updateData.isLeadershipEligible !== undefined) updateData.isLeadershipEligible = Boolean(updateData.isLeadershipEligible)
 
     // Auto-generate plain English descriptions only if not explicitly provided
     if (data.earningMechanism === undefined && (data.dailyEarningPercent !== undefined || data.maxEarningLimit !== undefined || data.autoCompound !== undefined)) {
@@ -226,6 +227,7 @@ export async function POST(request: Request) {
     createData.reinvestLockPeriod = Math.round(Number(createData.reinvestLockPeriod || 0))
     createData.reinvestBonus = Number(createData.reinvestBonus || 0)
     createData.autoReinvest = Boolean(createData.autoReinvest)
+    createData.isLeadershipEligible = createData.isLeadershipEligible !== undefined ? Boolean(createData.isLeadershipEligible) : true
 
     // Auto-generate plain English descriptions as fallback
     const daily = data.dailyEarningPercent ?? 0
