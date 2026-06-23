@@ -525,6 +525,21 @@ export function InvestmentTab() {
                       {selectedPlan.lockPeriodDays > 0 ? <><Lock className="size-3" />{selectedPlan.lockPeriodDays} days</> : 'None'}
                     </p>
                   </div>
+                  <div>
+                    <p className="text-muted-foreground">Plan Duration</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Clock className="size-3" />
+                      {selectedPlan.durationDays > 0 ? `${selectedPlan.durationDays} days` : 'Lifetime (No limit)'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Capital Return</p>
+                    <p className="font-medium">
+                      {selectedPlan.capitalReturn === 'included' ? 'Included in profits' :
+                       selectedPlan.capitalReturn === 'end' ? 'Returned at end' :
+                       'No return'}
+                    </p>
+                  </div>
                 </div>
                 {selectedPlan.stackingEnabled && (
                   <div className="flex items-center gap-1.5 text-xs text-violet-400">
