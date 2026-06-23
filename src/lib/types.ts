@@ -27,6 +27,7 @@ export interface PlanType {
   rewardsOffersPercent: number
   platformFeePercent: number
   // Subscription Distribution
+  isSubscriptionDistributionEnabled?: boolean
   subscriptionReferralPercent: number
   subscriptionRewardsPercent: number
   subscriptionPlatformPercent: number

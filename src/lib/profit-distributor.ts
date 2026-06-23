@@ -554,7 +554,7 @@ export async function runProfitDistribution() {
           }
 
           // Distribute Activation Fee
-          if (activationFee > 0) {
+          if (activationFee > 0 && targetPlan.isSubscriptionDistributionEnabled) {
             const referralPercent = targetPlan.subscriptionReferralPercent ?? 80
             const rewardsPercent = targetPlan.subscriptionRewardsPercent ?? 15
             const platformPercent = targetPlan.subscriptionPlatformPercent ?? 5

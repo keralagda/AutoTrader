@@ -102,6 +102,7 @@ interface EditablePlan extends PlanType {
   // Binary MLM Configuration
   isBinaryMlmEnabled?: boolean
   isLeadershipEligible?: boolean
+  isSubscriptionDistributionEnabled?: boolean
   binaryPairingBonusPercent?: number
   binaryPairingBonusType?: 'percent' | 'fixed'
   binaryPairingBonusFixed?: number
@@ -310,10 +311,12 @@ export function PlansTab() {
       toast({ title: 'Validation Error', description: `Distribution percentages must total 100%. Currently: ${distTotal}%`, variant: 'destructive' })
       return
     }
-    const subTotal = plan.subscriptionReferralPercent + plan.subscriptionRewardsPercent + plan.subscriptionPlatformPercent
-    if (Math.abs(subTotal - 100) > 0.01) {
-      toast({ title: 'Validation Error', description: `Subscription distribution must total 100%. Currently: ${subTotal}%`, variant: 'destructive' })
-      return
+    if (plan.isSubscriptionDistributionEnabled) {
+      const subTotal = plan.subscriptionReferralPercent + plan.subscriptionRewardsPercent + plan.subscriptionPlatformPercent
+      if (Math.abs(subTotal - 100) > 0.01) {
+        toast({ title: 'Validation Error', description: `Subscription distribution must total 100%. Currently: ${subTotal}%`, variant: 'destructive' })
+        return
+      }
     }
     if (!plan.name.trim()) {
       toast({ title: 'Validation Error', description: 'Plan name is required', variant: 'destructive' })
@@ -405,6 +408,7 @@ export function PlansTab() {
       subscriptionReferralPercent: 80,
       subscriptionRewardsPercent: 15,
       subscriptionPlatformPercent: 5,
+      isSubscriptionDistributionEnabled: false,
       earningMechanism: 'Daily earnings at 5% of deposit amount, capped at $1,000 total. Earnings accrue Monday to Friday.',
       withdrawalRule: 'No lock-in period. Earnings available for withdrawal anytime.',
       stackingRule: 'Single deposit only per plan.',
@@ -1549,7 +1553,7 @@ function PlanEditor({
   )
 
   const distValid = Math.abs(distTotal - 100) < 0.01
-  const subDistValid = Math.abs(subDistTotal - 100) < 0.01
+  const subDistValid = !plan.isSubscriptionDistributionEnabled || Math.abs(subDistTotal - 100) < 0.01
 
   const ch = (field: keyof EditablePlan, value: any) => onChange(plan.id, field, value)
 
@@ -3142,6 +3146,7 @@ function PlanEditor({
           title="Subscription Fee Distribution"
           helpContent={
             <div className="space-y-1">
+              <p>• <strong>Enable Subscription Distribution</strong>: Toggle if activation/entry fee should be distributed to the uplines, rewards and platform pools.</p>
               <p>• <strong>Referral/Profit Share</strong>: Percentage of subscription/entry fee allocated to referral tree bonuses.</p>
               <p>• <strong>Rewards & Offers</strong>: Portion reserved for promotional rewards.</p>
               <p>• <strong>Platform Fee</strong>: Portion kept by the platform as a service charge. Must total 100%.</p>
@@ -3149,48 +3154,63 @@ function PlanEditor({
           }
         >
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <NumberField
-                label="Referral/Profit Share"
-                suffix="%"
-                value={plan.subscriptionReferralPercent}
-                onChange={v => ch('subscriptionReferralPercent', v)}
-                color="text-violet-400"
-                tooltip="The percentage of the entry fee distributed up the sponsor upline referral tree."
-              />
-              <NumberField
-                label="Rewards & Offers"
-                suffix="%"
-                value={plan.subscriptionRewardsPercent}
-                onChange={v => ch('subscriptionRewardsPercent', v)}
-                color="text-amber-400"
-                tooltip="The percentage of the entry fee reserved for marketing promotions and rewards."
-              />
-              <NumberField
-                label="Platform Fee"
-                suffix="%"
-                value={plan.subscriptionPlatformPercent}
-                onChange={v => ch('subscriptionPlatformPercent', v)}
-                color="text-rose-400"
-                tooltip="The percentage of the entry fee kept by the system admin."
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/20 mb-2">
+              <div>
+                <Label className="text-sm font-semibold text-foreground">Distribute Subscription Fees</Label>
+                <p className="text-xs text-muted-foreground">Split and distribute the plan activation/entry fee to the upline referral network and platform pools.</p>
+              </div>
+              <Switch
+                checked={!!plan.isSubscriptionDistributionEnabled}
+                onCheckedChange={checked => ch('isSubscriptionDistributionEnabled', checked)}
               />
             </div>
 
-            {/* Visual Bar */}
-            <DistributionBar
-              segments={[
-                { value: plan.subscriptionReferralPercent, color: SUB_DIST_COLORS.referral, label: 'Referral' },
-                { value: plan.subscriptionRewardsPercent, color: SUB_DIST_COLORS.rewards, label: 'Rewards' },
-                { value: plan.subscriptionPlatformPercent, color: SUB_DIST_COLORS.platform, label: 'Platform' },
-              ]}
-              total={subDistTotal}
-              valid={subDistValid}
-            />
+            {plan.isSubscriptionDistributionEnabled && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="grid grid-cols-3 gap-4">
+                  <NumberField
+                    label="Referral/Profit Share"
+                    suffix="%"
+                    value={plan.subscriptionReferralPercent}
+                    onChange={v => ch('subscriptionReferralPercent', v)}
+                    color="text-violet-400"
+                    tooltip="The percentage of the entry fee distributed up the sponsor upline referral tree."
+                  />
+                  <NumberField
+                    label="Rewards & Offers"
+                    suffix="%"
+                    value={plan.subscriptionRewardsPercent}
+                    onChange={v => ch('subscriptionRewardsPercent', v)}
+                    color="text-amber-400"
+                    tooltip="The percentage of the entry fee reserved for marketing promotions and rewards."
+                  />
+                  <NumberField
+                    label="Platform Fee"
+                    suffix="%"
+                    value={plan.subscriptionPlatformPercent}
+                    onChange={v => ch('subscriptionPlatformPercent', v)}
+                    color="text-rose-400"
+                    tooltip="The percentage of the entry fee kept by the system admin."
+                  />
+                </div>
 
-            {!subDistValid && (
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
-                <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
-                <p className="text-xs text-rose-400">Total is {subDistTotal}% — must equal 100%</p>
+                {/* Visual Bar */}
+                <DistributionBar
+                  segments={[
+                    { value: plan.subscriptionReferralPercent, color: SUB_DIST_COLORS.referral, label: 'Referral' },
+                    { value: plan.subscriptionRewardsPercent, color: SUB_DIST_COLORS.rewards, label: 'Rewards' },
+                    { value: plan.subscriptionPlatformPercent, color: SUB_DIST_COLORS.platform, label: 'Platform' },
+                  ]}
+                  total={subDistTotal}
+                  valid={subDistValid}
+                />
+
+                {!subDistValid && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                    <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
+                    <p className="text-xs text-rose-400">Total is {subDistTotal}% — must equal 100%</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

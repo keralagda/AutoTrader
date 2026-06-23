@@ -134,6 +134,7 @@ model Plan {
   platformFeePercent    Float    @default(5)
 
   // Subscription Distribution
+  isSubscriptionDistributionEnabled Boolean @default(false)
   subscriptionReferralPercent Float @default(80)
   subscriptionRewardsPercent  Float @default(15)
   subscriptionPlatformPercent Float @default(5)

@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Distribute Activation Fee
-    if (activationFee > 0) {
+    if (activationFee > 0 && plan.isSubscriptionDistributionEnabled) {
       const referralPercent = plan.subscriptionReferralPercent ?? 80
       const rewardsPercent = plan.subscriptionRewardsPercent ?? 15
       const platformPercent = plan.subscriptionPlatformPercent ?? 5

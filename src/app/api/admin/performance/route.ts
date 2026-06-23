@@ -122,21 +122,23 @@ export async function GET(req: NextRequest) {
         })
       }
 
-      // Subscription allocations (must sum to 100%)
-      const subSum = 
-        plan.subscriptionReferralPercent + 
-        plan.subscriptionRewardsPercent + 
-        plan.subscriptionPlatformPercent
-      
-      if (Math.abs(subSum - 100) > 0.01) {
-        auditIssues.push({
-          planId: plan.id,
-          planName,
-          category: 'subscription_sharing',
-          severity: 'warning',
-          message: `Subscription allocation splits sum to ${subSum}%. It is recommended they sum to exactly 100%.`,
-          recommendation: 'Update subscription splits in the Plan Builder.'
-        })
+      // Subscription allocations (must sum to 100% only if enabled)
+      if (plan.isSubscriptionDistributionEnabled) {
+        const subSum = 
+          plan.subscriptionReferralPercent + 
+          plan.subscriptionRewardsPercent + 
+          plan.subscriptionPlatformPercent
+        
+        if (Math.abs(subSum - 100) > 0.01) {
+          auditIssues.push({
+            planId: plan.id,
+            planName,
+            category: 'subscription_sharing',
+            severity: 'warning',
+            message: `Subscription allocation splits sum to ${subSum}%. It is recommended they sum to exactly 100%.`,
+            recommendation: 'Update subscription splits in the Plan Builder.'
+          })
+        }
       }
 
       // Bounds check
