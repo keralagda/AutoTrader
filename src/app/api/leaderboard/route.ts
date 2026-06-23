@@ -47,9 +47,19 @@ export async function GET(request: Request) {
     }
 
     if (teamOnly && userId) {
+      const activeBinaryPlan = await db.plan.findFirst({
+        where: { isActive: true, isBinaryMlmEnabled: true },
+        select: { registrationReferralLevels: true }
+      })
+      const activePlan = activeBinaryPlan || await db.plan.findFirst({
+        where: { isActive: true },
+        select: { registrationReferralLevels: true }
+      })
+      const maxLevels = activePlan?.registrationReferralLevels ?? 7
+
       let currentLevelIds = [userId]
       const teamIds = [userId]
-      for (let level = 1; level <= 7; level++) {
+      for (let level = 1; level <= maxLevels; level++) {
         const members = await db.user.findMany({
           where: { referredById: { in: currentLevelIds } },
           select: { id: true },

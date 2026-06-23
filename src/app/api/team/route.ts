@@ -42,11 +42,23 @@ export async function GET(request: Request) {
       }
     })
 
-    // Build team tree up to 7 levels
+    // Retrieve profit level commissions from active binary plans to determine max levels dynamically
+    const activeBinaryPlan = await db.plan.findFirst({
+      where: { isActive: true, isBinaryMlmEnabled: true },
+      include: { referralRules: { where: { type: 'profit', enabled: true }, orderBy: { level: 'asc' } } }
+    })
+    const activePlan = activeBinaryPlan || await db.plan.findFirst({
+      where: { isActive: true },
+      include: { referralRules: { where: { type: 'profit', enabled: true }, orderBy: { level: 'asc' } } }
+    })
+
+    const maxLevels = activePlan?.registrationReferralLevels ?? 7
+
+    // Build team tree up to maxLevels
     const teamByLevel: { level: number; members: any[]; count: number }[] = []
     let currentLevelIds = [userId]
 
-    for (let level = 1; level <= 7; level++) {
+    for (let level = 1; level <= maxLevels; level++) {
       const members = await db.user.findMany({
         where: { referredById: { in: currentLevelIds } },
         select: {
@@ -89,16 +101,6 @@ export async function GET(request: Request) {
 
     const totalTeam = teamByLevel.reduce((sum, l) => sum + l.count, 0)
     const totalDirect = directReferralsFormatted.length
-
-    // Retrieve profit level commissions from active binary plans
-    const activeBinaryPlan = await db.plan.findFirst({
-      where: { isActive: true, isBinaryMlmEnabled: true },
-      include: { referralRules: { where: { type: 'profit', enabled: true }, orderBy: { level: 'asc' } } }
-    })
-    const activePlan = activeBinaryPlan || await db.plan.findFirst({
-      where: { isActive: true },
-      include: { referralRules: { where: { type: 'profit', enabled: true }, orderBy: { level: 'asc' } } }
-    })
     
     const registrationRates = (activePlan?.referralRules || []).map(r => ({
       level: r.level,

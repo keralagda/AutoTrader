@@ -39,8 +39,9 @@ export async function GET(request: Request) {
     const registrationRules = activePlan?.referralRules.filter(r => r.type === 'registration') || []
     const profitRules = activePlan?.referralRules.filter(r => r.type === 'profit') || []
     const defaultRates = [25, 20, 15, 10, 10, 10, 10]
+    const maxLevels = activePlan?.registrationReferralLevels ?? 7
 
-    const referralByLevel = Array.from({ length: 7 }, (_, i) => {
+    const referralByLevel = Array.from({ length: maxLevels }, (_, i) => {
       const level = i + 1
       const levelEarnings = earnings.filter(e => e.type === 'referral' && e.level === level)
       const rule = registrationRules.find(r => r.level === level)
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
       }
     })
 
-    const profitShareByLevel = Array.from({ length: 7 }, (_, i) => {
+    const profitShareByLevel = Array.from({ length: maxLevels }, (_, i) => {
       const level = i + 1
       const levelEarnings = earnings.filter(e => e.type === 'profit_share' && e.level === level)
       const rule = profitRules.find(r => r.level === level)
