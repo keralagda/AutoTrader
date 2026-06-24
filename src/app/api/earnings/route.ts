@@ -16,14 +16,34 @@ export async function GET(request: Request) {
       take: 100,
     })
 
+    // Query database to aggregate all-time sums by type for the user
+    const allTimeEarnings = await db.earning.groupBy({
+      by: ['type'],
+      where: { userId },
+      _sum: {
+        amount: true,
+      },
+    })
+
+    const summaryMap: Record<string, number> = {}
+    allTimeEarnings.forEach((item) => {
+      summaryMap[item.type] = item._sum.amount || 0
+    })
+
     const summary = {
-      total: earnings.filter(e => e.type !== 'subtract').reduce((sum, e) => sum + e.amount, 0),
-      referral: earnings.filter(e => e.type === 'referral').reduce((sum, e) => sum + e.amount, 0),
-      profitShare: earnings.filter(e => e.type === 'profit_share').reduce((sum, e) => sum + e.amount, 0),
-      daily: earnings.filter(e => e.type === 'daily').reduce((sum, e) => sum + e.amount, 0),
-      binary: earnings.filter(e => e.type === 'binary_pairing_bonus' || e.type === 'binary_cycle_bonus' || e.type === 'binary_flush_bonus' || e.type.startsWith('binary_')).reduce((sum, e) => sum + e.amount, 0),
-      bonus: earnings.filter(e => (e.type === 'bonus' || e.type === 'stacking_bonus') && !e.type.startsWith('binary_')).reduce((sum, e) => sum + e.amount, 0),
-      subtracted: earnings.filter(e => e.type === 'subtract').reduce((sum, e) => sum + e.amount, 0),
+      total: Object.entries(summaryMap)
+        .filter(([type]) => type !== 'subtract')
+        .reduce((sum, [_, amt]) => sum + amt, 0),
+      referral: summaryMap['referral'] || 0,
+      profitShare: summaryMap['profit_share'] || 0,
+      daily: summaryMap['daily'] || 0,
+      binary: Object.entries(summaryMap)
+        .filter(([type]) => type === 'binary_pairing_bonus' || type === 'binary_cycle_bonus' || type === 'binary_flush_bonus' || type.startsWith('binary_'))
+        .reduce((sum, [_, amt]) => sum + amt, 0),
+      bonus: Object.entries(summaryMap)
+        .filter(([type]) => (type === 'bonus' || type === 'stacking_bonus') && !type.startsWith('binary_'))
+        .reduce((sum, [_, amt]) => sum + amt, 0),
+      subtracted: summaryMap['subtract'] || 0,
     }
 
     // Fetch active plan referral rules to get dynamic level percentages

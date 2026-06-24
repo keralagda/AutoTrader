@@ -147,7 +147,7 @@ export function EarningsTab() {
     if (!user?.id) return
     try {
       setLoading(true)
-      const res = await fetch(`/api/earnings?userId=${user.id}`)
+      const res = await fetch(`/api/earnings?userId=${user.id}&t=${Date.now()}`)
       if (res.ok) {
         const json = await res.json()
         setData(json)
